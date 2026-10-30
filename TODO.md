@@ -39,6 +39,8 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 
 ## Completion and handoff
 
+DESIGN-04 preview: [owner-private Site](https://iiitd-amber-market-preview.elvencloth.chatgpt.site), published successfully from concept commit `f903743`. PR #11 stays open for review; coordinate integration with Abhik before adopting components in `app/`. Both GitHub checks passed on the implementation head. See the concept README for local preview and verification limits.
+
 Before marking a task Done, link the merged change, record meaningful verification, update the README for changed behavior/setup, and note unfinished work here. For Blocked tasks, name the missing dependency or decision and who can resolve it. For an unfinished handoff, leave the branch, current state, next step, and verification limits in the notes.
 
 ## Open decisions

@@ -2,6 +2,8 @@
 
 Owner: Codex, task DESIGN-04. Requested separately by Garv while Abhik owns the canonical website design. This standalone preview deliberately keeps its files, lockfile, dependencies, and CSS out of `app/`. It is a visual proposal, not a second production app or a change to real account/data access.
 
+[Open the owner-private preview](https://iiitd-amber-market-preview.elvencloth.chatgpt.site). Published successfully with Sites on 2026-10-31 from concept commit `f903743`. This is a separate sample-data preview; the canonical marketplace remains undeployed. Abhik can run the GitHub source locally using the commands below; the hosted preview is private to the owner.
+
 Use Node.js 24. From this directory run `npm ci`, then `npm run dev` (port 5180). `npm run build` creates `dist/`. `npm run typecheck` checks the concept.
 
 React + TypeScript + Tailwind CSS + Framer Motion. Twelve illustrative listings; sample sellers/ratings/quotes are labelled. Search, categories, sort/filter, saved items, details, and preview listing creation operate on session-only fixtures. No real sign-in, messages, listings, or email subscriptions are sent. Production integration is a separate coordinated task after design review.

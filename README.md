@@ -132,6 +132,8 @@ The owner has also requested a separate amber/dark visual concept from Codex. It
 
 The concept is implemented in [PR #11](https://github.com/garvrao80/iiitdblackmarket/pull/11). See its [README](design/amber-market/README.md) for commands, component ownership, assets, and verification. It includes a charcoal/amber collage hero, category discovery, bento listings, filter drawer, details/saved finds, community sections, and local listing creation. All real authentication and messaging remain in the canonical app.
 
+[Open Garv's private concept preview](https://iiitd-amber-market-preview.elvencloth.chatgpt.site) (Sites, published 2026-10-31). This separate fixture-based preview does not deploy the canonical marketplace or change its audience. Abhik can run `design/amber-market/` locally with the documented commands.
+
 - Fetch the latest remote changes before starting work and again before pushing.
 - Use focused feature branches and pull requests for application changes so parallel work can be reviewed together.
 - Coordinate ownership of overlapping features/files before editing them.
