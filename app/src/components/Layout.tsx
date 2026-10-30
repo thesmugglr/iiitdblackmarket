@@ -1,11 +1,13 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { Chat, Grid, Heart, Plus, User } from './Icons'
+import { demoMode } from '../lib/supabase'
 
 export default function Layout() {
   const { profile, signOut } = useAuth()
   return (
     <>
+      {demoMode && <aside role="status" style={{ padding: '8px 20px', background: '#fff2b8', color: '#292318', textAlign: 'center' }}>Demo preview · Fictional students and items · Actions are not saved</aside>}
       <header className="top">
         <NavLink to="/" className="brand">
           <span className="mark">B</span>

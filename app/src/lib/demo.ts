@@ -48,7 +48,11 @@ function builder(table: string) {
 const channel = { on: () => channel, subscribe: () => channel }
 export const demoClient = {
   from: builder,
-  rpc: () => Promise.resolve({ data: [{ conversation_id: 'c1', unread: 1 }], error: null }),
+  rpc: (name: string) => {
+    if (name === 'my_profile') return { maybeSingle: () => Promise.resolve({ data: me, error: null }) }
+    if (name === 'admin_profiles') return Promise.resolve({ data: tables.profiles, error: null })
+    return Promise.resolve({ data: [{ conversation_id: 'c1', unread: 1 }], error: null })
+  },
   channel: () => channel,
   removeChannel: () => Promise.resolve(),
   storage: { from: () => ({ createSignedUrls: (paths: string[]) => Promise.resolve({ data: paths.map((p) => ({ path: p, signedUrl: photo(p) })) }), upload: () => Promise.resolve({ error: null }) }) },

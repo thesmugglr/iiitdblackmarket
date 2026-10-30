@@ -9,6 +9,7 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 | ID | Task | Status | Owner | Depends on | Branch / PR / notes |
 | --- | --- | --- | --- | --- | --- |
 | DOC-01 | Establish shared README, task board, contribution guide, and agent instructions | Done | Codex | — | Documentation only; 2026-10-31. |
+| REVIEW-01 | Review/fix AbhikRao PR #3 before merge | Review | Codex | PR #3 | [Fix PR #5](https://github.com/garvrao80/iiitdblackmarket/pull/5), branch `fix/PR-03-review`; corrective migration, eight local database checks, CI. Live Supabase QA remains separate. |
 | PLAN-01 | Approve or revise first-release scope | Review | Codex | — | Implemented on `feat/mvp-app`; untested on live backend. |
 | PLAN-02 | Decide current-student verification and approval process | Backlog | Unassigned | PLAN-01 | Institute domain alone does not establish student status. |
 | SETUP-01 | Choose framework/hosting and scaffold application | Review | Codex | PLAN-01 | Implemented on `feat/mvp-app`; untested on live backend. |
@@ -44,3 +45,5 @@ Before marking a task Done, link the merged change, record meaningful verificati
 
 ## Status note (2026-10-31)
 Tasks in `Review` are implemented but unverified. PLAN-02 is resolved as roster + admin approval (graduates handled manually). Still needed from the owner: Supabase project, Google OAuth credentials, hosting choice (QA-01, DEPLOY-01).
+
+The owner authorized checking and merging AbhikRao's PRs. A 15-minute review monitor is active. Review the exact current head, resolve material findings, and run applicable checks before merge; leave blocked PRs unmerged. Local regression checks now cover a subset of QA-01, not live-provider verification.
