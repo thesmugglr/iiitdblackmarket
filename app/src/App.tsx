@@ -1,4 +1,5 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/auth'
 import Layout from './components/Layout'
 import Login from './pages/Login'
@@ -16,9 +17,20 @@ import Wanted from './pages/Wanted'
 import Bundles from './pages/Bundles'
 import BundleNew from './pages/BundleNew'
 import BundleDetail from './pages/BundleDetail'
+import { POST_LOGIN_KEY } from './lib/redirect'
 
 function Gate() {
   const { session, profile, loading } = useAuth()
+  const nav = useNavigate()
+  const approved = profile?.status === 'approved'
+  // After Google sends people back to the site root, return them to the page they came for (e.g. a shared listing).
+  useEffect(() => {
+    if (!approved) return
+    try {
+      const target = sessionStorage.getItem(POST_LOGIN_KEY)
+      if (target) { sessionStorage.removeItem(POST_LOGIN_KEY); nav(target, { replace: true }) }
+    } catch { /* storage unavailable */ }
+  }, [approved, nav])
   if (loading) return <p className="muted center-box">Loading…</p>
   if (!session) return <Login />
   if (!profile || profile.status !== 'approved') return <Pending />
@@ -48,7 +60,7 @@ function Gate() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Gate />
       </BrowserRouter>
     </AuthProvider>
