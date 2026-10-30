@@ -15,7 +15,7 @@ export default function Saved() {
   return (
     <>
       <h1>Saved items</h1>
-      {items.length === 0 && <p className="muted">Nothing saved yet. Tap ♡ on a listing to keep it here.</p>}
+      {items.length === 0 && <p className="muted">Nothing saved yet. Tap Save on a listing to keep it here.</p>}
       <div className="grid">{items.map((l) => <ListingCard key={l.id} l={l} />)}</div>
     </>
   )
