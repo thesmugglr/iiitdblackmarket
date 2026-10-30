@@ -15,7 +15,7 @@ export default function Admin() {
   const [msg, setMsg] = useState('')
 
   const load = useCallback(async () => {
-    const u = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
+    const u = await supabase.rpc('admin_profiles')
     setUsers((u.data ?? []) as Profile[])
     const r = await supabase.from('reports').select('*, reporter:profiles!reports_reporter_id_fkey(display_name)').eq('status', 'open').order('created_at')
     setReports((r.data ?? []) as unknown as Report[])

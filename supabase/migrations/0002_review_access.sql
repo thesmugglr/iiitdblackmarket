@@ -1,4 +1,16 @@
 -- Review fixes. Apply after 0001_init.sql, including on fresh installations.
+-- Public profile joins must not expose institute email addresses.
+revoke select on public.profiles from public,anon,authenticated;
+grant select(id,display_name,batch,role,status,created_at) on public.profiles to authenticated;
+create or replace function public.my_profile() returns setof public.profiles
+language sql stable security definer set search_path = public as $$
+  select * from profiles where id=auth.uid();
+$$;
+create or replace function public.admin_profiles() returns setof public.profiles
+language sql stable security definer set search_path = public as $$
+  select * from profiles where public.is_admin() order by created_at desc;
+$$;
+
 create or replace function public.guard_profile_update() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin

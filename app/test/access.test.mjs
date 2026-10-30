@@ -23,9 +23,9 @@ test('database access regression scenarios', async (t) => {
   const initial = await readFile(new URL('../../supabase/migrations/0001_init.sql',import.meta.url),'utf8');
   // pgcrypto is not bundled in PGlite; UUID generation is built into PostgreSQL.
   await db.exec(initial.replace('create extension if not exists pgcrypto;',''));
-  await db.exec(await readFile(new URL('../../supabase/migrations/0002_review_access.sql',import.meta.url),'utf8'));
   await db.exec(`grant usage on schema public,auth,storage to authenticated,anon;
     grant all on all tables in schema public,storage to authenticated,anon;`);
+  await db.exec(await readFile(new URL('../../supabase/migrations/0002_review_access.sql',import.meta.url),'utf8'));
   const admin='00000000-0000-0000-0000-000000000001';
   const seller='00000000-0000-0000-0000-000000000002';
   const buyer='00000000-0000-0000-0000-000000000003';
@@ -47,6 +47,12 @@ test('database access regression scenarios', async (t) => {
     await db.query("update profiles set display_name='Buyer updated' where id=$1",[buyer]);
   });
   await as(seller);
+  await t.test('member can read public names and own email, but not other emails or admin directory',async()=>{
+    await assert.rejects(db.query('select email from profiles where id=$1',[buyer]),/permission denied/);
+    assert.equal(await scalar('select display_name from profiles where id=$1',[buyer]),'Buyer updated');
+    assert.equal(await scalar('select email from my_profile()'),'seller@iiitd.ac.in');
+    assert.equal((await db.query('select * from admin_profiles()')).rows.length,0);
+  });
   const listing=await scalar(`insert into listings(seller_id,title,listing_type,category,condition,price_inr)
     values($1,'A test item','sale','electronics','good',500) returning id`,[seller]);
   await as(buyer);
