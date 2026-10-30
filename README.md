@@ -128,6 +128,8 @@ Expected configuration needs include a backend project, Google OAuth credentials
 
 **Ownership:** AbhikRao owns the main website design/UI. Garv Rao and Codex own backend, authentication, database/access policies, tests, CI, and deployment preparation. Codex's old design PR #4 is closed; its branch is reference material only. The standing review monitor follows this split.
 
+The owner has also requested a separate amber/dark visual concept from Codex. It lives in `design/amber-market/` on `feat/DESIGN-04-amber-preview`, with independent dependencies/styles and clearly labelled sample data. This proposal does not replace the canonical `app/` or Abhik's current UI. Coordinate integration after reviewing it.
+
 - Fetch the latest remote changes before starting work and again before pushing.
 - Use focused feature branches and pull requests for application changes so parallel work can be reviewed together.
 - Coordinate ownership of overlapping features/files before editing them.
