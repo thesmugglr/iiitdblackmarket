@@ -6,7 +6,7 @@
 - Use focused branches and pull requests for application changes. Coordinate overlapping tasks and shared schema/configuration changes.
 - Update README.md and TODO.md with each meaningful project change in the same commit/PR. Record behavior, setup changes, task ownership/status, verification results, blockers, and remaining work as applicable.
 - Keep planned, implemented, tested, and deployed states distinct. Do not invent setup commands, completed checks, deployment URLs, or implemented features.
-- Run verification appropriate to the change. At the documentation-only baseline, use `git diff --check`; application commands must be documented when introduced.
+- Use Node.js 24. Run `npm test`, `npm run build`, and `npm run lint` inside app/ and `git diff --check` before application PRs. Document actual results and existing warnings. `npm run check:config` is required before hosted builds with real configuration; local tests/preview builds can run without credentials. Read docs/backend-setup.md for setup and docs/live-qa.md for service-level QA.
 - Never commit secrets, private student rosters, or real chat data. Use placeholder configuration examples.
 - Preserve server-side membership checks, owner-only listing mutations, and conversation participant access as implementation requirements. An institute email domain alone does not prove current student status.
 - At handoff, report the changed files, branch/commit or PR, checks performed, and unresolved work.
