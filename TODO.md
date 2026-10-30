@@ -13,6 +13,7 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 | PLAN-02 | Decide current-student verification and approval process | Backlog | Unassigned | PLAN-01 | Institute domain alone does not establish student status. |
 | SETUP-01 | Scaffold website, API, shared types, local tooling, and CI | Review | Codex | Owner authorized scaffold directly | [PR #1](https://github.com/garvrao80/iiitdblackmarket/pull/1), branch `feat/SETUP-01-repo-scaffold`; see README verification and setup. Merge pending. |
 | SETUP-02 | Choose production hosting and configure backend provider | Backlog | Unassigned | SETUP-01 | No hosting or Supabase project configured. |
+| DESIGN-01 | Dark-tech public homepage and reusable design guide | In progress | Codex | SETUP-01; owner selected dark tech | Branch `feat/DESIGN-01-dark-campus`, based on scaffold PR #1. Scope: web UI/assets and design documentation; no API/schema changes. |
 | DATA-01 | Design schema and migrations for profiles, listings, conversations, offers, and reports | Backlog | Unassigned | PLAN-02, SETUP-01 | Include ownership and membership access policies. |
 | AUTH-01 | Configure institute sign-in and student eligibility checks | Backlog | Unassigned | PLAN-02, DATA-01 | Document OAuth callback and environment key names. |
 | LIST-01 | Create/edit listings and protected photo uploads | Backlog | Unassigned | AUTH-01, DATA-01 | Include image limits and owner-only mutations. |
