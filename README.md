@@ -4,6 +4,8 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 ## Current status
 
+LIST-04 is addressing listing photo batch validation and concurrent upload state on `fix/LIST-04-upload-state`; verification is pending. This is a functional fix to the existing Sell form, with no visual redesign.
+
 **First release merged into `main` through AbhikRao's PR #3, including review fixes from PR #5. Not yet tested against a live Supabase project or deployed.**
 
 The owner asked for the project to be completed, so the proposed first-release scope below was built. The app compiles and bundles (`npm run build`), but no end-to-end run with real accounts has happened: it needs a Supabase project and Google OAuth credentials that only the owner can create. Treat every feature as *implemented, unverified* until QA-01 is done.
