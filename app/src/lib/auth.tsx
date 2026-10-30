@@ -20,7 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadProfile = async (s: Session | null) => {
     if (!s) return setProfile(null)
-    const { data } = await supabase.from('profiles').select('*').eq('id', s.user.id).maybeSingle()
+    const { data } = await supabase.rpc('my_profile').maybeSingle()
     setProfile(data as Profile | null)
   }
 
