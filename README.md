@@ -4,9 +4,9 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 ## Current status
 
-**Planning stage — application implementation has not started.**
+**First release implemented in code (branch `feat/mvp-app`); not yet tested against a live Supabase project and not deployed.**
 
-The repository was reviewed on 31 October 2026 and contained only this README. The scope below is a proposal awaiting the project owner's approval; it does not describe working features. Documentation updates have been authorized.
+The owner asked for the project to be completed, so the proposed first-release scope below was built. The app compiles and bundles (`npm run build`), but no end-to-end run with real accounts has happened: it needs a Supabase project and Google OAuth credentials that only the owner can create. Treat every feature as *implemented, unverified* until QA-01 is done.
 
 This README is the shared project record for the owner, their collaborator, and Codex. Update it with every meaningful project change so everyone can see what exists, what changed, and what remains.
 
@@ -77,7 +77,29 @@ Hosting and the application framework remain to be finalized before implementati
 
 ## Local setup and deployment
 
-There is no runnable application, dependency manifest, database schema, or deployment yet. Setup commands will be documented here when those files exist.
+Layout: `app/` is the React + TypeScript (Vite) client; `supabase/migrations/0001_init.sql` is the full schema, row-level security, RPCs, storage buckets and realtime setup.
+
+1. Create a Supabase project. In the SQL editor run `supabase/migrations/0001_init.sql`.
+2. Enable Google auth (Authentication → Providers) with OAuth credentials from Google Cloud; add your site URL and `http://localhost:5173` to the redirect URLs.
+3. `cd app && cp .env.example .env` and fill `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+4. `npm install && npm run dev` (checks: `npm run build`, `npm run lint`).
+5. Sign in once with the admin's @iiitd.ac.in account, then run in SQL: `update public.profiles set role='admin', status='approved' where email='you@iiitd.ac.in';`
+6. As admin, open **Admin** and paste current-student emails into the roster. Rostered users are approved on sign-up; others stay pending until approved.
+
+Hosting is not chosen. `npm run build` outputs static files in `app/dist` for any static host (e.g. Vercel, Netlify, Cloudflare Pages); configure the two env vars there. Never commit `.env` or real rosters/chats.
+
+### What is implemented
+- Sign-in with Google (domain hint in the client; `@iiitd.ac.in` enforced by a database trigger on sign-up). Marketplace access requires `approved` status (roster or admin approval).
+- Listings (sale/rent/giveaway, up to 6 photos in a private bucket served by signed URLs), edit/delete/reserve/sold, search, filters, sorting, saved items.
+- Chat started via RPC; messages, photo attachments, read receipts and unread counts, realtime updates; offers made by buyers and accepted/declined by sellers (acceptance reserves the listing).
+- Profile with own listings and completed deals; reports on listings/messages, user blocking, admin console (roster, user approve/suspend, report queue, listing removal).
+
+### Known limits
+- Unverified against a live backend; RLS policies need the separate-account tests in QA-01.
+- No expiry reminders, notifications, "looking for" posts or bundles (EXTRA-01..03), and no integrated payments.
+- Search is simple substring matching; no pagination beyond the first 60 results.
+- Blocking stops new messages and new chats; admin listing removal uses the status field.
+- Graduates: no automatic handling; admins suspend accounts manually.
 
 Expected configuration needs include a backend project, Google OAuth credentials and callback URLs, the accepted institute domain, a student eligibility mechanism, and deployment configuration. Never commit secrets, private student rosters, or real chat data. Document configuration key names and use placeholders in examples.
 
@@ -93,17 +115,7 @@ Expected configuration needs include a backend project, Google OAuth credentials
 
 ## Next steps
 
-The detailed shared task board, including owners and dependencies, is in [TODO.md](TODO.md). Keep this overview aligned with that board.
-
-- [ ] Approve or revise the proposed release scope.
-- [ ] Decide how current student eligibility is verified.
-- [ ] Finalize framework, hosting, and backend configuration.
-- [ ] Implement institute sign-in and access controls.
-- [ ] Implement listings, uploads, categories, and search.
-- [ ] Implement private chat and offers.
-- [ ] Implement dashboards, saved items, and moderation.
-- [ ] Validate access isolation, uploads, listing ownership, and chat between separate test accounts.
-- [ ] Document local setup, deployment, and operational limits as they become concrete.
+See [TODO.md](TODO.md). Remaining: create the Supabase project and run the migration, configure Google OAuth, run QA-01 with two or more test accounts, choose hosting and deploy.
 
 ## Progress log
 
@@ -111,3 +123,4 @@ The detailed shared task board, including owners and dependencies, is in [TODO.m
 | --- | --- | --- |
 | 2026-10-31 | Reviewed the repository and documented the requested marketplace, proposed release scope, identity considerations, and collaboration workflow. Owner requested ongoing GitHub README updates for shared development. | Confirmed the repository initially contained only a README. Documentation-only change; no application tests apply. Scope approval and implementation remain pending. |
 | 2026-10-31 | Added TODO.md for task ownership/dependencies, CONTRIBUTING.md for branches and review, and AGENTS.md for shared coding-agent instructions. | Documentation baseline; application implementation remains pending. |
+| 2026-10-31 | Built the first release: Vite/React/TypeScript client in `app/`, Supabase schema/RLS/RPC/storage migration, and all planned screens (auth gate, listings, search, chat, offers, dashboard, moderation, admin). | `npm run build` and `tsc` pass; lint has warnings only. Not run against a live Supabase project; QA and deployment pending. |
