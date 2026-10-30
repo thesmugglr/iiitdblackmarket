@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { Bell, Chat, Grid, Heart, Plus, User } from './Icons'
 import { demoMode } from '../lib/supabase'
+import { Footer } from './Landing'
 
 export default function Layout() {
   const { profile, signOut } = useAuth()
@@ -21,8 +22,7 @@ export default function Layout() {
       {demoMode && <aside role="status" style={{ padding: '8px 20px', background: '#fff2b8', color: '#292318', textAlign: 'center' }}>Demo preview · Fictional students and items · Actions are not saved</aside>}
       <header className="top">
         <NavLink to="/" className="brand">
-          <span className="mark">B</span>
-          <span>IIITD <em>Black Market</em></span>
+          <span className="wordmark">IIITD Black Market<i>.</i></span>
         </NavLink>
         <NavLink to="/notifications" className="bell" aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`}>
           <Bell />{unread > 0 && <span className="badge unread">{unread}</span>}
@@ -40,6 +40,7 @@ export default function Layout() {
       <main className="page">
         <Outlet />
       </main>
+      <Footer />
       <nav className="tabbar" aria-label="Primary">
         <NavLink to="/" end><Grid />Browse</NavLink>
         <NavLink to="/saved"><Heart />Saved</NavLink>
