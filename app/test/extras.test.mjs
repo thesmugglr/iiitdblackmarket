@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile,readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 
 // Local PostgreSQL behavior for EXTRA-01..03, not a substitute for live Supabase QA.
@@ -13,7 +13,7 @@ test('extras: wanted posts, bundles, expiry and notifications', async (t) => {
     create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb default '{}');
     create function auth.uid() returns uuid language sql stable as $$
       select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
-    create table storage.buckets(id text primary key,name text,public boolean);
+    create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
     create table storage.objects(id uuid default gen_random_uuid(),bucket_id text,name text);
     alter table storage.objects enable row level security;
     create function storage.foldername(name text) returns text[] language sql immutable as $$
@@ -24,8 +24,8 @@ test('extras: wanted posts, bundles, expiry and notifications', async (t) => {
   await db.exec((await sql('0001_init.sql')).replace('create extension if not exists pgcrypto;', ''));
   await db.exec(`grant usage on schema public,auth,storage to authenticated,anon;
     grant all on all tables in schema public,storage to authenticated,anon;`);
-  await db.exec(await sql('0002_review_access.sql'));
-  await db.exec(await sql('0003_extras.sql'));
+  const directory=new URL('../../supabase/migrations/',import.meta.url);
+  for(const name of (await readdir(directory)).filter((name)=>name.endsWith('.sql') && name!=='0001_init.sql').sort()) await db.exec(await sql(name));
   // Supabase grants new tables to API roles by default; mirror that (notifications keeps the migration's column-only update grant).
   await db.exec(`grant all on public.wanted_posts,public.wanted_responses,public.bundles,public.bundle_items to authenticated;
     grant select,insert,delete on public.notifications to authenticated;`);
@@ -99,5 +99,31 @@ test('extras: wanted posts, bundles, expiry and notifications', async (t) => {
     await db.query("insert into messages(conversation_id,sender_id,body) values($1,$2,'hello?')", [conv, buyer]);
     await as(seller);
     assert.equal((await db.query("select * from notifications where kind='message'")).rows.length, 1);
+  });
+
+  await t.test('expired listings reject chat, offers and stale acceptance until renewed',async()=>{
+    await as(seller); const item=await mk('Expiry RPC test');
+    await as(buyer); const conv=await scalar('select start_conversation($1)',[item]);
+    const offer=await scalar('select make_offer($1,90)',[conv]);
+    await db.exec('reset role');
+    await db.query("update listings set expires_at=now()-interval '1 day' where id=$1",[item]);
+    await as(buyer);
+    await assert.rejects(db.query('select start_conversation($1)',[item]),/Listing unavailable/);
+    await assert.rejects(db.query('select make_offer($1,80)',[conv]),/Offers not possible/);
+    await as(seller);
+    await assert.rejects(db.query('select respond_offer($1,true)',[offer]),/Listing unavailable/);
+    await db.query('select renew_listing($1)',[item]);
+    await db.query('select respond_offer($1,true)',[offer]);
+    assert.equal(await scalar('select status from listings where id=$1',[item]),'reserved');
+  });
+
+  await t.test('suspended responders cannot read wanted responses',async()=>{
+    await as(seller);
+    assert.ok((await db.query('select * from wanted_responses')).rows.length>0);
+    await db.exec('reset role');
+    await db.query("select set_config('request.jwt.claim.sub','',false)");
+    await db.query("update profiles set status='suspended' where id=$1",[seller]);
+    await as(seller);
+    assert.equal((await db.query('select * from wanted_responses')).rows.length,0);
   });
 });
