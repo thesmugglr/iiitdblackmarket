@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { CATEGORIES, CONDITIONS, inr } from '../lib/constants'
 import { useSignedUrls } from '../lib/useSignedUrls'
+import { Heart } from '../components/Icons'
 import { priceLabel } from '../components/ListingCard'
 import type { Listing, Status } from '../lib/types'
 
@@ -81,7 +82,7 @@ export default function ListingDetail() {
         <p className="muted small">Listed by {l.seller?.display_name}{l.seller?.batch ? ` (${l.seller.batch})` : ''} on {new Date(l.created_at).toLocaleDateString()}</p>
         <div className="row">
           {!mine && l.status !== 'sold' && l.status !== 'removed' && <button className="primary" onClick={chat}>Chat with seller</button>}
-          <button onClick={toggleSave}>{saved ? '♥ Saved' : '♡ Save'}</button>
+          <button onClick={toggleSave}><Heart filled={saved} /> {saved ? 'Saved' : 'Save'}</button>
           {!mine && <button className="link" onClick={report}>Report</button>}
         </div>
         {mine && (
