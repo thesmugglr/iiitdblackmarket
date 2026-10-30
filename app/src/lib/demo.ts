@@ -41,10 +41,10 @@ const tables: Record<string, unknown[]> = {
   ],
   reports: [{ id: 'r1', reason: 'Looks like a duplicate of another listing', status: 'open', listing_id: 'l6', reporter: { display_name: 'Kabir Nair' } }],
 }
-const palette = ['#e9d9c3', '#cfd9cc', '#d9cdd6', '#e6c9b8', '#c9d3dc', '#dfd6b6']
+const palette = ['#E8E1D5', '#FFD9CE', '#D9E3D0', '#EADFC8', '#D6DCE4', '#F2CFC2']
 const photo = (p: string) => {
   const c = palette[(parseInt(p.replace(/\D/g, ''), 10) || 0) % palette.length]
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"><rect width="400" height="500" fill="${c}"/><circle cx="200" cy="230" r="90" fill="#2b2622" opacity=".14"/><rect x="120" y="330" width="160" height="14" rx="7" fill="#2b2622" opacity=".14"/></svg>`
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"><rect width="400" height="500" fill="${c}"/><circle cx="200" cy="230" r="90" fill="#1A1A1A" opacity=".16"/><rect x="120" y="330" width="160" height="14" rx="7" fill="#1A1A1A" opacity=".16"/></svg>`
   return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg)
 }
 function builder(table: string) {
