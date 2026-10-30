@@ -23,7 +23,7 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 | CHAT-02 | Attachments, unread counts, and offers | Review | Codex | CHAT-01, LIST-03 | Implemented on `feat/mvp-app`; untested on live backend. |
 | USER-01 | Profiles, saved items, and personal dashboard | Review | Codex | AUTH-01, LIST-01 | Implemented on `feat/mvp-app`; untested on live backend. |
 | MOD-01 | Reporting, blocking, and admin moderation | Review | Codex | AUTH-01, LIST-01, CHAT-01 | Implemented on `feat/mvp-app`; untested on live backend. |
-| QA-01 | Verify separate-account access isolation and core marketplace flows | Backlog | Unassigned | LIST-02, LIST-03, CHAT-02, USER-01, MOD-01 | Record actual results and remaining limits. |
+| QA-01 | Verify separate-account access isolation and core marketplace flows | In progress | Codex | LIST-02, LIST-03, CHAT-02, USER-01, MOD-01 | Local Supabase stack: 18/18 `npm run e2e:local` checks pass (2026-10-31). Hosted project and Google sign-in still to verify. |
 | DEPLOY-01 | Configure deployment, verify live flows, and document operations | Backlog | Unassigned | QA-01 | Record URL, setup steps, and configuration requirements. |
 
 ## Optional backlog — scope not yet approved

@@ -90,6 +90,13 @@ UI preview without a backend: put `VITE_DEMO=1` in `app/.env.local` and run `npm
 
 Hosting is not chosen. `npm run build` outputs static files in `app/dist` for any static host (e.g. Vercel, Netlify, Cloudflare Pages); configure the two env vars there. Never commit `.env` or real rosters/chats.
 
+### Run the whole stack locally (real backend)
+Needs Docker. From the repo root:
+1. `npx supabase start -x studio,mailpit,edge-runtime,vector,logflare,imgproxy,postgres-meta,supavisor` (the first run downloads images and applies all three migrations).
+2. `npx supabase status -o env` prints the API URL and anon key. Put them in `app/.env.local` as `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, plus `VITE_DEV_LOGIN=1` to show the local-only email and password form (Google sign-in needs real OAuth credentials).
+3. `cd app && npm run dev`. Create users through the form, then approve and promote the first admin in SQL: `update public.profiles set status='approved', role='admin' where email='you@iiitd.ac.in';`
+4. `cd app && npm run e2e:local` runs 18 end-to-end checks against that stack using separate accounts. `npx supabase stop` shuts it down.
+
 ### What is implemented
 - Sign-in with Google (domain hint in the client; `@iiitd.ac.in` enforced by a database trigger on sign-up). Marketplace access requires `approved` status (roster or admin approval).
 - Listings (sale/rent/giveaway, up to 6 photos in a private bucket served by signed URLs), edit/delete/reserve/sold, search, filters, sorting, saved items.
@@ -151,3 +158,4 @@ See [TODO.md](TODO.md). Remaining: create the Supabase project and run the migra
 | 2026-10-31 | Added the interactive 2D night-market home scene and night theme (drag, parallax, stalls as category filters). | Checked in a browser at desktop and phone widths with demo data; `tsc`, build and tests run below. No live-backend testing. |
 | 2026-10-31 | Added EXTRA-01..03: looking-for posts, moving-out bundles, listing expiry/renewal and in-app notifications (migration 0003, UI, tests). | `npm test` (database checks), `tsc`, build and lint run; browser check with demo data. No live-backend testing. |
 | 2026-10-31 | Redesigned the interface in an editorial, soft-minimal style from the owner's brief (new palette and type, hero collage, bento grid, filters drawer, how-it-works, trust, CTA, footer, Framer Motion). Replaced the night-market scene. | `tsc`, build, lint and 13 tests run; checked in a browser at desktop and phone widths with demo data. No live-backend testing. The trust section describes real safeguards, not invented ratings or testimonials; no newsletter form because there is no backend for it. |
+| 2026-10-31 | Ran the full stack on a local Supabase (Docker): all three migrations apply cleanly. Added `npm run e2e:local` (18 checks), a local-only email sign-in form, and fixed the login wordmark. | 18/18 end-to-end checks passed on the local stack (real auth, row-level security, storage, realtime), and a listing was created through the UI. Not yet verified on a hosted Supabase project or with Google sign-in. |
