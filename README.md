@@ -79,10 +79,10 @@ Hosting and the application framework remain to be finalized before implementati
 
 Layout: `app/` is the React + TypeScript (Vite) client; `supabase/migrations/0001_init.sql` is the full schema, row-level security, RPCs, storage buckets and realtime setup.
 
-1. Create a Supabase project. In the SQL editor run `supabase/migrations/0001_init.sql`.
+1. Create a Supabase project. In the SQL editor run all files in `supabase/migrations/` in filename order (`0001_init.sql`, then `0002_review_access.sql`). Existing installations of 0001 must apply 0002 before use.
 2. Enable Google auth (Authentication → Providers) with OAuth credentials from Google Cloud; add your site URL and `http://localhost:5173` to the redirect URLs.
 3. `cd app && cp .env.example .env` and fill `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-4. `npm install && npm run dev` (checks: `npm run build`, `npm run lint`).
+4. `npm ci && npm run dev` (checks from `app/`: `npm test`, `npm run build`, `npm run lint`).
 5. Sign in once with the admin's @iiitd.ac.in account, then run in SQL: `update public.profiles set role='admin', status='approved' where email='you@iiitd.ac.in';`
 6. As admin, open **Admin** and paste current-student emails into the roster. Rostered users are approved on sign-up; others stay pending until approved.
 
@@ -101,6 +101,12 @@ Hosting is not chosen. `npm run build` outputs static files in `app/dist` for an
 - Blocking stops new messages and new chats; admin listing removal uses the status field.
 - Graduates: no automatic handling; admins suspend accounts manually.
 
+### Review checks
+
+`cd app` then `npm test` runs seven local PostgreSQL/PGlite access regression checks covering SQL-editor admin bootstrap, self-promotion denial, conversation isolation, blocks, suspension, offer acceptance, and administrator removal. The harness supplies minimal auth/storage schemas and grants; it excludes the pgcrypto extension (UUID generation is built in). These are local database tests, not live Supabase OAuth, storage-service, realtime, or multi-connection concurrency verification. QA-01 still requires separate real accounts.
+
+Before production, enable Google sign-in and disable unused account providers, verify institute identity and current-student eligibility, and run the live access checks. Client domain hints are not an authorization boundary.
+
 Expected configuration needs include a backend project, Google OAuth credentials and callback URLs, the accepted institute domain, a student eligibility mechanism, and deployment configuration. Never commit secrets, private student rosters, or real chat data. Document configuration key names and use placeholders in examples.
 
 ## Working together
@@ -112,6 +118,7 @@ Expected configuration needs include a backend project, Google OAuth credentials
 - Update this README in the same commit or pull request as each meaningful change: behavior, setup/configuration, verification results, remaining work, and relevant decisions.
 - Keep proposed, implemented, tested, and deployed states distinct. Record actual checks and any verification limits; do not mark untested features complete.
 - Keep the progress log concise. Git commits and pull requests contain the detailed history; link them when useful.
+- The owner has authorized review and merge of `AbhikRao` PRs after checks. Review the exact current head and merge only when checks pass and no material findings remain. A 15-minute Codex review monitor is active; it should stay quiet when nothing actionable changes. See AGENTS.md for the standing instructions.
 
 ## Next steps
 
@@ -124,3 +131,4 @@ See [TODO.md](TODO.md). Remaining: create the Supabase project and run the migra
 | 2026-10-31 | Reviewed the repository and documented the requested marketplace, proposed release scope, identity considerations, and collaboration workflow. Owner requested ongoing GitHub README updates for shared development. | Confirmed the repository initially contained only a README. Documentation-only change; no application tests apply. Scope approval and implementation remain pending. |
 | 2026-10-31 | Added TODO.md for task ownership/dependencies, CONTRIBUTING.md for branches and review, and AGENTS.md for shared coding-agent instructions. | Documentation baseline; application implementation remains pending. |
 | 2026-10-31 | Built the first release: Vite/React/TypeScript client in `app/`, Supabase schema/RLS/RPC/storage migration, and all planned screens (auth gate, listings, search, chat, offers, dashboard, moderation, admin). | `npm run build` and `tsc` pass; lint has warnings only. Not run against a live Supabase project; QA and deployment pending. |
+| 2026-10-31 | Reviewed AbhikRao's PR #3. Added corrective migration 0002 for admin bootstrap, membership/block checks, removed-listing protection, and serialized offer decisions; added seven local database regression checks and CI. Recorded standing review/merge authorization and 15-minute monitor. | Local database tests pass. Live Supabase QA and deployment remain pending; fixes must be included before merge. |
