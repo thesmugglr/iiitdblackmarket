@@ -10,7 +10,8 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 | --- | --- | --- | --- | --- | --- |
 | DOC-01 | Establish shared README, task board, contribution guide, and agent instructions | Done | Codex | — | Documentation only; 2026-10-31. |
 | REVIEW-01 | Review/fix AbhikRao PR #3 before merge | Done | Codex | PR #3 | [Fix PR #5](https://github.com/garvrao80/iiitdblackmarket/pull/5) merged into [PR #3](https://github.com/garvrao80/iiitdblackmarket/pull/3); #3 approved and merged to main at `491d233`. Eight local DB checks and GitHub CI pass. Live Supabase QA remains separate. |
-| DESIGN-02 | Reconcile owner-selected dark-tech design with Abhik's newer UI | Backlog | Unassigned | PR #4; PR #3 merged | Preserve new feature/demo/UI work while integrating the selected palette; coordinate before editing shared CSS/Layout/Login. |
+| DESIGN-02 | Own and improve the main website design/UI | Ready | AbhikRao | Latest main | Owner delegated design to Abhik. Codex PR #4 retired; branch retained as optional reference. |
+| ENG-01 | Backend readiness: safe config, upload limits, broader tests, setup runbook | In progress | Garv Rao / Codex | Latest main | Branch `feat/ENG-01-backend-readiness`; no design/CSS work. GitHub has no configured secret/variable names or deployments as of this check. |
 | PLAN-01 | Approve or revise first-release scope | Review | Codex | — | Implemented on `feat/mvp-app`; untested on live backend. |
 | PLAN-02 | Decide current-student verification and approval process | Backlog | Unassigned | PLAN-01 | Institute domain alone does not establish student status. |
 | SETUP-01 | Choose framework/hosting and scaffold application | Review | Codex | PLAN-01 | Implemented on `feat/mvp-app`; untested on live backend. |
@@ -38,6 +39,8 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 Before marking a task Done, link the merged change, record meaningful verification, update the README for changed behavior/setup, and note unfinished work here. For Blocked tasks, name the missing dependency or decision and who can resolve it. For an unfinished handoff, leave the branch, current state, next step, and verification limits in the notes.
 
 ## Open decisions
+
+Work split: **Abhik owns design/UI. Garv Rao and Codex own the remaining engineering work.** Live account setup requires owner access; no Supabase connection is confirmed yet. Optional extras remain outside this pass.
 
 - First-release scope approval.
 - Student eligibility source, approval owner, and handling of graduates.
