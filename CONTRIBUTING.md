@@ -1,6 +1,8 @@
 # Contributing
 
-Start with [README.md](README.md) for scope and actual project status, then [TODO.md](TODO.md) for task ownership. No runnable application exists yet; package-manager, build, and test commands will be added when the stack is established.
+Start with [README.md](README.md) for scope and actual project status, then [TODO.md](TODO.md) for task ownership. The canonical app is `app/`; use Node.js 24 and `npm ci` there. Run `npm test`, `npm run build`, `npm run lint`, and `git diff --check` before application PRs. Commit its lockfile with dependency/manifest changes.
+
+AbhikRao owns design/UI. Garv Rao/Codex own the other engineering work. Coordinate before changing UI data contracts, shared schemas, authentication behavior, or files owned by the other contributor. Setup instructions are in [docs/backend-setup.md](docs/backend-setup.md); record actual live results in [docs/live-qa.md](docs/live-qa.md).
 
 ## Coordinate work
 
@@ -33,7 +35,7 @@ Describe features as planned, implemented, tested, or deployed accurately. A com
 
 ## Review and verification
 
-Keep commits focused and use descriptive messages such as `feat: add listing photo uploads`. Run checks appropriate to the change and record exactly what ran. Documentation changes should pass `git diff --check`; no application tests exist yet.
+Keep commits focused and use descriptive messages such as `feat: add listing photo uploads`. Run checks appropriate to the change and record exactly what ran. Documentation changes should pass `git diff --check`. Application changes run the local database/config suite, build, and lint; record existing warnings and unavailable live-provider checks accurately. `npm run check:config` is a deployment preflight and is expected to fail until real public project configuration exists.
 
 As features arrive, meaningful checks should cover institute/student eligibility, listing ownership, uploaded file access, and isolation between different users' conversations. Include responsive and accessible interaction checks for UI changes. Document unavailable checks and configuration dependencies rather than claiming success.
 
