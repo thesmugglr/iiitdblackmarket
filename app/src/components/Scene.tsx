@@ -90,7 +90,6 @@ function useStars(ref: React.RefObject<HTMLCanvasElement | null>) {
       if (!calm) raf = requestAnimationFrame(draw)
     }
     resize(); draw(0)
-    if (!calm) raf = requestAnimationFrame(draw)
     const ro = new ResizeObserver(() => { resize(); if (calm) draw(0) })
     ro.observe(c)
     return () => { cancelAnimationFrame(raf); ro.disconnect() }
