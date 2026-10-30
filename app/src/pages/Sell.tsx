@@ -1,8 +1,9 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import { CATEGORIES, CONDITIONS, MAX_PHOTOS, MAX_PHOTO_BYTES, PICKUP_AREAS, TYPES } from '../lib/constants'
+import { CATEGORIES, CONDITIONS, MAX_PHOTOS, PICKUP_AREAS, TYPES } from '../lib/constants'
+import { uploadPhotoBatch } from '../lib/photoUploads'
 import type { Listing } from '../lib/types'
 
 export default function Sell() {
@@ -15,6 +16,8 @@ export default function Sell() {
   })
   const [photos, setPhotos] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const uploadLock = useRef(false)
   const [err, setErr] = useState('')
   const set = (k: string, v: string | boolean) => setF((p) => ({ ...p, [k]: v }))
 
@@ -33,24 +36,25 @@ export default function Sell() {
   }, [id, profile?.id])
 
   const upload = async (files: FileList | null) => {
-    if (!files || !profile) return
+    if (!files?.length || !profile || uploadLock.current || busy) return
+    uploadLock.current = true
+    setUploading(true)
     setErr('')
-    const next = [...photos]
-    for (const file of Array.from(files)) {
-      if (next.length >= MAX_PHOTOS) return setErr(`At most ${MAX_PHOTOS} photos.`)
-      if (!file.type.startsWith('image/')) return setErr('Only image files are allowed.')
-      if (file.size > MAX_PHOTO_BYTES) return setErr('Each photo must be under 5 MB.')
-      const path = `${profile.id}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, '_')}`
-      const { error } = await supabase.storage.from('listing-photos').upload(path, file)
-      if (error) return setErr(error.message)
-      next.push(path)
-    }
-    setPhotos(next)
+    try {
+      await uploadPhotoBatch(photos.length, Array.from(files), async file => {
+        const path = `${profile.id}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, '_')}`
+        const { error } = await supabase.storage.from('listing-photos').upload(path, file)
+        if (error) throw new Error(error.message)
+        return path
+      }, path => setPhotos(current => [...current, path]))
+    } catch (error) { setErr(error instanceof Error ? error.message : 'Photo upload failed. Please try again.') }
+    finally { uploadLock.current = false; setUploading(false) }
   }
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!profile) return
+    if (uploadLock.current) return setErr('Wait for your photos to finish uploading.')
     setBusy(true)
     setErr('')
     const giveaway = f.listing_type === 'giveaway'
@@ -74,12 +78,12 @@ export default function Sell() {
     <form onSubmit={submit} className="form">
       <h1>{id ? 'Edit listing' : 'New listing'}</h1>
       <label>Photos ({photos.length}/{MAX_PHOTOS})
-        <input type="file" accept="image/*" multiple onChange={(e) => upload(e.target.files)} />
+        <input type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif" multiple disabled={uploading || busy} onChange={(e) => { const input = e.currentTarget; void upload(input.files).finally(() => { input.value = '' }) }} />
       </label>
       {photos.length > 0 && (
         <ul className="chips">
           {photos.map((p) => (
-            <li key={p}>{p.split('/').pop()?.slice(37)} <button type="button" className="link" onClick={() => setPhotos(photos.filter((x) => x !== p))}>remove</button></li>
+            <li key={p}>{p.split('/').pop()?.slice(37)} <button type="button" className="link" disabled={uploading || busy} onClick={() => setPhotos(current => current.filter((x) => x !== p))}>remove</button></li>
           ))}
         </ul>
       )}
@@ -108,7 +112,7 @@ export default function Sell() {
         </div>
       )}
       {err && <p className="error">{err}</p>}
-      <button className="primary" disabled={busy}>{busy ? 'Saving…' : id ? 'Save changes' : 'Publish listing'}</button>
+      <button className="primary" disabled={busy || uploading}>{uploading ? 'Uploading photos…' : busy ? 'Saving…' : id ? 'Save changes' : 'Publish listing'}</button>
     </form>
   )
 }
