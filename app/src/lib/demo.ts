@@ -27,6 +27,18 @@ const tables: Record<string, unknown[]> = {
   profiles: [me, ...people.slice(1).map((p) => ({ ...p, email: p.id + '@iiitd.ac.in', role: 'student', status: 'approved' }))],
   listings, conversations: [conv], messages, saved_items: [{ listing: listings[1] }],
   offers: [{ id: 'o1', amount_inr: 3800, listing: { title: listings[0].title }, status: 'accepted' }],
+  notifications: [
+    { id: 'n1', kind: 'message', title: 'New message about Hero Sprint 21-speed cycle', link: '/inbox/c1', read_at: null, created_at: new Date(now - 600000).toISOString() },
+    { id: 'n2', kind: 'expiry', title: '"Bedside lamp with USB port" expires soon. Renew it to keep it listed.', link: '/listing/l8', read_at: null, created_at: new Date(now - 86400000).toISOString() },
+    { id: 'n3', kind: 'wanted', title: 'Someone has what you are looking for: "A second-hand kettle"', link: '/listing/l3', read_at: new Date(now).toISOString(), created_at: new Date(now - 172800000).toISOString() },
+  ],
+  wanted_posts: [
+    { id: 'w1', user_id: 'u3', title: 'Second-hand kettle', description: 'Anything under a litre works. Need it before exams.', category: 'hostel', max_price_inr: 400, status: 'open', created_at: new Date(now - 3600000).toISOString(), poster: people[2] },
+    { id: 'w2', user_id: 'u1', title: 'Used cycle lock', description: '', category: 'cycles', max_price_inr: null, status: 'open', created_at: new Date(now - 86400000).toISOString(), poster: me },
+  ],
+  bundles: [
+    { id: 'b1', seller_id: 'u2', title: 'Hostel room starter kit', description: 'Leaving campus this month. Everything works, pickup together from the hostel lobby.', price_inr: 300, status: 'active', created_at: new Date(now).toISOString(), seller: people[1], items: [{ listing: listings[2] }, { listing: listings[7] }, { listing: listings[3] }] },
+  ],
   reports: [{ id: 'r1', reason: 'Looks like a duplicate of another listing', status: 'open', listing_id: 'l6', reporter: { display_name: 'Kabir Nair' } }],
 }
 const palette = ['#e9d9c3', '#cfd9cc', '#d9cdd6', '#e6c9b8', '#c9d3dc', '#dfd6b6']
@@ -39,10 +51,10 @@ function builder(table: string) {
   const rows = tables[table] ?? []
   const b: Record<string, unknown> = {}
   const chain = () => b
-  for (const m of ['select', 'eq', 'neq', 'in', 'or', 'lte', 'order', 'limit', 'insert', 'update', 'upsert', 'delete']) b[m] = chain
+  for (const m of ['select', 'eq', 'neq', 'in', 'or', 'lte', 'is', 'gt', 'order', 'limit', 'insert', 'update', 'upsert', 'delete']) b[m] = chain
   b.maybeSingle = () => Promise.resolve({ data: rows[0] ?? null, error: null })
   b.single = b.maybeSingle
-  b.then = (ok: (v: unknown) => unknown) => Promise.resolve({ data: rows, error: null }).then(ok)
+  b.then = (ok: (v: unknown) => unknown) => Promise.resolve({ data: rows, error: null, count: rows.length }).then(ok)
   return b
 }
 const channel = { on: () => channel, subscribe: () => channel }
