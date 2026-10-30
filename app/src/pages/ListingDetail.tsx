@@ -34,6 +34,13 @@ export default function ListingDetail() {
   if (!l || !profile) return <p className="muted">Loading…</p>
   const mine = l.seller_id === profile.id
 
+  const share = async () => {
+    const url = window.location.href
+    try {
+      if (navigator.share) await navigator.share({ title: l!.title, url })
+      else { await navigator.clipboard.writeText(url); setMsg('Link copied. Anyone approved on the site can open it.') }
+    } catch { /* sharing cancelled */ }
+  }
   const toggleSave = async () => {
     if (saved) await supabase.from('saved_items').delete().eq('listing_id', l.id).eq('user_id', profile.id)
     else await supabase.from('saved_items').insert({ listing_id: l.id, user_id: profile.id })
@@ -89,6 +96,7 @@ export default function ListingDetail() {
         <div className="row">
           {!mine && l.status !== 'sold' && l.status !== 'removed' && <button className="primary" onClick={chat}>Chat with seller</button>}
           <button onClick={toggleSave}><Heart filled={saved} /> {saved ? 'Saved' : 'Save'}</button>
+          <button onClick={share}>Share</button>
           {!mine && <button className="link" onClick={report}>Report</button>}
         </div>
         {mine && (

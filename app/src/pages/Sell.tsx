@@ -1,8 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import { CATEGORIES, CONDITIONS, MAX_PHOTOS, MAX_PHOTO_BYTES, PICKUP_AREAS, TYPES } from '../lib/constants'
+import { CATEGORIES, CONDITIONS, MAX_PHOTOS, PICKUP_AREAS, TYPES } from '../lib/constants'
+import { preparePhoto } from '../lib/image'
+import { useSignedUrls } from '../lib/useSignedUrls'
 import type { Listing } from '../lib/types'
 
 export default function Sell() {
@@ -14,8 +16,13 @@ export default function Sell() {
     price_inr: '', negotiable: false, pickup_area: PICKUP_AREAS[0], rental_period: '', deposit_inr: '',
   })
   const [photos, setPhotos] = useState<string[]>([])
+  const [uploading, setUploading] = useState(0)
+  const [over, setOver] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
+  const fresh = useRef(new Set<string>()) // photos uploaded in this session and not yet saved
+  const dropped = useRef<string[]>([]) // saved photos the seller removed; deleted once the edit is saved
+  const urls = useSignedUrls('listing-photos', photos)
   const set = (k: string, v: string | boolean) => setF((p) => ({ ...p, [k]: v }))
 
   useEffect(() => {
@@ -32,25 +39,45 @@ export default function Sell() {
     })
   }, [id, profile?.id])
 
-  const upload = async (files: FileList | null) => {
-    if (!files || !profile) return
+  const upload = async (files: File[]) => {
+    if (!files.length || !profile) return
     setErr('')
-    const next = [...photos]
-    for (const file of Array.from(files)) {
-      if (next.length >= MAX_PHOTOS) return setErr(`At most ${MAX_PHOTOS} photos.`)
-      if (!file.type.startsWith('image/')) return setErr('Only image files are allowed.')
-      if (file.size > MAX_PHOTO_BYTES) return setErr('Each photo must be under 5 MB.')
-      const path = `${profile.id}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, '_')}`
-      const { error } = await supabase.storage.from('listing-photos').upload(path, file)
-      if (error) return setErr(error.message)
-      next.push(path)
+    let next = [...photos]
+    const room = MAX_PHOTOS - next.length
+    if (files.length > room) setErr(room > 0 ? `Only ${room} more photo${room === 1 ? '' : 's'} fit. The rest were skipped.` : `At most ${MAX_PHOTOS} photos.`)
+    for (const file of files.slice(0, Math.max(room, 0))) {
+      setUploading((n) => n + 1)
+      try {
+        const { blob, ext, type } = await preparePhoto(file)
+        const path = `${profile.id}/${crypto.randomUUID()}.${ext}`
+        const { error } = await supabase.storage.from('listing-photos').upload(path, blob, { contentType: type })
+        if (error) throw error
+        fresh.current.add(path)
+        next = [...next, path]
+        setPhotos(next)
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : 'Upload failed. Check your connection and try again.')
+      } finally {
+        setUploading((n) => n - 1)
+      }
     }
-    setPhotos(next)
   }
+  const onDrop = (e: DragEvent) => {
+    e.preventDefault()
+    setOver(false)
+    void upload(Array.from(e.dataTransfer.files))
+  }
+  const remove = (p: string) => {
+    setPhotos((list) => list.filter((x) => x !== p))
+    if (fresh.current.has(p)) { fresh.current.delete(p); void supabase.storage.from('listing-photos').remove([p]) }
+    else dropped.current.push(p)
+  }
+  const makeCover = (p: string) => setPhotos((list) => [p, ...list.filter((x) => x !== p)])
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!profile) return
+    if (uploading) return setErr('Wait for your photos to finish uploading.')
     setBusy(true)
     setErr('')
     const giveaway = f.listing_type === 'giveaway'
@@ -67,24 +94,37 @@ export default function Sell() {
       : await supabase.from('listings').insert({ ...row, seller_id: profile.id }).select('id').single()
     setBusy(false)
     if (res.error) return setErr(res.error.message)
+    fresh.current.clear()
+    if (dropped.current.length) void supabase.storage.from('listing-photos').remove(dropped.current)
     nav(`/listing/${res.data.id}`)
   }
 
   return (
     <form onSubmit={submit} className="form">
-      <h1>{id ? 'Edit listing' : 'New listing'}</h1>
-      <label>Photos ({photos.length}/{MAX_PHOTOS})
-        <input type="file" accept="image/*" multiple onChange={(e) => upload(e.target.files)} />
-      </label>
+      <h1>{id ? 'Edit listing' : 'List an item'}</h1>
+      <p className="muted">Add clear photos, say what it is and what shape it's in. Buyers will message you here.</p>
+
+      <div className={`dropzone ${over ? 'over' : ''}`} onDragOver={(e) => { e.preventDefault(); setOver(true) }} onDragLeave={() => setOver(false)} onDrop={onDrop}>
+        <label className="btn" htmlFor="photo-input">{photos.length ? 'Add more photos' : 'Choose photos'}</label>
+        <input id="photo-input" className="visually-hidden" type="file" accept="image/*" multiple disabled={photos.length >= MAX_PHOTOS}
+          onChange={(e) => { void upload(Array.from(e.target.files ?? [])); e.target.value = '' }} />
+        <span className="muted small">or drop them here. Up to {MAX_PHOTOS}; large photos are resized for you.</span>
+        {uploading > 0 && <span role="status" className="small">Uploading {uploading} photo{uploading === 1 ? '' : 's'}…</span>}
+      </div>
       {photos.length > 0 && (
-        <ul className="chips">
-          {photos.map((p) => (
-            <li key={p}>{p.split('/').pop()?.slice(37)} <button type="button" className="link" onClick={() => setPhotos(photos.filter((x) => x !== p))}>remove</button></li>
+        <ul className="photo-grid">
+          {photos.map((p, i) => (
+            <li key={p}>
+              {urls[i] ? <img src={urls[i]} alt={`Photo ${i + 1}`} /> : <div className="skeleton" />}
+              {i === 0 ? <span className="tag">Cover</span> : <button type="button" className="mini" onClick={() => makeCover(p)}>Make cover</button>}
+              <button type="button" className="mini danger" aria-label={`Remove photo ${i + 1}`} onClick={() => remove(p)}>Remove</button>
+            </li>
           ))}
         </ul>
       )}
-      <label>Title<input required minLength={3} maxLength={120} value={f.title} onChange={(e) => set('title', e.target.value)} /></label>
-      <label>Description<textarea rows={4} maxLength={4000} value={f.description} onChange={(e) => set('description', e.target.value)} /></label>
+
+      <label>Title<input required minLength={3} maxLength={120} placeholder="e.g. Hero Sprint 21-speed cycle" value={f.title} onChange={(e) => set('title', e.target.value)} /></label>
+      <label>Description<textarea rows={4} maxLength={4000} placeholder="Age, brand, any defects, why you're selling" value={f.description} onChange={(e) => set('description', e.target.value)} /></label>
       <div className="two">
         <label>Type<select value={f.listing_type} onChange={(e) => set('listing_type', e.target.value)}>
           {Object.entries(TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
@@ -97,18 +137,19 @@ export default function Sell() {
       </div>
       {f.listing_type !== 'giveaway' && (
         <div className="two">
-          <label>{f.listing_type === 'rent' ? 'Rent (₹)' : 'Price (₹)'}<input required type="number" min="0" value={f.price_inr} onChange={(e) => set('price_inr', e.target.value)} /></label>
+          <label>{f.listing_type === 'rent' ? 'Rent (₹)' : 'Price (₹)'}<input required type="number" min="0" inputMode="numeric" value={f.price_inr} onChange={(e) => set('price_inr', e.target.value)} /></label>
           <label className="check"><input type="checkbox" checked={f.negotiable} onChange={(e) => set('negotiable', e.target.checked)} /> Negotiable</label>
         </div>
       )}
       {f.listing_type === 'rent' && (
         <div className="two">
           <label>Rental period<input placeholder="e.g. per week, one semester" value={f.rental_period} onChange={(e) => set('rental_period', e.target.value)} /></label>
-          <label>Deposit (₹)<input type="number" min="0" value={f.deposit_inr} onChange={(e) => set('deposit_inr', e.target.value)} /></label>
+          <label>Deposit (₹)<input type="number" min="0" inputMode="numeric" value={f.deposit_inr} onChange={(e) => set('deposit_inr', e.target.value)} /></label>
         </div>
       )}
-      {err && <p className="error">{err}</p>}
-      <button className="primary" disabled={busy}>{busy ? 'Saving…' : id ? 'Save changes' : 'Publish listing'}</button>
+      {err && <p className="error" role="alert">{err}</p>}
+      <button className="primary" disabled={busy || uploading > 0}>{busy ? 'Saving…' : id ? 'Save changes' : 'Publish listing'}</button>
+      <p className="muted small">Listings stay up for 30 days; you can renew them. No illegal, unsafe or prohibited items. Meet in busy campus spots, and <Link to="/inbox">keep chats here</Link> so admins can help if something goes wrong.</p>
     </form>
   )
 }

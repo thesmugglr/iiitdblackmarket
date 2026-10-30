@@ -15,8 +15,27 @@ export default function Layout() {
     void load()
     window.addEventListener('notices-changed', load)
     const t = setInterval(load, 60000)
-    return () => { window.removeEventListener('notices-changed', load); clearInterval(t) }
-  }, [loc.pathname])
+    // New notifications arrive live; the interval above is only a safety net.
+    const channel = profile ? supabase.channel(`notices-${profile.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${profile.id}` }, (payload) => {
+        void load()
+        window.dispatchEvent(new Event('notices-changed'))
+        const n = payload.new as { title?: string; link?: string }
+        if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+          const note = new Notification('IIITD Black Market', { body: n.title ?? 'You have a new notification', tag: n.link ?? 'notice' })
+          note.onclick = () => { window.focus(); window.location.assign(new URL((n.link ?? '/').replace(/^\//, ''), new URL(import.meta.env.BASE_URL, window.location.origin)).href) }
+        }
+      })
+      .subscribe() : undefined
+    return () => {
+      window.removeEventListener('notices-changed', load)
+      clearInterval(t)
+      if (channel) void supabase.removeChannel(channel)
+    }
+  }, [loc.pathname, profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    document.title = unread ? `(${unread}) IIITD Black Market` : 'IIITD Black Market'
+  }, [unread])
   return (
     <>
       {demoMode && <aside role="status" style={{ padding: '8px 20px', background: '#fff2b8', color: '#292318', textAlign: 'center' }}>Demo preview · Fictional students and items · Actions are not saved</aside>}
