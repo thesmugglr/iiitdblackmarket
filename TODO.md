@@ -9,7 +9,8 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 | ID | Task | Status | Owner | Depends on | Branch / PR / notes |
 | --- | --- | --- | --- | --- | --- |
 | DOC-01 | Establish shared README, task board, contribution guide, and agent instructions | Done | Codex | — | Documentation only; 2026-10-31. |
-| REVIEW-01 | Review/fix AbhikRao PR #3 before merge | Review | Codex | PR #3 | [Fix PR #5](https://github.com/garvrao80/iiitdblackmarket/pull/5), branch `fix/PR-03-review`; corrective migration, eight local database checks, CI. Live Supabase QA remains separate. |
+| REVIEW-01 | Review/fix AbhikRao PR #3 before merge | Done | Codex | PR #3 | [Fix PR #5](https://github.com/garvrao80/iiitdblackmarket/pull/5) merged into [PR #3](https://github.com/garvrao80/iiitdblackmarket/pull/3); #3 approved and merged to main at `491d233`. Eight local DB checks and GitHub CI pass. Live Supabase QA remains separate. |
+| DESIGN-02 | Reconcile owner-selected dark-tech design with Abhik's newer UI | Backlog | Unassigned | PR #4; PR #3 merged | Preserve new feature/demo/UI work while integrating the selected palette; coordinate before editing shared CSS/Layout/Login. |
 | PLAN-01 | Approve or revise first-release scope | Review | Codex | — | Implemented on `feat/mvp-app`; untested on live backend. |
 | PLAN-02 | Decide current-student verification and approval process | Backlog | Unassigned | PLAN-01 | Institute domain alone does not establish student status. |
 | SETUP-01 | Choose framework/hosting and scaffold application | Review | Codex | PLAN-01 | Implemented on `feat/mvp-app`; untested on live backend. |

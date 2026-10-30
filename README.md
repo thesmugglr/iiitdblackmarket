@@ -4,7 +4,7 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 ## Current status
 
-**First release implemented in code (branch `feat/mvp-app`); not yet tested against a live Supabase project and not deployed.**
+**First release merged into `main` through AbhikRao's PR #3, including review fixes from PR #5. Not yet tested against a live Supabase project or deployed.**
 
 The owner asked for the project to be completed, so the proposed first-release scope below was built. The app compiles and bundles (`npm run build`), but no end-to-end run with real accounts has happened: it needs a Supabase project and Google OAuth credentials that only the owner can create. Treat every feature as *implemented, unverified* until QA-01 is done.
 
@@ -22,7 +22,7 @@ Shared development files: [TODO.md](TODO.md) tracks tasks and ownership, [CONTRI
 
 ## Proposed first release
 
-All entries below are **planned**, not implemented.
+The features below are implemented in code but remain **unverified against a live Supabase project**. Local database tests cover selected access rules, not all end-to-end behavior.
 
 | Area | Planned behavior |
 | --- | --- |
@@ -65,15 +65,15 @@ The student eligibility source and approval process still need to be decided. Do
 
 ## Proposed technical foundation
 
-These choices are proposals, not installed dependencies:
+The application in `app/` uses these dependencies:
 
-- React and TypeScript for the application interface.
+- React, TypeScript, Vite, and React Router for the application interface.
 - Supabase for database, authentication, image storage, and real-time messaging.
 - Access policies restricting conversation data to authorized participants and listing changes to authorized owners/admins.
 
 References: [Google sign-in](https://supabase.com/docs/guides/auth/social-sign-in/auth-google), [real-time authorization](https://supabase.com/docs/guides/realtime/authorization), and [storage access control](https://supabase.com/docs/guides/storage/security/access-control).
 
-Hosting and the application framework remain to be finalized before implementation.
+Hosting remains to be finalized. The canonical runnable app on main is `app/`, using Supabase for backend services. PR #1's alternative scaffold is superseded. The owner's near-black/electric-green design is a separate PR #4; reconcile it with Abhik's newer UI before merging visual changes.
 
 ## Local setup and deployment
 
@@ -136,3 +136,4 @@ See [TODO.md](TODO.md). Remaining: create the Supabase project and run the migra
 | 2026-10-31 | Reviewed AbhikRao's PR #3. Added corrective migration 0002 for admin bootstrap, email privacy, membership/block checks, removed-listing protection, and serialized offer decisions; added eight local database checks and CI. Recorded standing review/merge authorization and 15-minute monitor. | Local database tests pass. Live Supabase QA and deployment remain pending; fixes must be included before merge. |
 | 2026-10-31 | Redesigned the UI (classifieds-style editorial look, serif/grotesk type, category tabs, sold/reserved stamps, SVG icons, mobile tab bar, light/dark) and added a dev-only demo mode. | Checked visually in a browser at desktop and phone widths with demo data; build re-run below. Still no live-backend testing. |
 | 2026-10-31 | Preserved Abhik's newer UI/demo commit during review. Updated the dev-only demo for private-profile RPCs, added a visible fictional-data notice, and load demo code only in development so it is removed from the production bundle. | Demo is restricted to Vite development mode; production remains behind real authentication/approval. The owner's dark-tech design is tracked separately in PR #4. |
+| 2026-10-31 | Approved and merged [AbhikRao PR #3](https://github.com/garvrao80/iiitdblackmarket/pull/3) into main after [fix PR #5](https://github.com/garvrao80/iiitdblackmarket/pull/5) and review of the exact current head. Merge commit: `491d233`. | Eight local DB checks pass; build/type checking and lint pass with existing warnings; both GitHub checks pass on the reviewed head. Live-provider QA and deployment remain pending. Standing review monitor checks AbhikRao PRs every 15 minutes. |
