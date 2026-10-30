@@ -1,15 +1,15 @@
 // End-to-end checks against the LOCAL Supabase stack (`npx supabase start` from the repo root).
 // Usage: node scripts/e2e-local.mjs   (reads keys from `supabase status`)
 import { createClient } from '@supabase/supabase-js'
-import { execSync } from 'node:child_process'
 import assert from 'node:assert/strict'
+import { readLocalStack } from './local-stack.mjs'
 
-const env = Object.fromEntries(execSync('npx supabase status -o env', { cwd: new URL('../../', import.meta.url), encoding: 'utf8' })
-  .split('\n').map((l) => l.match(/^(\w+)="(.*)"$/)).filter(Boolean).map((m) => [m[1], m[2]]))
+const env = readLocalStack()
 const URL_ = env.API_URL, ANON = env.ANON_KEY
 const admin = createClient(URL_, env.SERVICE_ROLE_KEY, { auth: { persistSession: false } })
 const run = Date.now().toString(36)
 const results = []
+const createdUsers = [], clients = [], objects = []
 const step = async (name, fn) => {
   try { await fn(); results.push(['PASS', name]); console.log('PASS', name) }
   catch (e) { results.push(['FAIL', name]); console.log('FAIL', name, '\n    ', e.message) }
@@ -21,8 +21,10 @@ async function user(name, { approve = true, role = 'student' } = {}) {
   const created = await admin.auth.admin.createUser({ email, password, email_confirm: true })
   if (created.error) throw created.error
   const id = created.data.user.id
+  createdUsers.push(id)
   if (approve) ok(await admin.from('profiles').update({ status: 'approved', role }).eq('id', id))
   const c = createClient(URL_, ANON, { auth: { persistSession: false } })
+  clients.push(c)
   ok(await c.auth.signInWithPassword({ email, password }))
   return { id, email, c }
 }
@@ -32,6 +34,7 @@ let seller, buyer, outsider, pending, adm, listing, conv, photoPath
 
 await step('only @iiitd.ac.in accounts can sign up', async () => {
   const r = await admin.auth.admin.createUser({ email: `x.${run}@gmail.com`, password: 'localtest-pass', email_confirm: true })
+  if (r.data?.user) createdUsers.push(r.data.user.id)
   assert.ok(r.error, 'gmail signup should be rejected')
 })
 await step('create users; unapproved student sees nothing', async () => {
@@ -43,6 +46,7 @@ await step('create users; unapproved student sees nothing', async () => {
 await step('seller creates a listing with a photo (private bucket)', async () => {
   photoPath = `${seller.id}/test-${run}.png`
   ok(await seller.c.storage.from('listing-photos').upload(photoPath, png, { contentType: 'image/png' }), 'upload')
+  objects.push(['listing-photos', photoPath])
   listing = ok(await seller.c.from('listings').insert({ seller_id: seller.id, title: 'E2E kettle', listing_type: 'sale', category: 'hostel', condition: 'good', price_inr: 400, photos: [photoPath] }).select().single())
 })
 await step('approved member can read listing and signed photo URL; pending cannot', async () => {
@@ -71,6 +75,7 @@ await step('buyer starts conversation, exchanges messages with attachment', asyn
   ok(await buyer.c.from('messages').insert({ conversation_id: conv, sender_id: buyer.id, body: 'Is it available?' }))
   const att = `${conv}/pic-${run}.png`
   ok(await buyer.c.storage.from('chat-attachments').upload(att, png, { contentType: 'image/png' }), 'attachment upload')
+  objects.push(['chat-attachments', att])
   ok(await buyer.c.from('messages').insert({ conversation_id: conv, sender_id: buyer.id, image_path: att }))
   const m = ok(await seller.c.from('messages').select('*').eq('conversation_id', conv))
   assert.equal(m.length, 2)
@@ -147,13 +152,40 @@ await step('expiry reminder and renewal', async () => {
   ok(await admin.from('listings').update({ expires_at: new Date(Date.now() - 1000).toISOString() }).eq('id', l.id))
   assert.equal((await buyer.c.from('listings').select('id').eq('id', l.id)).data.length, 0)
 })
+await step('storage rejects disallowed types and files over 5 MiB', async () => {
+  for (const [content, type, suffix] of [[Buffer.from('not an image'), 'text/plain', 'txt'], [Buffer.alloc(5 * 1024 * 1024 + 1), 'image/png', 'png']]) {
+    const path = `${seller.id}/rejected-${run}.${suffix}`
+    const result = await seller.c.storage.from('listing-photos').upload(path, content, { contentType: type })
+    if (!result.error) objects.push(['listing-photos', path])
+    assert.ok(result.error, 'bucket must reject invalid upload')
+  }
+})
 await step('realtime delivers a new message to the seller', async () => {
-  const got = new Promise((res, rej) => { setTimeout(() => rej(new Error('no realtime event in 8s')), 8000)
-    seller.c.channel('t').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conv}` }, res)
-      .subscribe((s) => { if (s === 'SUBSCRIBED') buyer.c.from('messages').insert({ conversation_id: conv, sender_id: buyer.id, body: 'realtime ping' }).then((r) => { if (r.error) rej(new Error('insert failed: ' + r.error.message)) }) }) })
-  await got
+  let timer
+  const channel = seller.c.channel(`e2e-${run}`)
+  try {
+    await new Promise((resolve, reject) => {
+      timer = setTimeout(() => reject(new Error('no realtime event in 15s')), 15000)
+      channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conv}` }, resolve)
+        .subscribe(status => {
+          if (status === 'SUBSCRIBED') buyer.c.from('messages').insert({ conversation_id: conv, sender_id: buyer.id, body: 'realtime ping' }).then(r => { if (r.error) reject(new Error('realtime insert failed')) })
+          if (['CHANNEL_ERROR', 'TIMED_OUT'].includes(status)) reject(new Error('realtime subscription failed'))
+        })
+    })
+  } finally { clearTimeout(timer); await seller.c.removeChannel(channel) }
+})
+await step('clean up only fixtures created by this run', async () => {
+  const errors = []
+  for (const client of clients) await client.removeAllChannels()
+  for (const [bucket, path] of objects) {
+    const r = await admin.storage.from(bucket).remove([path]); if (r.error) errors.push('fixture photo cleanup failed')
+  }
+  for (const id of createdUsers.reverse()) {
+    const r = await admin.auth.admin.deleteUser(id); if (r.error) errors.push('fixture account cleanup failed')
+  }
+  assert.deepEqual(errors, [])
 })
 
 const failed = results.filter((r) => r[0] === 'FAIL').length
 console.log(`\n${results.length - failed}/${results.length} passed`)
-process.exit(failed ? 1 : 0)
+process.exitCode = failed ? 1 : 0

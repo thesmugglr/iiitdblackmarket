@@ -30,8 +30,8 @@ export function HowItWorks() {
 
 const TRUST = [
   { title: 'Real students only', body: 'Sign-in needs an institute account, and an admin confirms you are a current student before you can browse or list.' },
-  { title: 'Chat stays private', body: 'Conversations are only visible to the two people in them. Your email and phone are never shown.' },
-  { title: 'You are in control', body: 'Report a listing or message, block anyone, and meet in busy campus spots. Admins review every report.' },
+  { title: 'Chat stays private', body: 'Conversations are accessible to participants and authorized moderators. Your institute email is not public, and you do not need to share a phone number.' },
+  { title: 'You are in control', body: 'Report a listing or message, block anyone, and meet in busy campus spots. Reports are available to admins for review.' },
 ]
 export function Trust() {
   return (

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { supabase, isConfigured } from '../lib/supabase'
 import { CATEGORIES } from '../lib/constants'
+import { isLoopbackUrl } from '../lib/config'
 
 export default function Login() {
   const [err, setErr] = useState('')
@@ -11,11 +12,14 @@ export default function Login() {
     })
     if (error) setErr(error.message)
   }
-  const devLogin = import.meta.env.DEV && import.meta.env.VITE_DEV_LOGIN === '1'
+  const devLogin = import.meta.env.DEV && import.meta.env.VITE_DEV_LOGIN === '1' && isConfigured
+    && isLoopbackUrl(import.meta.env.VITE_SUPABASE_URL) && isLoopbackUrl(window.location.origin)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const dev = async (e: FormEvent, signUp: boolean) => {
     e.preventDefault()
+    if (!devLogin) return
+    setErr('')
     const { error } = signUp ? await supabase.auth.signUp({ email, password }) : await supabase.auth.signInWithPassword({ email, password })
     if (error) setErr(error.message)
   }
