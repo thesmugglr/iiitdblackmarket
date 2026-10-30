@@ -16,5 +16,7 @@ Record sanitized results only. Use account labels (Admin, Student A, Student B, 
 | Offers/concurrency | Correct reservation/declines; simultaneous accepts consistent | Not run |
 | Admin removal/reports | Removed listing stays removed; reports reviewed | Not run |
 | Hosted routing/mobile | Direct deep links refresh; phone workflows usable | Not run |
+| Wanted posts and bundles | Responses notify only intended users; bundles accept only owned active items | Not run |
+| Expiry/notification service behavior | Expired items reject new chats/offers; renew restores availability; notifications stay private | Not run |
 
 Before signing off, record the project label, app origin, tested commit, applied migration filenames, test date, and any remaining issues. Follow [backend-setup.md](backend-setup.md) for steps. Local tests passing does not change this record to Passed.

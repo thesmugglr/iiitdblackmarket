@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { CATEGORIES, CONDITIONS, TYPES } from '../lib/constants'
 import { Search } from '../components/Icons'
 import Scene from '../components/Scene'
+import Sections from '../components/Sections'
 import ListingCard from '../components/ListingCard'
 import type { Listing } from '../lib/types'
 
@@ -58,6 +59,7 @@ export default function Browse() {
   return (
     <>
       <Scene counts={counts} category={category} tags={latest} onPick={(k) => { setCategory(category === k ? '' : k); document.getElementById('results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }} />
+      <Sections />
       <div className="results-bar" id="results">
         <label className="search"><Search /><input type="search" placeholder="Search cycles, books, cookers…" value={q} onChange={(e) => setQ(e.target.value)} /></label>
         {category && <button onClick={() => setCategory('')}>{CATEGORIES[category]} ✕</button>}

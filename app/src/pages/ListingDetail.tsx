@@ -49,6 +49,12 @@ export default function ListingDetail() {
     if (error) setMsg(error.message)
     else void load()
   }
+  const renew = async () => {
+    const { error } = await supabase.rpc('renew_listing', { p_listing: l.id })
+    setMsg(error ? error.message : 'Renewed for 30 days.')
+    void load()
+  }
+  const daysLeft = l.expires_at ? Math.ceil((new Date(l.expires_at).getTime() - Date.now()) / 86400000) : null
   const remove = async () => {
     if (!confirm('Delete this listing permanently?')) return
     const { error } = await supabase.from('listings').delete().eq('id', l.id)
@@ -93,6 +99,9 @@ export default function ListingDetail() {
             {l.status !== 'sold' && <button onClick={() => setStatus('sold')}>Mark sold</button>}
             <button className="danger" onClick={remove}>Delete</button>
           </div>
+        )}
+        {mine && daysLeft !== null && l.status !== 'sold' && (
+          <p className={daysLeft <= 3 ? 'error small' : 'muted small'}>{daysLeft > 0 ? `Listing expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}.` : 'This listing has expired and is hidden from others.'} <button className="link" onClick={renew}>Renew for 30 days</button></p>
         )}
         {msg && <p className="muted">{msg}</p>}
       </div>
