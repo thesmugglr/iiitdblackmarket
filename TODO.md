@@ -11,7 +11,7 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 | DOC-01 | Establish shared README, task board, contribution guide, and agent instructions | Done | Codex | — | Documentation only; 2026-10-31. |
 | PLAN-01 | Approve or revise first-release scope | Ready | Project owner | — | See README proposal. |
 | PLAN-02 | Decide current-student verification and approval process | Backlog | Unassigned | PLAN-01 | Institute domain alone does not establish student status. |
-| SETUP-01 | Scaffold website, API, shared types, local tooling, and CI | Review | Codex | Owner authorized scaffold directly | `feat/SETUP-01-repo-scaffold`; see README verification and setup. Merge pending. |
+| SETUP-01 | Scaffold website, API, shared types, local tooling, and CI | Review | Codex | Owner authorized scaffold directly | [PR #1](https://github.com/garvrao80/iiitdblackmarket/pull/1), branch `feat/SETUP-01-repo-scaffold`; see README verification and setup. Merge pending. |
 | SETUP-02 | Choose production hosting and configure backend provider | Backlog | Unassigned | SETUP-01 | No hosting or Supabase project configured. |
 | DATA-01 | Design schema and migrations for profiles, listings, conversations, offers, and reports | Backlog | Unassigned | PLAN-02, SETUP-01 | Include ownership and membership access policies. |
 | AUTH-01 | Configure institute sign-in and student eligibility checks | Backlog | Unassigned | PLAN-02, DATA-01 | Document OAuth callback and environment key names. |

@@ -6,6 +6,8 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 **Runnable foundation implemented; marketplace features remain planned.**
 
+Scaffold review: [PR #1](https://github.com/garvrao80/iiitdblackmarket/pull/1), branch `feat/SETUP-01-repo-scaffold`. The foundation is available on that branch until merged into main.
+
 The owner authorized the basic repository/application scaffold on 31 October 2026. The website starter connects to the API health endpoint locally without credentials. Student sign-in, listings, uploads, database integration, chat, and deployment are not implemented. The full marketplace scope below remains a proposal.
 
 This README is the shared project record for the owner, their collaborator, and Codex. Update it with every meaningful project change so everyone can see what exists, what changed, and what remains.
