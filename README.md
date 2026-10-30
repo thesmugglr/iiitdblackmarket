@@ -4,7 +4,7 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 ## Current status
 
-LIST-04 is addressing listing photo batch validation and concurrent upload state on `fix/LIST-04-upload-state`; verification is pending. This is a functional fix to the existing Sell form, with no visual redesign.
+[PR #12](https://github.com/garvrao80/iiitdblackmarket/pull/12) fixes listing photo batches: validate all selected files before uploading, retain successful photos after a later network error, and serialize uploads while blocking publish/removal until completion. Accepted types match the Storage allowlist. Existing Sell page styling is preserved. All 32 local tests, build and lint pass (existing warnings); live Storage/browser verification remains separate.
 
 **First release merged into `main` through AbhikRao's PR #3, including review fixes from PR #5. Not yet tested against a live Supabase project or deployed.**
 
