@@ -8,7 +8,7 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 The owner asked for the project to be completed, so the proposed first-release scope below was built. The app compiles and bundles (`npm run build`), but no end-to-end run with real accounts has happened: it needs a Supabase project and Google OAuth credentials that only the owner can create. Treat every feature as *implemented, unverified* until QA-01 is done.
 
-The owner selected a **dark-tech aesthetic: near-black, electric green, and crisp cards**. The design branch `feat/DESIGN-01-mvp-theme` builds directly on the collaborator's [marketplace PR #3](https://github.com/garvrao80/iiitdblackmarket/pull/3), retaining its account, listing, chat, and database logic. See [docs/design.md](docs/design.md) for reusable tokens, assets, verification, and handoff notes. Nothing is merged or deployed by this design change.
+The owner selected a **dark-tech aesthetic: near-black, electric green, and crisp cards**. [Design PR #4](https://github.com/garvrao80/iiitdblackmarket/pull/4), branch `feat/DESIGN-01-mvp-theme`, builds directly on the collaborator's [marketplace PR #3](https://github.com/garvrao80/iiitdblackmarket/pull/3), retaining its account, listing, chat, and database logic. See [docs/design.md](docs/design.md) for reusable tokens, assets, verification, and handoff notes. Nothing is merged or deployed by this design change.
 
 This README is the shared project record for the owner, their collaborator, and Codex. Update it with every meaningful project change so everyone can see what exists, what changed, and what remains.
 
