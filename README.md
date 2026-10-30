@@ -4,9 +4,9 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 ## Current status
 
-**Planning stage — application implementation has not started.**
+**Runnable foundation implemented; marketplace features remain planned.**
 
-The repository was reviewed on 31 October 2026 and contained only this README. The scope below is a proposal awaiting the project owner's approval; it does not describe working features. Documentation updates have been authorized.
+The owner authorized the basic repository/application scaffold on 31 October 2026. The website starter connects to the API health endpoint locally without credentials. Student sign-in, listings, uploads, database integration, chat, and deployment are not implemented. The full marketplace scope below remains a proposal.
 
 This README is the shared project record for the owner, their collaborator, and Codex. Update it with every meaningful project change so everyone can see what exists, what changed, and what remains.
 
@@ -63,21 +63,54 @@ Proposed approach:
 
 The student eligibility source and approval process still need to be decided. Do not label a user as a verified student based only on the email domain.
 
-## Proposed technical foundation
+## Technical foundation
 
-These choices are proposals, not installed dependencies:
+Installed and locked with npm workspaces:
 
-- React and TypeScript for the application interface.
-- Supabase for database, authentication, image storage, and real-time messaging.
-- Access policies restricting conversation data to authorized participants and listing changes to authorized owners/admins.
+- **Website:** React + TypeScript + Vite in `apps/web`.
+- **Backend:** Fastify + TypeScript in `apps/api`; currently exposes only `GET /api/health`.
+- **Shared contracts:** Type-only exports in `packages/shared`; no server secrets or runtime server imports.
+- **Tooling:** Node.js 24, npm 11, one root lockfile, parallel development commands, and GitHub Actions checks.
+
+Supabase remains the proposed provider for database, authentication, storage, and real-time messaging. `supabase/migrations/` reserves its migration location; no database or Supabase integration exists yet. Access policies and student eligibility checks must be implemented before marketplace data routes are exposed.
 
 References: [Google sign-in](https://supabase.com/docs/guides/auth/social-sign-in/auth-google), [real-time authorization](https://supabase.com/docs/guides/realtime/authorization), and [storage access control](https://supabase.com/docs/guides/storage/security/access-control).
 
-Hosting and the application framework remain to be finalized before implementation.
+Hosting remains undecided. See [docs/architecture.md](docs/architecture.md) for boundaries, data flow, and deployment expectations. This scaffold is a local development foundation, not a production deployment.
 
 ## Local setup and deployment
 
-There is no runnable application, dependency manifest, database schema, or deployment yet. Setup commands will be documented here when those files exist.
+Install **Node.js 24** and **npm 11**, then run from the repository root:
+
+```sh
+npm ci
+npm run dev
+```
+
+Open `http://127.0.0.1:5173`. The website shows the development starter and backend connectivity status. The API listens on `http://127.0.0.1:3001`; Vite proxies `/api` requests to it. No credentials or environment files are required for this scaffold. On PowerShell systems that block `npm.ps1`, use `npm.cmd` in place of `npm`.
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start website and API together; Ctrl+C stops both. |
+| `npm run dev:web` / `npm run dev:api` | Start only the selected workspace. |
+| `npm run typecheck` | Check all workspaces and API test types. |
+| `npm test` | Run the API scaffold tests; no browser tests exist yet. |
+| `npm run build` | Compile API to `apps/api/dist` and website to `apps/web/dist`. |
+| `npm run start --workspace @iiitd/api` | Run the compiled API after building. |
+
+Optional overrides are documented in `apps/api/.env.example` and `apps/web/.env.example`. Copy an example to `.env` in the same directory only when needed. If changing the API port, update the web proxy target too. Restart dev servers after configuration changes. Variables prefixed `VITE_` are browser-public and must never contain secrets. `.env` files, dependencies, and build outputs are ignored.
+
+```text
+apps/
+  web/                 React website, API client, feature folders
+  api/                 Fastify server, module folders, API tests
+packages/shared/       Shared type-only API contracts
+supabase/migrations/   Reserved database migration location
+docs/                  Architecture and handoff documentation
+.github/               CI workflow and pull request template
+```
+
+Verification on 31 October 2026: type checking, two API tests, production builds, and HTTP smoke checks passed (website 200, direct API health, and health through the web development proxy). Browser rendering has not been visually verified. GitHub Actions is configured but its remote result must be checked on the pull request. No database migrations or hosted application have been tested.
 
 Expected configuration needs include a backend project, Google OAuth credentials and callback URLs, the accepted institute domain, a student eligibility mechanism, and deployment configuration. Never commit secrets, private student rosters, or real chat data. Document configuration key names and use placeholders in examples.
 
@@ -97,7 +130,8 @@ The detailed shared task board, including owners and dependencies, is in [TODO.m
 
 - [ ] Approve or revise the proposed release scope.
 - [ ] Decide how current student eligibility is verified.
-- [ ] Finalize framework, hosting, and backend configuration.
+- [x] Set up website, backend, shared contracts, and local development tooling.
+- [ ] Finalize hosting and backend provider configuration.
 - [ ] Implement institute sign-in and access controls.
 - [ ] Implement listings, uploads, categories, and search.
 - [ ] Implement private chat and offers.
@@ -111,3 +145,4 @@ The detailed shared task board, including owners and dependencies, is in [TODO.m
 | --- | --- | --- |
 | 2026-10-31 | Reviewed the repository and documented the requested marketplace, proposed release scope, identity considerations, and collaboration workflow. Owner requested ongoing GitHub README updates for shared development. | Confirmed the repository initially contained only a README. Documentation-only change; no application tests apply. Scope approval and implementation remain pending. |
 | 2026-10-31 | Added TODO.md for task ownership/dependencies, CONTRIBUTING.md for branches and review, and AGENTS.md for shared coding-agent instructions. | Documentation baseline; application implementation remains pending. |
+| 2026-10-31 | Added the authorized website/API scaffold, shared types, migration directory, environment examples, npm lockfile, CI, PR template, and architecture notes on `feat/SETUP-01-repo-scaffold`. | Typecheck, 2 API tests, builds, and HTTP smoke checks passed. Marketplace features, student verification, provider configuration, and deployment remain pending. |

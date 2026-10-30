@@ -1,6 +1,8 @@
 # Contributing
 
-Start with [README.md](README.md) for scope and actual project status, then [TODO.md](TODO.md) for task ownership. No runnable application exists yet; package-manager, build, and test commands will be added when the stack is established.
+Start with [README.md](README.md) for scope, actual project status, and setup, then [TODO.md](TODO.md) for task ownership. Use Node.js 24 and npm 11. Run `npm ci`, then `npm run dev` from the root. See [docs/architecture.md](docs/architecture.md) for workspace boundaries.
+
+Use the single root `package-lock.json`. Add dependencies with `npm install <package> --workspace @iiitd/web` or `--workspace @iiitd/api`; add shared tooling at the root with `--save-dev`. Commit the updated lockfile with manifests. Do not create separate workspace lockfiles.
 
 ## Coordinate work
 
@@ -33,7 +35,7 @@ Describe features as planned, implemented, tested, or deployed accurately. A com
 
 ## Review and verification
 
-Keep commits focused and use descriptive messages such as `feat: add listing photo uploads`. Run checks appropriate to the change and record exactly what ran. Documentation changes should pass `git diff --check`; no application tests exist yet.
+Keep commits focused and use descriptive messages such as `feat: add listing photo uploads`. Run checks appropriate to the change and record exactly what ran. Before submitting application changes, run `npm run typecheck`, `npm test`, `npm run build`, and `git diff --check`. The initial automated tests cover API liveness and the absence of unimplemented data routes, not authentication or marketplace functionality. GitHub Actions runs these checks on pull requests and main pushes. Documentation-only changes should pass `git diff --check`.
 
 As features arrive, meaningful checks should cover institute/student eligibility, listing ownership, uploaded file access, and isolation between different users' conversations. Include responsive and accessible interaction checks for UI changes. Document unavailable checks and configuration dependencies rather than claiming success.
 

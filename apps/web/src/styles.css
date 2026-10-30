@@ -1,0 +1,17 @@
+:root { font-family: system-ui, sans-serif; color: #26231f; background: #faf7f1; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 1120px; margin: auto; padding: 32px clamp(20px, 5vw, 64px); }
+header, footer { display: flex; justify-content: space-between; gap: 24px; align-items: center; }
+header { padding-bottom: 28px; border-bottom: 1px solid #ddd6cb; }
+a { color: inherit; text-decoration: none; font-size: 1.15rem; }
+a:focus-visible { outline: 3px solid #ad3d12; outline-offset: 6px; }
+header span, footer { color: #655e54; font-size: .85rem; }
+.intro { padding: clamp(48px, 10vw, 112px) 0; }
+.eyebrow { color: #a43d15; font-size: .8rem; letter-spacing: .15em; font-weight: 700; }
+h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); line-height: 1.07; letter-spacing: -.05em; margin: 24px 0; }
+.intro > p:not(.eyebrow) { color: #655e54; font-size: 1.15rem; max-width: 520px; line-height: 1.6; }
+.notice { margin-top: 40px; padding: 22px; border-left: 4px solid #c34b1a; background: #efe9df; max-width: 560px; }
+.notice p { margin: 8px 0 0; line-height: 1.5; }
+footer { border-top: 1px solid #ddd6cb; padding-top: 18px; flex-wrap: wrap; }
+@media (max-width: 480px) { header { align-items: flex-start; flex-direction: column; gap: 10px; } footer { gap: 0; } }

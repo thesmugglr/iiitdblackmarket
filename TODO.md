@@ -1,6 +1,6 @@
 # Shared task board
 
-Use this file to coordinate work before opening a branch. Scope is proposed until approved by the project owner; an unassigned task is not an instruction to start implementation.
+Use this file to coordinate work before opening a branch. The owner authorized the basic scaffold on 2026-10-31; broader marketplace scope remains proposed. An unassigned task is not an instruction to start implementation.
 
 Statuses: `Backlog`, `Ready`, `In progress`, `Blocked`, `Review`, `Done`.
 
@@ -11,7 +11,8 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 | DOC-01 | Establish shared README, task board, contribution guide, and agent instructions | Done | Codex | — | Documentation only; 2026-10-31. |
 | PLAN-01 | Approve or revise first-release scope | Ready | Project owner | — | See README proposal. |
 | PLAN-02 | Decide current-student verification and approval process | Backlog | Unassigned | PLAN-01 | Institute domain alone does not establish student status. |
-| SETUP-01 | Choose framework/hosting and scaffold application | Backlog | Unassigned | PLAN-01 | Document exact install, run, and build commands. |
+| SETUP-01 | Scaffold website, API, shared types, local tooling, and CI | Review | Codex | Owner authorized scaffold directly | `feat/SETUP-01-repo-scaffold`; see README verification and setup. Merge pending. |
+| SETUP-02 | Choose production hosting and configure backend provider | Backlog | Unassigned | SETUP-01 | No hosting or Supabase project configured. |
 | DATA-01 | Design schema and migrations for profiles, listings, conversations, offers, and reports | Backlog | Unassigned | PLAN-02, SETUP-01 | Include ownership and membership access policies. |
 | AUTH-01 | Configure institute sign-in and student eligibility checks | Backlog | Unassigned | PLAN-02, DATA-01 | Document OAuth callback and environment key names. |
 | LIST-01 | Create/edit listings and protected photo uploads | Backlog | Unassigned | AUTH-01, DATA-01 | Include image limits and owner-only mutations. |
@@ -39,5 +40,5 @@ Before marking a task Done, link the merged change, record meaningful verificati
 
 - First-release scope approval.
 - Student eligibility source, approval owner, and handling of graduates.
-- Framework, hosting, backend project ownership, and configuration.
+- Hosting, backend project ownership, and configuration. React/Vite + Fastify scaffold is implemented for review.
 - Final rental rules and listing lifecycle.
