@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../lib/auth'
 import { CATEGORIES, CONDITIONS, TYPES } from '../lib/constants'
-import { Search } from '../components/Icons'
-import Scene from '../components/Scene'
+import Hero from '../components/Hero'
 import Sections from '../components/Sections'
 import ListingCard from '../components/ListingCard'
+import Drawer from '../components/Drawer'
+import Reveal from '../components/Reveal'
+import { HowItWorks, Trust, Cta } from '../components/Landing'
 import type { Listing } from '../lib/types'
 
 export default function Browse() {
+  const { profile } = useAuth()
   const [items, setItems] = useState<Listing[]>([])
   const [state, setState] = useState<'loading' | 'ok' | 'error'>('loading')
   const [q, setQ] = useState('')
@@ -18,6 +22,8 @@ export default function Browse() {
   const [sort, setSort] = useState('new')
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [latest, setLatest] = useState<Listing[]>([])
+  const [saved, setSaved] = useState<Set<string>>(new Set())
+  const [drawer, setDrawer] = useState(false)
 
   useEffect(() => {
     supabase.from('listings').select('*').in('status', ['active', 'reserved']).order('created_at', { ascending: false }).limit(200)
@@ -28,6 +34,7 @@ export default function Browse() {
         setCounts(m)
         setLatest(rows)
       })
+    supabase.from('saved_items').select('listing_id').then(({ data }) => setSaved(new Set(((data ?? []) as { listing_id: string }[]).map((r) => r.listing_id))))
   }, [])
 
   useEffect(() => {
@@ -50,41 +57,65 @@ export default function Browse() {
       setItems((data ?? []) as Listing[])
       setState('ok')
     }, 250)
-    return () => {
-      live = false
-      clearTimeout(t)
-    }
+    return () => { live = false; clearTimeout(t) }
   }, [q, category, type, condition, maxPrice, sort])
+
+  const toggleSave = async (l: Listing) => {
+    if (!profile) return
+    const next = new Set(saved)
+    if (next.has(l.id)) { next.delete(l.id); await supabase.from('saved_items').delete().eq('listing_id', l.id).eq('user_id', profile.id) }
+    else { next.add(l.id); await supabase.from('saved_items').insert({ listing_id: l.id, user_id: profile.id }) }
+    setSaved(next)
+  }
+  const toResults = () => document.getElementById('results')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const active = [type, condition, maxPrice].filter(Boolean).length + (sort !== 'new' ? 1 : 0)
+  const clear = () => { setQ(''); setCategory(''); setType(''); setCondition(''); setMaxPrice(''); setSort('new') }
 
   return (
     <>
-      <Scene counts={counts} category={category} tags={latest} onPick={(k) => { setCategory(category === k ? '' : k); document.getElementById('results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }} />
-      <Sections />
-      <div className="results-bar" id="results">
-        <label className="search"><Search /><input type="search" placeholder="Search cycles, books, cookers…" value={q} onChange={(e) => setQ(e.target.value)} /></label>
-        {category && <button onClick={() => setCategory('')}>{CATEGORIES[category]} ✕</button>}
-      </div>
-      <div className="filters">
-        <select value={type} onChange={(e) => setType(e.target.value)} aria-label="Type">
-          <option value="">Buy, rent or free</option>
-          {Object.entries(TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-        <select value={condition} onChange={(e) => setCondition(e.target.value)} aria-label="Condition">
-          <option value="">Any condition</option>
-          {Object.entries(CONDITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-        <input type="number" min="0" placeholder="Max price ₹" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} aria-label="Maximum price" />
-        <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort">
-          <option value="new">Newest first</option>
-          <option value="low">Price, low to high</option>
-          <option value="high">Price, high to low</option>
-        </select>
-      </div>
-      {state === 'loading' && <p className="muted">Loading…</p>}
-      {state === 'error' && <p className="error">Could not load listings. Try again.</p>}
-      {state === 'ok' && items.length === 0 && <div className="empty"><strong>Nothing here yet</strong><span>Loosen a filter, or be the first to list something.</span></div>}
-      {state === 'ok' && items.length > 0 && <p className="count">{items.length} listing{items.length === 1 ? '' : 's'}</p>}
-      <div className="grid">{items.map((l) => <ListingCard key={l.id} l={l} />)}</div>
+      <Hero q={q} setQ={setQ} category={category} setCategory={setCategory} featured={latest} onSubmit={toResults} />
+
+      <section className="block tight" aria-label="Categories">
+        <div className="cat-row">
+          {Object.entries(CATEGORIES).map(([k, v]) => (
+            <button key={k} className={`cat ${category === k ? 'on' : ''}`} aria-pressed={category === k} onClick={() => { setCategory(category === k ? '' : k); toResults() }}>
+              <span>{v}</span><small>{counts[k] ?? 0} listed</small>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="block" id="results" aria-labelledby="fresh">
+        <Sections />
+        <div className="row between">
+          <h2 id="fresh" className="display sm">{category ? CATEGORIES[category] : 'Fresh on campus'}</h2>
+          <button onClick={() => setDrawer(true)}>Filters{active > 0 && <span className="badge unread">{active}</span>}</button>
+        </div>
+        {state === 'error' && <p className="error">Couldn't load listings. Check your connection and try again.</p>}
+        {state === 'loading' && <div className="bento" aria-busy="true">{Array.from({ length: 6 }, (_, i) => <div key={i} className="skeleton" />)}</div>}
+        {state === 'ok' && items.length === 0 && (
+          <div className="empty"><strong>Nothing matches yet</strong><span>Loosen a filter, or be the first to list it.</span><button onClick={clear}>Clear filters</button></div>
+        )}
+        {state === 'ok' && items.length > 0 && (
+          <div className="bento">
+            {items.map((l, i) => <Reveal key={l.id} className={i === 0 ? 'big' : ''} delay={Math.min(i, 5) * 0.05}><ListingCard l={l} feature={i === 0} saved={saved.has(l.id)} onSave={toggleSave} /></Reveal>)}
+          </div>
+        )}
+      </section>
+
+      <HowItWorks />
+      <Trust />
+      <Cta />
+
+      <Drawer open={drawer} onClose={() => setDrawer(false)} title="Filters and sort">
+        <div className="form">
+          <label>Type<select value={type} onChange={(e) => setType(e.target.value)}><option value="">Buy, rent or free</option>{Object.entries(TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+          <label>Condition<select value={condition} onChange={(e) => setCondition(e.target.value)}><option value="">Any condition</option>{Object.entries(CONDITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+          <label>Max price (₹)<input type="number" min="0" placeholder="No limit" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} /></label>
+          <label>Sort by<select value={sort} onChange={(e) => setSort(e.target.value)}><option value="new">Newest first</option><option value="low">Price, low to high</option><option value="high">Price, high to low</option></select></label>
+          <div className="row"><button className="primary" onClick={() => setDrawer(false)}>Show {state === 'ok' ? items.length : ''} results</button><button className="link" onClick={clear}>Reset all</button></div>
+        </div>
+      </Drawer>
     </>
   )
 }
