@@ -11,6 +11,11 @@ import Inbox from './pages/Inbox'
 import Chat from './pages/Chat'
 import Profile from './pages/Profile'
 import Admin from './pages/Admin'
+import Notifications from './pages/Notifications'
+import Wanted from './pages/Wanted'
+import Bundles from './pages/Bundles'
+import BundleNew from './pages/BundleNew'
+import BundleDetail from './pages/BundleDetail'
 
 function Gate() {
   const { session, profile, loading } = useAuth()
@@ -27,6 +32,11 @@ function Gate() {
         <Route path="saved" element={<Saved />} />
         <Route path="inbox" element={<Inbox />} />
         <Route path="inbox/:id" element={<Chat />} />
+        <Route path="wanted" element={<Wanted />} />
+        <Route path="bundles" element={<Bundles />} />
+        <Route path="bundles/new" element={<BundleNew />} />
+        <Route path="bundles/:id" element={<BundleDetail />} />
+        <Route path="notifications" element={<Notifications />} />
         <Route path="profile" element={<Profile />} />
         <Route path="admin" element={profile.role === 'admin' ? <Admin /> : <Navigate to="/" />} />
         <Route path="*" element={<Navigate to="/" />} />

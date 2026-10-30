@@ -28,9 +28,9 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 
 ## Optional backlog — scope not yet approved
 
-- `EXTRA-01`: “Looking for” posts.
-- `EXTRA-02`: Moving-out bundles.
-- `EXTRA-03`: Listing expiry reminders and in-app notifications.
+- `EXTRA-01`: “Looking for” posts. Implemented in `feat/EXTRAS-01-03`; untested on live backend.
+- `EXTRA-02`: Moving-out bundles. Implemented in `feat/EXTRAS-01-03`; untested on live backend.
+- `EXTRA-03`: Listing expiry reminders and in-app notifications. Implemented in `feat/EXTRAS-01-03`; untested on live backend.
 - `EXTRA-04`: Integrated payments; outside the proposed first release.
 
 ## Completion and handoff

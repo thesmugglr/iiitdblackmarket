@@ -130,3 +130,17 @@ textarea{resize:vertical}
 @keyframes swing{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
 @media(prefers-reduced-motion:reduce){.swing,.festoon{animation:none}}
 @media(max-width:700px){.scene{height:420px}.scene-title{max-width:85%}.nudge{display:none}}
+
+.sections{display:flex;gap:.4rem;margin:1.2rem 0 .8rem;border-bottom:1px solid var(--rule)}
+.sections a{padding:.5rem 1rem;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.sections a.active{color:var(--ink);border-color:var(--accent)}
+.bell{position:relative;display:grid;place-items:center;margin-left:auto;margin-right:.8rem;color:var(--ink)}
+.bell .badge{position:absolute;top:-6px;right:-8px;margin:0;font-size:.65rem;padding:0 .35rem}
+.top{gap:.4rem}.top .brand{margin-right:auto}.top .bell{margin-left:0}
+.panel{background:var(--surface);border:1px solid var(--rule);padding:1rem;border-radius:10px;margin:.8rem 0}
+.dot{display:inline-block;width:.55rem;height:.55rem;border-radius:50%;background:var(--accent);margin-right:.5rem;box-shadow:0 0 8px var(--accent)}
+.list li.read strong{font-weight:500;color:var(--muted)}
+.card.bundle .stack{position:relative;aspect-ratio:4/3;background:var(--surface);border-radius:10px;display:grid;place-items:center;overflow:hidden}
+.card.bundle .stack img{position:absolute;width:42%;aspect-ratio:4/5;object-fit:cover;border:2px solid var(--paper);border-radius:6px}
+.pick{border:1px solid var(--rule);border-radius:8px;padding:.8rem;display:grid;gap:.5rem}.pick legend{font-weight:600;padding:0 .4rem}
+.pick label.check{font-weight:500}
