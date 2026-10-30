@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
+import { Arrow, Clip } from '../components/Icons'
 import { inr, MAX_PHOTO_BYTES } from '../lib/constants'
 import { useSignedUrls } from '../lib/useSignedUrls'
 import type { Conversation, Message, Offer } from '../lib/types'
@@ -111,7 +112,7 @@ export default function Chat() {
   return (
     <div className="chat">
       <div className="chat-head">
-        <Link to="/inbox">←</Link>
+        <Link to="/inbox" aria-label="Back to inbox" className="icon-btn"><Arrow /></Link>
         <div>
           <strong>{otherName}</strong>
           <div className="small muted"><Link to={`/listing/${conv.listing_id}`}>{conv.listing?.title}</Link></div>
@@ -137,7 +138,7 @@ export default function Chat() {
       )}
       {err && <p className="error small">{err}</p>}
       <form className="composer" onSubmit={send}>
-        <label className="attach" title="Attach photo">📎<input type="file" accept="image/*" hidden onChange={(e) => attach(e.target.files?.[0])} /></label>
+        <label className="attach" title="Attach photo"><Clip /><input type="file" accept="image/*" hidden onChange={(e) => attach(e.target.files?.[0])} /></label>
         <input value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} placeholder="Type a message" />
         <button className="primary">Send</button>
       </form>
