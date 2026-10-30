@@ -10,3 +10,7 @@
 - Never commit secrets, private student rosters, or real chat data. Use placeholder configuration examples.
 - Preserve server-side membership checks, owner-only listing mutations, and conversation participant access as implementation requirements. An institute email domain alone does not prove current student status.
 - At handoff, report the changed files, branch/commit or PR, checks performed, and unresolved work.
+
+## Standing PR review authorization (2026-10-31)
+
+The repository owner authorized reviewing and merging PRs authored by collaborator `AbhikRao` after checking them. Fetch the exact current head, inspect the diff and integration with ongoing work, and run applicable checks. Merge only non-draft PRs with no unresolved material findings and passing required checks. Fix routine defects on a focused branch or report blockers; do not merge blindly. Preserve both collaborators' contributions, and keep README/TODO current. This authorization does not authorize deployment or weakening access controls. The Codex chat has a 15-minute review heartbeat; avoid duplicating an in-progress review.

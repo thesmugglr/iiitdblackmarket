@@ -4,9 +4,9 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 ## Current status
 
-**Planning stage — application implementation has not started.**
+**First release implemented in code (branch `feat/mvp-app`); not yet tested against a live Supabase project and not deployed.**
 
-The repository was reviewed on 31 October 2026 and contained only this README. The scope below is a proposal awaiting the project owner's approval; it does not describe working features. Documentation updates have been authorized.
+The owner asked for the project to be completed, so the proposed first-release scope below was built. The app compiles and bundles (`npm run build`), but no end-to-end run with real accounts has happened: it needs a Supabase project and Google OAuth credentials that only the owner can create. Treat every feature as *implemented, unverified* until QA-01 is done.
 
 This README is the shared project record for the owner, their collaborator, and Codex. Update it with every meaningful project change so everyone can see what exists, what changed, and what remains.
 
@@ -77,7 +77,37 @@ Hosting and the application framework remain to be finalized before implementati
 
 ## Local setup and deployment
 
-There is no runnable application, dependency manifest, database schema, or deployment yet. Setup commands will be documented here when those files exist.
+Layout: `app/` is the React + TypeScript (Vite) client; `supabase/migrations/0001_init.sql` is the full schema, row-level security, RPCs, storage buckets and realtime setup.
+
+1. Create a Supabase project. In the SQL editor run all files in `supabase/migrations/` in filename order (`0001_init.sql`, then `0002_review_access.sql`). Existing installations of 0001 must apply 0002 before use.
+2. Enable Google auth (Authentication → Providers) with OAuth credentials from Google Cloud; add your site URL and `http://localhost:5173` to the redirect URLs.
+3. `cd app && cp .env.example .env` and fill `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+4. `npm ci && npm run dev` (checks from `app/`: `npm test`, `npm run build`, `npm run lint`).
+5. Sign in once with the admin's @iiitd.ac.in account, then run in SQL: `update public.profiles set role='admin', status='approved' where email='you@iiitd.ac.in';`
+6. As admin, open **Admin** and paste current-student emails into the roster. Rostered users are approved on sign-up; others stay pending until approved.
+
+UI preview without a backend: put `VITE_DEMO=1` in `app/.env.local` and run `npm run dev`. This uses in-memory sample data (dev server only, ignored by production builds) and does not test any real access rules.
+
+Hosting is not chosen. `npm run build` outputs static files in `app/dist` for any static host (e.g. Vercel, Netlify, Cloudflare Pages); configure the two env vars there. Never commit `.env` or real rosters/chats.
+
+### What is implemented
+- Sign-in with Google (domain hint in the client; `@iiitd.ac.in` enforced by a database trigger on sign-up). Marketplace access requires `approved` status (roster or admin approval).
+- Listings (sale/rent/giveaway, up to 6 photos in a private bucket served by signed URLs), edit/delete/reserve/sold, search, filters, sorting, saved items.
+- Chat started via RPC; messages, photo attachments, read receipts and unread counts, realtime updates; offers made by buyers and accepted/declined by sellers (acceptance reserves the listing).
+- Profile with own listings and completed deals; reports on listings/messages, user blocking, admin console (roster, user approve/suspend, report queue, listing removal).
+
+### Known limits
+- Unverified against a live backend; RLS policies need the separate-account tests in QA-01.
+- No expiry reminders, notifications, "looking for" posts or bundles (EXTRA-01..03), and no integrated payments.
+- Search is simple substring matching; no pagination beyond the first 60 results.
+- Blocking stops new messages and new chats; admin listing removal uses the status field.
+- Graduates: no automatic handling; admins suspend accounts manually.
+
+### Review checks
+
+`cd app` then `npm test` runs eight local PostgreSQL/PGlite checks (one parent test and seven scenarios) covering SQL-editor admin bootstrap, self-promotion denial, private email protection, conversation isolation, blocks, suspension, offer acceptance, and administrator removal. Public profile joins cannot select email; the self/admin screens use authorized RPCs for private fields. The harness supplies minimal auth/storage schemas and grants; it excludes the pgcrypto extension (UUID generation is built in). These are local database tests, not live Supabase OAuth, storage-service, realtime, or multi-connection concurrency verification. QA-01 still requires separate real accounts.
+
+Before production, enable Google sign-in and disable unused account providers, verify institute identity and current-student eligibility, and run the live access checks. Client domain hints are not an authorization boundary.
 
 Expected configuration needs include a backend project, Google OAuth credentials and callback URLs, the accepted institute domain, a student eligibility mechanism, and deployment configuration. Never commit secrets, private student rosters, or real chat data. Document configuration key names and use placeholders in examples.
 
@@ -90,20 +120,11 @@ Expected configuration needs include a backend project, Google OAuth credentials
 - Update this README in the same commit or pull request as each meaningful change: behavior, setup/configuration, verification results, remaining work, and relevant decisions.
 - Keep proposed, implemented, tested, and deployed states distinct. Record actual checks and any verification limits; do not mark untested features complete.
 - Keep the progress log concise. Git commits and pull requests contain the detailed history; link them when useful.
+- The owner has authorized review and merge of `AbhikRao` PRs after checks. Review the exact current head and merge only when checks pass and no material findings remain. A 15-minute Codex review monitor is active; it should stay quiet when nothing actionable changes. See AGENTS.md for the standing instructions.
 
 ## Next steps
 
-The detailed shared task board, including owners and dependencies, is in [TODO.md](TODO.md). Keep this overview aligned with that board.
-
-- [ ] Approve or revise the proposed release scope.
-- [ ] Decide how current student eligibility is verified.
-- [ ] Finalize framework, hosting, and backend configuration.
-- [ ] Implement institute sign-in and access controls.
-- [ ] Implement listings, uploads, categories, and search.
-- [ ] Implement private chat and offers.
-- [ ] Implement dashboards, saved items, and moderation.
-- [ ] Validate access isolation, uploads, listing ownership, and chat between separate test accounts.
-- [ ] Document local setup, deployment, and operational limits as they become concrete.
+See [TODO.md](TODO.md). Remaining: create the Supabase project and run the migration, configure Google OAuth, run QA-01 with two or more test accounts, choose hosting and deploy.
 
 ## Progress log
 
@@ -111,3 +132,7 @@ The detailed shared task board, including owners and dependencies, is in [TODO.m
 | --- | --- | --- |
 | 2026-10-31 | Reviewed the repository and documented the requested marketplace, proposed release scope, identity considerations, and collaboration workflow. Owner requested ongoing GitHub README updates for shared development. | Confirmed the repository initially contained only a README. Documentation-only change; no application tests apply. Scope approval and implementation remain pending. |
 | 2026-10-31 | Added TODO.md for task ownership/dependencies, CONTRIBUTING.md for branches and review, and AGENTS.md for shared coding-agent instructions. | Documentation baseline; application implementation remains pending. |
+| 2026-10-31 | Built the first release: Vite/React/TypeScript client in `app/`, Supabase schema/RLS/RPC/storage migration, and all planned screens (auth gate, listings, search, chat, offers, dashboard, moderation, admin). | `npm run build` and `tsc` pass; lint has warnings only. Not run against a live Supabase project; QA and deployment pending. |
+| 2026-10-31 | Reviewed AbhikRao's PR #3. Added corrective migration 0002 for admin bootstrap, email privacy, membership/block checks, removed-listing protection, and serialized offer decisions; added eight local database checks and CI. Recorded standing review/merge authorization and 15-minute monitor. | Local database tests pass. Live Supabase QA and deployment remain pending; fixes must be included before merge. |
+| 2026-10-31 | Redesigned the UI (classifieds-style editorial look, serif/grotesk type, category tabs, sold/reserved stamps, SVG icons, mobile tab bar, light/dark) and added a dev-only demo mode. | Checked visually in a browser at desktop and phone widths with demo data; build re-run below. Still no live-backend testing. |
+| 2026-10-31 | Preserved Abhik's newer UI/demo commit during review. Updated the dev-only demo for private-profile RPCs, added a visible fictional-data notice, and load demo code only in development so it is removed from the production bundle. | Demo is restricted to Vite development mode; production remains behind real authentication/approval. The owner's dark-tech design is tracked separately in PR #4. |
