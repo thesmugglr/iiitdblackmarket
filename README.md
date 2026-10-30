@@ -81,7 +81,7 @@ Layout: `app/` is the React + TypeScript (Vite) client; `supabase/migrations/000
 
 Follow [docs/backend-setup.md](docs/backend-setup.md) for the detailed backend/OAuth/configuration runbook and [docs/live-qa.md](docs/live-qa.md) for actual live test results. No live backend connection is confirmed yet. The backend-readiness work is tracked in [PR #6](https://github.com/garvrao80/iiitdblackmarket/pull/6).
 
-1. Create/select a Supabase project. Apply all unapplied files in `supabase/migrations/` in filename order (`0001_init.sql`, `0002_review_access.sql`, `0003_upload_limits.sql`). Do not rerun applied migrations.
+1. Create/select a Supabase project. Apply all unapplied files in `supabase/migrations/` in filename order: `0001_init.sql`, `0002_review_access.sql`, `0003_upload_limits.sql`, `0004_extras.sql`, `0005_expiry_access.sql`. Do not rerun applied migrations.
 2. Enable Google auth (Authentication → Providers) with OAuth credentials from Google Cloud; add your site URL and `http://localhost:5173` to the redirect URLs.
 3. Copy `app/.env.example` to `app/.env.local` and fill `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Legacy `VITE_SUPABASE_ANON_KEY` remains supported.
 4. From `app/`, run `npm ci`, `npm run check:config -- development`, then `npm run dev` (checks: `npm test`, `npm run build`, `npm run lint`).
@@ -101,16 +101,24 @@ Hosting is not chosen. `npm run build` outputs static files in `app/dist` for an
 ### Interface
 The home screen is an interactive 2D night market (`app/src/components/Scene.tsx`): a draggable side-scrolling street with parallax layers, stars, fireflies, string lights and swinging price tags for the newest listings. Each category is a stall with a live listing count; selecting one filters the grid below. Supports mouse/touch drag with inertia, arrow keys, focusable stalls and `prefers-reduced-motion`.
 
+### Extras (EXTRA-01..03)
+Migration `supabase/migrations/0004_extras.sql` (apply after 0001–0003), followed by `0005_expiry_access.sql`, adds:
+- **Looking for** (`/wanted`): students post requests with an optional budget; others reply by attaching one of their own active listings via `respond_wanted`, which notifies the poster. Owners can mark a request found or closed.
+- **Moving-out bundles** (`/bundles`): sellers group 2 to 10 of their own active listings at one price via `create_bundle`; buyers chat through the first available item; `mark_bundle_sold` marks the bundle and its items sold.
+- **Expiry and notifications** (`/notifications`, bell in the header): listings expire after 30 days and are hidden from others (owners still see them); owners get one reminder in the last 3 days and can renew for 30 days. New messages, wanted replies and expiry reminders create in-app notifications (one unread per destination). Reminders are generated when the owner opens the app or notifications page, so no scheduled job is needed.
+
+Verified by local PostgreSQL checks in `app/test/extras.test.mjs` (permissions, ownership, one-reminder, expiry visibility) and a browser check with demo data. Not verified on live Supabase, and notifications only appear while the app is open (no email or push).
+
 ### Known limits
 - Unverified against a live backend; RLS policies need the separate-account tests in QA-01.
-- No expiry reminders, notifications, "looking for" posts or bundles (EXTRA-01..03), and no integrated payments.
+- No integrated payments, email or push notifications.
 - Search is simple substring matching; no pagination beyond the first 60 results.
 - Blocking stops new messages and new chats; admin listing removal uses the status field.
 - Graduates: no automatic handling; admins suspend accounts manually.
 
 ### Review checks
 
-`cd app` then `npm test` runs 23 checks: one database parent test, 15 access/upload scenarios, and seven configuration/CLI tests. These cover membership, listing ownership, email privacy, chat/attachments/read receipts, offers, moderation, storage settings, missing configuration, and secret rejection before bundling. Public profile joins cannot select email; self/admin screens use authorized RPCs. The fixture supplies minimal auth/storage schemas and grants and excludes pgcrypto (UUID generation is built in). These tests do not verify live OAuth, actual Storage file/type enforcement, realtime, or multi-connection concurrency. QA-01 still requires real accounts.
+`cd app` then `npm test` runs 30 checks: two database parent tests, 21 database scenarios, and seven configuration/CLI tests. These cover membership, listing ownership, email privacy, chat/attachments/read receipts, offers, moderation, storage settings, wanted posts/bundles/expiry/notifications, missing configuration, and secret rejection before bundling. Public profile joins cannot select email; self/admin screens use authorized RPCs. The fixture supplies minimal auth/storage schemas and grants and excludes pgcrypto (UUID generation is built in). These tests do not verify live OAuth, actual Storage file/type enforcement, realtime, or multi-connection concurrency. QA-01 still requires real accounts.
 
 Before production, enable Google sign-in and disable unused account providers, verify institute identity and current-student eligibility, and run the live access checks. Client domain hints are not an authorization boundary.
 
@@ -145,7 +153,9 @@ See [TODO.md](TODO.md). Remaining: create the Supabase project and run the migra
 | 2026-10-31 | Preserved Abhik's newer UI/demo commit during review. Updated the dev-only demo for private-profile RPCs, added a visible fictional-data notice, and load demo code only in development so it is removed from the production bundle. | Demo is restricted to Vite development mode; production remains behind real authentication/approval. The owner's dark-tech design is tracked separately in PR #4. |
 | 2026-10-31 | Approved and merged [AbhikRao PR #3](https://github.com/garvrao80/iiitdblackmarket/pull/3) into main after [fix PR #5](https://github.com/garvrao80/iiitdblackmarket/pull/5) and review of the exact current head. Merge commit: `491d233`. | Eight local DB checks pass; build/type checking and lint pass with existing warnings; both GitHub checks pass on the reviewed head. Live-provider QA and deployment remain pending. Standing review monitor checks AbhikRao PRs every 15 minutes. |
 | 2026-10-31 | Added the interactive 2D night-market home scene and night theme (drag, parallax, stalls as category filters). | Checked in a browser at desktop and phone widths with demo data; `tsc`, build and tests run below. No live-backend testing. |
+| 2026-10-31 | Added EXTRA-01..03: looking-for posts, moving-out bundles, listing expiry/renewal and in-app notifications (migration 0003, UI, tests). | `npm test` (database checks), `tsc`, build and lint run; browser check with demo data. No live-backend testing. |
 | 2026-10-31 | Owner assigned design/UI to Abhik and remaining engineering to Garv Rao/Codex. Retired Codex design PR #4 and updated review automation. Started backend-readiness work on `feat/ENG-01-backend-readiness`. | GitHub currently has only configuration examples: no repository secret/variable names, environments, or deployments. This does not prove whether projects exist in private cloud accounts. |
 | 2026-10-31 | Prepared publishable-key configuration with legacy support, secret rejection before bundling, a configuration preflight command, migration 0003 upload limits, expanded tests, SPA rewrite file, and backend/OAuth/live-QA documentation in PR #6. | 23 local tests pass; build/typecheck passes with existing chunk-size warning; lint has 5 existing warnings and no errors. Configuration preflight correctly reports missing project settings. No cloud migration, OAuth setup, live QA, or deployment has been performed. |
 | 2026-10-31 | Merged backend-readiness PR #6 after GitHub CI passed (`afe45c9`). Updated the review monitor from 15 minutes to 3 minutes at the owner's request. | Local preparation is complete. Supabase connection/cloud setup, live QA, and deployment remain pending; Abhik owns design/UI. |
 | 2026-10-31 | Reviewed PR #7 and merged current backend-readiness changes into its branch, preserving Abhik's UI and both progress histories. Removed a duplicate animation-frame startup that could leave a canvas loop running after unmount. | Local tests/build/lint checked during review; live backend QA remains pending. |
+| 2026-10-31 | Reviewed extras PR #8 against current main. Assigned extras migration version 0004 to avoid the applied 0003 upload-limit version, added expired-listing RPC checks and suspended wanted-response protection, and expanded regression coverage. | Local checks recorded in the PR review; live Supabase/realtime/concurrency QA remains pending. |

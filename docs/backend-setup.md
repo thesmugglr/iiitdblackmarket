@@ -15,6 +15,8 @@ Run each migration **once, in filename order** through the Supabase SQL editor o
 1. `supabase/migrations/0001_init.sql` — tables, initial policies/RPCs, private buckets, realtime.
 2. `supabase/migrations/0002_review_access.sql` — reviewed privacy/access fixes and admin bootstrap.
 3. `supabase/migrations/0003_upload_limits.sql` — private image buckets with 5 MiB limits.
+4. `supabase/migrations/0004_extras.sql` — wanted posts, bundles, expiry, and notifications.
+5. `supabase/migrations/0005_expiry_access.sql` — privileged expiry checks and suspended-response access protection.
 
 On an existing database, apply only migrations that have not already run. Do not rerun 0001 over existing tables, and do not reset a project to resolve migration errors. Retain the migration history in the provider/tool used. Schema and access policies must be ready before inviting users.
 

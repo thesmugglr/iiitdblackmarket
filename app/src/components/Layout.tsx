@@ -1,10 +1,21 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import { Chat, Grid, Heart, Plus, User } from './Icons'
+import { Bell, Chat, Grid, Heart, Plus, User } from './Icons'
 import { demoMode } from '../lib/supabase'
 
 export default function Layout() {
   const { profile, signOut } = useAuth()
+  const loc = useLocation()
+  const [unread, setUnread] = useState(0)
+  useEffect(() => {
+    const load = () => supabase.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null).then(({ count }) => setUnread(count ?? 0))
+    void load()
+    window.addEventListener('notices-changed', load)
+    const t = setInterval(load, 60000)
+    return () => { window.removeEventListener('notices-changed', load); clearInterval(t) }
+  }, [loc.pathname])
   return (
     <>
       {demoMode && <aside role="status" style={{ padding: '8px 20px', background: '#fff2b8', color: '#292318', textAlign: 'center' }}>Demo preview · Fictional students and items · Actions are not saved</aside>}
@@ -12,6 +23,9 @@ export default function Layout() {
         <NavLink to="/" className="brand">
           <span className="mark">B</span>
           <span>IIITD <em>Black Market</em></span>
+        </NavLink>
+        <NavLink to="/notifications" className="bell" aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`}>
+          <Bell />{unread > 0 && <span className="badge unread">{unread}</span>}
         </NavLink>
         <nav className="desktop-nav">
           <NavLink to="/" end>Browse</NavLink>

@@ -10,7 +10,7 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 | --- | --- | --- | --- | --- | --- |
 | DOC-01 | Establish shared README, task board, contribution guide, and agent instructions | Done | Codex | — | Documentation only; 2026-10-31. |
 | REVIEW-01 | Review/fix AbhikRao PR #3 before merge | Done | Codex | PR #3 | [Fix PR #5](https://github.com/garvrao80/iiitdblackmarket/pull/5) merged into [PR #3](https://github.com/garvrao80/iiitdblackmarket/pull/3); #3 approved and merged to main at `491d233`. Eight local DB checks and GitHub CI pass. Live Supabase QA remains separate. |
-| REVIEW-02 | Review Abhik's stacked PRs #7, #8, #9 | In progress | Codex | Latest main | PR #7 current-main integration and RAF cleanup under review; review extras and editorial layers separately before merging. |
+| REVIEW-02 | Review Abhik's stacked PRs #7, #8, #9 | In progress | Codex | Latest main | PR #7 merged at `ba1ae4b`. PR #8 corrected migration versions/expiry access; 30 tests pass locally. Editorial PR #9 remains next in the stack. |
 | DESIGN-02 | Own and improve the main website design/UI | Ready | AbhikRao | Latest main | Owner delegated design to Abhik. Codex PR #4 retired; branch retained as optional reference. |
 | ENG-01 | Backend readiness: safe config, upload limits, broader tests, setup runbook | Done | Garv Rao / Codex | Latest main | [PR #6](https://github.com/garvrao80/iiitdblackmarket/pull/6) merged at `afe45c9`; 23 local tests and GitHub CI pass, build/lint pass with existing warnings. Live work below remains separate. |
 | CLOUD-01 | Confirm/select Supabase project; apply unapplied migrations and configure Google OAuth | Ready | Garv Rao / Codex | Owner cloud connection | GitHub has no configured secrets/variables/environments/deployments. A Supabase integration was suggested but connection is unconfirmed. See docs/backend-setup.md. |
@@ -31,9 +31,9 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 
 ## Optional backlog — scope not yet approved
 
-- `EXTRA-01`: “Looking for” posts.
-- `EXTRA-02`: Moving-out bundles.
-- `EXTRA-03`: Listing expiry reminders and in-app notifications.
+- `EXTRA-01`: “Looking for” posts. Implemented in `feat/EXTRAS-01-03`; untested on live backend.
+- `EXTRA-02`: Moving-out bundles. Implemented in `feat/EXTRAS-01-03`; untested on live backend.
+- `EXTRA-03`: Listing expiry reminders and in-app notifications. Implemented in `feat/EXTRAS-01-03`; untested on live backend.
 - `EXTRA-04`: Integrated payments; outside the proposed first release.
 
 ## Completion and handoff
