@@ -96,6 +96,9 @@ Hosting is not chosen. `npm run build` outputs static files in `app/dist` for an
 - Chat started via RPC; messages, photo attachments, read receipts and unread counts, realtime updates; offers made by buyers and accepted/declined by sellers (acceptance reserves the listing).
 - Profile with own listings and completed deals; reports on listings/messages, user blocking, admin console (roster, user approve/suspend, report queue, listing removal).
 
+### Interface
+The home screen is an interactive 2D night market (`app/src/components/Scene.tsx`): a draggable side-scrolling street with parallax layers, stars, fireflies, string lights and swinging price tags for the newest listings. Each category is a stall with a live listing count; selecting one filters the grid below. Supports mouse/touch drag with inertia, arrow keys, focusable stalls and `prefers-reduced-motion`.
+
 ### Known limits
 - Unverified against a live backend; RLS policies need the separate-account tests in QA-01.
 - No expiry reminders, notifications, "looking for" posts or bundles (EXTRA-01..03), and no integrated payments.
@@ -137,3 +140,4 @@ See [TODO.md](TODO.md). Remaining: create the Supabase project and run the migra
 | 2026-10-31 | Redesigned the UI (classifieds-style editorial look, serif/grotesk type, category tabs, sold/reserved stamps, SVG icons, mobile tab bar, light/dark) and added a dev-only demo mode. | Checked visually in a browser at desktop and phone widths with demo data; build re-run below. Still no live-backend testing. |
 | 2026-10-31 | Preserved Abhik's newer UI/demo commit during review. Updated the dev-only demo for private-profile RPCs, added a visible fictional-data notice, and load demo code only in development so it is removed from the production bundle. | Demo is restricted to Vite development mode; production remains behind real authentication/approval. The owner's dark-tech design is tracked separately in PR #4. |
 | 2026-10-31 | Approved and merged [AbhikRao PR #3](https://github.com/garvrao80/iiitdblackmarket/pull/3) into main after [fix PR #5](https://github.com/garvrao80/iiitdblackmarket/pull/5) and review of the exact current head. Merge commit: `491d233`. | Eight local DB checks pass; build/type checking and lint pass with existing warnings; both GitHub checks pass on the reviewed head. Live-provider QA and deployment remain pending. Standing review monitor checks AbhikRao PRs every 15 minutes. |
+| 2026-10-31 | Added the interactive 2D night-market home scene and night theme (drag, parallax, stalls as category filters). | Checked in a browser at desktop and phone widths with demo data; `tsc`, build and tests run below. No live-backend testing. |
