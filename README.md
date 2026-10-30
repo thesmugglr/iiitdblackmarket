@@ -113,6 +113,8 @@ Expected configuration needs include a backend project, Google OAuth credentials
 
 ## Working together
 
+**Ownership:** AbhikRao owns the main website design/UI. Garv Rao and Codex own backend, authentication, database/access policies, tests, CI, and deployment preparation. Codex's old design PR #4 is closed; its branch is reference material only. The standing review monitor follows this split.
+
 - Fetch the latest remote changes before starting work and again before pushing.
 - Use focused feature branches and pull requests for application changes so parallel work can be reviewed together.
 - Coordinate ownership of overlapping features/files before editing them.
@@ -137,3 +139,4 @@ See [TODO.md](TODO.md). Remaining: create the Supabase project and run the migra
 | 2026-10-31 | Redesigned the UI (classifieds-style editorial look, serif/grotesk type, category tabs, sold/reserved stamps, SVG icons, mobile tab bar, light/dark) and added a dev-only demo mode. | Checked visually in a browser at desktop and phone widths with demo data; build re-run below. Still no live-backend testing. |
 | 2026-10-31 | Preserved Abhik's newer UI/demo commit during review. Updated the dev-only demo for private-profile RPCs, added a visible fictional-data notice, and load demo code only in development so it is removed from the production bundle. | Demo is restricted to Vite development mode; production remains behind real authentication/approval. The owner's dark-tech design is tracked separately in PR #4. |
 | 2026-10-31 | Approved and merged [AbhikRao PR #3](https://github.com/garvrao80/iiitdblackmarket/pull/3) into main after [fix PR #5](https://github.com/garvrao80/iiitdblackmarket/pull/5) and review of the exact current head. Merge commit: `491d233`. | Eight local DB checks pass; build/type checking and lint pass with existing warnings; both GitHub checks pass on the reviewed head. Live-provider QA and deployment remain pending. Standing review monitor checks AbhikRao PRs every 15 minutes. |
+| 2026-10-31 | Owner assigned design/UI to Abhik and remaining engineering to Garv Rao/Codex. Retired Codex design PR #4 and updated review automation. Started backend-readiness work on `feat/ENG-01-backend-readiness`. | GitHub currently has only configuration examples: no repository secret/variable names, environments, or deployments. This does not prove whether projects exist in private cloud accounts. |
