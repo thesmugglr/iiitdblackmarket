@@ -1,0 +1,31 @@
+name: Amber concept
+
+on:
+  pull_request:
+    paths:
+      - 'design/amber-market/**'
+      - '.github/workflows/amber-preview.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'design/amber-market/**'
+      - '.github/workflows/amber-preview.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: design/amber-market
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: design/amber-market/package-lock.json
+      - run: npm ci
+      - run: npm run build

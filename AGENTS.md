@@ -18,7 +18,7 @@
 - Keep Codex engineering changes out of shared CSS, visual components, and layout unless a concrete functional fix requires coordination. Do not impose the retired Codex design PR #4; its source remains available for Abhik to use at his discretion.
 - Prefer small backend/logic helpers with stable interfaces so Abhik can build the UI independently. Coordinate before changing frontend data contracts.
 
-The owner subsequently requested an isolated amber/dark editorial concept from Codex while Abhik continues the main UI. Codex's DESIGN-04 work is limited to `design/amber-market/` and coordination documentation, on its own branch/PR. It must not replace `app/`, its dependencies, or Abhik's visual files. Keep sample data separate from real sessions; integration into the canonical app is a separate coordinated step.
+The owner subsequently requested an isolated amber/dark editorial concept from Codex while Abhik continues the main UI. Codex's DESIGN-04 work is limited to `design/amber-market/`, its dedicated `.github/workflows/amber-preview.yml` check, and coordination documentation, on its own branch/PR. It must not replace `app/`, its dependencies, or Abhik's visual files. Keep sample data separate from real sessions; integration into the canonical app is a separate coordinated step.
 
 ## Standing PR review authorization (2026-10-31)
 

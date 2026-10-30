@@ -130,6 +130,8 @@ Expected configuration needs include a backend project, Google OAuth credentials
 
 The owner has also requested a separate amber/dark visual concept from Codex. It lives in `design/amber-market/` on `feat/DESIGN-04-amber-preview`, with independent dependencies/styles and clearly labelled sample data. This proposal does not replace the canonical `app/` or Abhik's current UI. Coordinate integration after reviewing it.
 
+The concept is implemented in [PR #11](https://github.com/garvrao80/iiitdblackmarket/pull/11). See its [README](design/amber-market/README.md) for commands, component ownership, assets, and verification. It includes a charcoal/amber collage hero, category discovery, bento listings, filter drawer, details/saved finds, community sections, and local listing creation. All real authentication and messaging remain in the canonical app.
+
 - Fetch the latest remote changes before starting work and again before pushing.
 - Use focused feature branches and pull requests for application changes so parallel work can be reviewed together.
 - Coordinate ownership of overlapping features/files before editing them.
@@ -147,6 +149,7 @@ See [TODO.md](TODO.md). Remaining: create the Supabase project and run the migra
 
 | Date (Asia/Kolkata) | Work completed | Verification / remaining work |
 | --- | --- | --- |
+| 2026-10-31 | Built the isolated amber editorial concept in [PR #11](https://github.com/garvrao80/iiitdblackmarket/pull/11), with independent dependencies and a scoped CI build. Preserved Abhik's production files. | Clean concept install/typecheck/build pass. Desktop, 390px and 320px browser checks pass for core preview interactions. Canonical app: 30 tests pass, build/lint pass with existing warnings. Real backend integration remains separate. |
 | 2026-10-31 | Reviewed the repository and documented the requested marketplace, proposed release scope, identity considerations, and collaboration workflow. Owner requested ongoing GitHub README updates for shared development. | Confirmed the repository initially contained only a README. Documentation-only change; no application tests apply. Scope approval and implementation remain pending. |
 | 2026-10-31 | Added TODO.md for task ownership/dependencies, CONTRIBUTING.md for branches and review, and AGENTS.md for shared coding-agent instructions. | Documentation baseline; application implementation remains pending. |
 | 2026-10-31 | Built the first release: Vite/React/TypeScript client in `app/`, Supabase schema/RLS/RPC/storage migration, and all planned screens (auth gate, listings, search, chat, offers, dashboard, moderation, admin). | `npm run build` and `tsc` pass; lint has warnings only. Not run against a live Supabase project; QA and deployment pending. |
