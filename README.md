@@ -8,6 +8,8 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 The owner asked for the project to be completed, so the proposed first-release scope below was built. The app compiles and bundles (`npm run build`), but no end-to-end run with real accounts has happened: it needs a Supabase project and Google OAuth credentials that only the owner can create. Treat every feature as *implemented, unverified* until QA-01 is done.
 
+The owner selected a **dark-tech aesthetic: near-black, electric green, and crisp cards**. The design branch `feat/DESIGN-01-mvp-theme` builds directly on the collaborator's [marketplace PR #3](https://github.com/garvrao80/iiitdblackmarket/pull/3), retaining its account, listing, chat, and database logic. See [docs/design.md](docs/design.md) for reusable tokens, assets, verification, and handoff notes. Nothing is merged or deployed by this design change.
+
 This README is the shared project record for the owner, their collaborator, and Codex. Update it with every meaningful project change so everyone can see what exists, what changed, and what remains.
 
 Shared development files: [TODO.md](TODO.md) tracks tasks and ownership, [CONTRIBUTING.md](CONTRIBUTING.md) explains the Git and review workflow, and [AGENTS.md](AGENTS.md) provides repository instructions for coding agents.
@@ -22,7 +24,7 @@ Shared development files: [TODO.md](TODO.md) tracks tasks and ownership, [CONTRI
 
 ## Proposed first release
 
-All entries below are **planned**, not implemented.
+The first-release features below have code in the collaborator's branch, but remain **unverified against a live backend**. This table records intended behavior, not a claim of passing end-to-end verification.
 
 | Area | Planned behavior |
 | --- | --- |
@@ -46,7 +48,7 @@ Suggested additions, subject to scope approval:
 
 **Sign in → browse or list an item → chat → agree on a campus meetup → mark the deal complete.**
 
-Mobile-friendly interface with large item photos, readable prices, and prominent selling and messaging actions. Proposed visual direction: warm white backgrounds, charcoal text, and an orange accent. Proposed phone navigation: Browse, Saved, Sell, Inbox, and Profile.
+Mobile-friendly interface with large item photos, readable prices, and prominent selling and messaging actions. The owner's selected visual direction is near-black surfaces, electric-green accents, Space Grotesk typography, and crisp bordered cards. Phone navigation: Browse, Saved, Sell, Inbox, and Profile.
 
 Payments for the first release would be arranged directly between students at handover. Integrated checkout is outside the proposed initial scope.
 
@@ -65,19 +67,29 @@ The student eligibility source and approval process still need to be decided. Do
 
 ## Proposed technical foundation
 
-These choices are proposals, not installed dependencies:
+The collaborator's `app/` contains these dependencies:
 
-- React and TypeScript for the application interface.
+- React, TypeScript, Vite, and React Router for the application interface.
 - Supabase for database, authentication, image storage, and real-time messaging.
 - Access policies restricting conversation data to authorized participants and listing changes to authorized owners/admins.
 
 References: [Google sign-in](https://supabase.com/docs/guides/auth/social-sign-in/auth-google), [real-time authorization](https://supabase.com/docs/guides/realtime/authorization), and [storage access control](https://supabase.com/docs/guides/storage/security/access-control).
 
-Hosting and the application framework remain to be finalized before implementation.
+Hosting remains undecided. PR #1 contains an alternative workspace scaffold; this design is based on PR #3's `app/` frontend, so do not merge both frontend structures blindly. Agree on the canonical application structure during review.
 
 ## Local setup and deployment
 
 Layout: `app/` is the React + TypeScript (Vite) client; `supabase/migrations/0001_init.sql` is the full schema, row-level security, RPCs, storage buckets and realtime setup.
+
+To preview the public homepage without credentials:
+
+```sh
+cd app
+npm ci
+npm run dev
+```
+
+No environment file is needed for the public homepage. The access dialog explains that sign-in is unavailable until configured. Configured builds keep the existing Google OAuth callback and student approval gate. A visual preview does not validate those backend flows.
 
 1. Create a Supabase project. In the SQL editor run `supabase/migrations/0001_init.sql`.
 2. Enable Google auth (Authentication → Providers) with OAuth credentials from Google Cloud; add your site URL and `http://localhost:5173` to the redirect URLs.
@@ -124,3 +136,4 @@ See [TODO.md](TODO.md). Remaining: create the Supabase project and run the migra
 | 2026-10-31 | Reviewed the repository and documented the requested marketplace, proposed release scope, identity considerations, and collaboration workflow. Owner requested ongoing GitHub README updates for shared development. | Confirmed the repository initially contained only a README. Documentation-only change; no application tests apply. Scope approval and implementation remain pending. |
 | 2026-10-31 | Added TODO.md for task ownership/dependencies, CONTRIBUTING.md for branches and review, and AGENTS.md for shared coding-agent instructions. | Documentation baseline; application implementation remains pending. |
 | 2026-10-31 | Built the first release: Vite/React/TypeScript client in `app/`, Supabase schema/RLS/RPC/storage migration, and all planned screens (auth gate, listings, search, chat, offers, dashboard, moderation, admin). | `npm run build` and `tsc` pass; lint has warnings only. Not run against a live Supabase project; QA and deployment pending. |
+| 2026-10-31 | Codex added the owner-selected dark-tech design directly on the collaborator's PR #3: original hero artwork, self-hosted fonts, interactive public homepage, sign-in dialog, shared dark theme, navigation icons, and design guide. | Build/type checking pass; lint has 5 existing warnings, no errors. Public homepage browser checks cover desktop/phone layout, categories, mobile menu, FAQs, and dialog keyboard behavior. Authenticated screens and live OAuth/data access remain unverified. |

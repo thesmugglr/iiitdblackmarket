@@ -42,8 +42,9 @@ export default function Browse() {
 
   return (
     <>
+      <div className="browse-heading"><p className="app-eyebrow">THE CAMPUS CIRCLE</p><h1>Your campus. Your next find.</h1><p className="muted">Good stuff, from the people just a walk away.</p></div>
       <div className="filters">
-        <input type="search" placeholder="Search items…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input type="search" placeholder="What are you looking for?" aria-label="Search marketplace items" value={q} onChange={(e) => setQ(e.target.value)} />
         <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Category">
           <option value="">All categories</option>
           {Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -56,7 +57,7 @@ export default function Browse() {
           <option value="">Any condition</option>
           {Object.entries(CONDITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <input type="number" min="0" placeholder="Max ₹" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
+        <input type="number" min="0" placeholder="Max ₹" aria-label="Maximum price in rupees" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
         <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort">
           <option value="new">Newest</option>
           <option value="low">Price: low to high</option>

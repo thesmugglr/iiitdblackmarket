@@ -12,6 +12,7 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 | PLAN-01 | Approve or revise first-release scope | Review | Codex | — | Implemented on `feat/mvp-app`; untested on live backend. |
 | PLAN-02 | Decide current-student verification and approval process | Backlog | Unassigned | PLAN-01 | Institute domain alone does not establish student status. |
 | SETUP-01 | Choose framework/hosting and scaffold application | Review | Codex | PLAN-01 | Implemented on `feat/mvp-app`; untested on live backend. |
+| DESIGN-01 | Dark-tech homepage, shared visual theme, and design handoff | Review | Codex | Collaborator PR #3; owner selected dark tech | Branch `feat/DESIGN-01-mvp-theme`, based on `feat/mvp-app`. Public UI checked; authenticated layouts require live-account QA. Supersedes scaffold design draft PR #2. |
 | DATA-01 | Design schema and migrations for profiles, listings, conversations, offers, and reports | Review | Codex | PLAN-02, SETUP-01 | Implemented on `feat/mvp-app`; untested on live backend. |
 | AUTH-01 | Configure institute sign-in and student eligibility checks | Review | Codex | PLAN-02, DATA-01 | Implemented on `feat/mvp-app`; untested on live backend. |
 | LIST-01 | Create/edit listings and protected photo uploads | Review | Codex | AUTH-01, DATA-01 | Implemented on `feat/mvp-app`; untested on live backend. |
@@ -41,6 +42,7 @@ Before marking a task Done, link the merged change, record meaningful verificati
 - Student eligibility source, approval owner, and handling of graduates.
 - Framework, hosting, backend project ownership, and configuration.
 - Final rental rules and listing lifecycle.
+- Choose the canonical frontend structure: PR #3 uses `app/`, PR #1 uses `apps/web/`. The design follows PR #3 and does not merge either PR into main.
 
 ## Status note (2026-10-31)
 Tasks in `Review` are implemented but unverified. PLAN-02 is resolved as roster + admin approval (graduates handled manually). Still needed from the owner: Supabase project, Google OAuth credentials, hosting choice (QA-01, DEPLOY-01).

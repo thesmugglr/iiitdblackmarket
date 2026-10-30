@@ -1,6 +1,8 @@
 # Contributing
 
-Start with [README.md](README.md) for scope and actual project status, then [TODO.md](TODO.md) for task ownership. No runnable application exists yet; package-manager, build, and test commands will be added when the stack is established.
+Start with [README.md](README.md) for scope and actual project status, then [TODO.md](TODO.md) for task ownership. On the marketplace/design branches, the frontend lives in `app/`: run `npm ci` and `npm run dev` there. Run `npm run build` (includes TypeScript checking), `npm run lint`, and `git diff --check` before review. No automated test suite exists on this branch; document actual manual checks. Keep `app/package-lock.json` with its manifest.
+
+Visual contributions should follow [docs/design.md](docs/design.md). The design branch is stacked on the collaborator's `feat/mvp-app` so it can preserve feature work. The alternative scaffold PR #1 uses a different structure; coordinate integration before merging, rather than creating two competing frontends.
 
 ## Coordinate work
 
