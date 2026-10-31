@@ -17,6 +17,7 @@ import Wanted from './pages/Wanted'
 import Bundles from './pages/Bundles'
 import BundleNew from './pages/BundleNew'
 import BundleDetail from './pages/BundleDetail'
+import Install from './pages/Install'
 import { POST_LOGIN_KEY } from './lib/redirect'
 
 function Gate() {
@@ -49,6 +50,7 @@ function Gate() {
         <Route path="bundles/new" element={<BundleNew />} />
         <Route path="bundles/:id" element={<BundleDetail />} />
         <Route path="notifications" element={<Notifications />} />
+        <Route path="install" element={<Install />} />
         <Route path="profile" element={<Profile />} />
         <Route path="admin" element={profile.role === 'admin' ? <Admin /> : <Navigate to="/" />} />
         <Route path="*" element={<Navigate to="/" />} />

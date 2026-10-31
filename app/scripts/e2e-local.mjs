@@ -2,6 +2,7 @@
 // Usage: node scripts/e2e-local.mjs   (reads keys from `supabase status`)
 import { createClient } from '@supabase/supabase-js'
 import { readLocalStack } from './local-stack.mjs'
+import { thumbPath } from '../src/lib/image.ts'
 import assert from 'node:assert/strict'
 
 const env = readLocalStack()
@@ -30,6 +31,7 @@ async function user(name, { approve = true, role = 'student' } = {}) {
 }
 
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
+const jpeg = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=', 'base64')
 let seller, buyer, outsider, pending, adm, listing, conv, photoPath
 
 await step('only @iiitd.ac.in accounts can sign up', async () => {
@@ -56,6 +58,17 @@ await step('bootstrap admin email becomes admin on first sign-in; a pending sign
   assert.ok(ok(await adm.c.from('notifications').select('*').eq('kind', 'approval')).length >= 1)
   assert.ok((await outsider.c.from('admin_bootstrap').select('*')).error, 'students must not read the bootstrap list')
 })
+await step('a listed student code approves a sign-up; an unlisted code waits; students cannot read the codes', async () => {
+  const code = '9' + String(Date.now() % 10000).padStart(4, '0') // five digits, in a range real batches never use
+  ok(await admin.from('student_codes').insert({ code }))
+  const mk = async (email) => { const r = await admin.auth.admin.createUser({ email, password: 'localtest-pass', email_confirm: true }); if (r.error) throw r.error; return r.data.user.id }
+  const listed = await mk(`listed${code}@iiitd.ac.in`)
+  const unlisted = await mk(`unlisted${Number(code) - 1}@iiitd.ac.in`)
+  const status = async (id) => ok(await admin.from('profiles').select('status').eq('id', id).single()).status
+  assert.equal(await status(listed), 'approved')
+  assert.equal(await status(unlisted), 'pending')
+  assert.ok((await outsider.c.from('student_codes').select('*')).error, 'students must not read the code list')
+})
 await step('seller creates a listing with a photo (private bucket)', async () => {
   photoPath = `${seller.id}/test-${run}.png`
   ok(await seller.c.storage.from('listing-photos').upload(photoPath, png, { contentType: 'image/png' }), 'upload')
@@ -70,6 +83,35 @@ await step('approved member can read listing and signed photo URL; pending canno
   const p = await pending.c.storage.from('listing-photos').createSignedUrl(photoPath, 60)
   assert.ok(p.error || !p.data?.signedUrl)
   assert.equal((await pending.c.from('listings').select('id')).data.length, 0)
+})
+await step('listing photo thumbnails: stored next to the photo, a missing one does not break signing, only the owner can delete', async () => {
+  const files = (c) => c.storage.from('listing-photos')
+  const thumb = thumbPath(photoPath)
+  const absent = thumbPath(`${seller.id}/never-uploaded-${run}.jpg`)
+  // The small copy lives in the seller's own folder, so the existing upload rule covers it. File names are random
+  // and never reused, so browsers may keep the picture for a year.
+  ok(await files(seller.c).upload(thumb, jpeg, { contentType: 'image/jpeg', cacheControl: '31536000' }), 'thumbnail upload')
+  uploadedObjects.push(['listing-photos', thumb])
+  // The app signs the small copy and the full photo in one call: an object that does not exist must come back
+  // without a link instead of failing the whole batch.
+  const signed = ok(await files(buyer.c).createSignedUrls([thumb, absent, photoPath], 60))
+  const link = new Map(signed.map((s) => [s.path, s.signedUrl]))
+  assert.ok(link.get(thumb) && link.get(photoPath), 'existing objects get links')
+  assert.ok(!link.get(absent), 'a missing thumbnail gets no link')
+  // Signed links carry an ETag, so a browser that reuses the same link revalidates cheaply (304) instead of downloading again.
+  const res = await fetch(link.get(thumb))
+  assert.equal(res.status, 200)
+  const again = await fetch(link.get(thumb), { headers: { 'if-none-match': res.headers.get('etag') ?? '' } })
+  assert.equal(again.status, 304)
+  // Another member cannot delete it ...
+  await files(buyer.c).remove([thumb])
+  assert.ok(ok(await files(buyer.c).createSignedUrls([thumb], 60))[0].signedUrl, 'still there after a stranger tried to delete it')
+  // ... but the seller can remove the pair, which is what the app does when a listing is deleted.
+  const pair = [`${seller.id}/pair-${run}.jpg`, `${seller.id}/pair-${run}_t.jpg`]
+  for (const p of pair) ok(await files(seller.c).upload(p, jpeg, { contentType: 'image/jpeg' }), 'pair upload')
+  uploadedObjects.push(...pair.map((p) => ['listing-photos', p]))
+  ok(await files(seller.c).remove(pair))
+  assert.equal(ok(await files(buyer.c).createSignedUrls(pair, 60)).filter((s) => s.signedUrl).length, 0, 'both files are gone')
 })
 await step('member cannot edit or delete another seller\'s listing', async () => {
   await buyer.c.from('listings').update({ title: 'hacked' }).eq('id', listing.id)

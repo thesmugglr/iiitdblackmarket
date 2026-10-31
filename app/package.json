@@ -15,6 +15,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "e2e:local": "node scripts/e2e-local.mjs",
+    "student-codes": "node scripts/student-codes.mjs",
     "deploy:pages": "node scripts/deploy-pages.mjs"
   },
   "dependencies": {

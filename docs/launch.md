@@ -23,6 +23,7 @@ Browser settings that must match: Supabase **Site URL** `https://abhikrao.github
 - Against the hosted project with only the public key: `rpc/ping` works, anonymous users see zero listings, `profiles` and `admin_bootstrap` are permission denied.
 - **Live site (2026-10-31, after the owner approved creating the public build-only repo):** `AbhikRao/iiitd-black-market` is public, default branch `main`, with the `.iiitd-market-build-only` marker; Pages serves it at `https://abhikrao.github.io/iiitd-black-market/`. Deployed with `npm run deploy:pages` from source `a235788`. Checked: `/`, `/privacy.html`, `/terms.html`, `/favicon.svg` and the JS bundle return 200; a deep link such as `/listing/xyz` is served by `404.html` and boots the app (checked from a local copy of the same build in a browser: login page, Google button enabled, privacy and terms links correct); the bundle contains only the hosted project URL and the publishable key (no JWTs, no local values); the Google authorize link with this site as the return address reaches Google's "IIITD Black Market" sign-in page with no client or redirect errors.
 - **Redeploys:** Abhik reports redeploying with the same script from source `f74c10d` and then `8dc2c60`, including PR #16 (sign-in state) and PR #17 (chat loading). PR #18 review independently confirmed latest public build commit `1228bc4` declares source `8dc2c60`, the live JS bytes match that build, chat fallback/error copy is present, and home/privacy/terms/favicon/JS return 200. The reviewed `8dc2c60` source has 60 passing regressions; the earlier AUTH-02 source had 51. Future application changes reach the live site only after an authorized redeploy; this documentation review does not deploy or authorize publication.
+- **Student codes live (2026-10-31):** `0007_student_codes.sql` and the 2,376 codes (batches 2023 to 2026: 570, 597, 607, 602) were applied to the live project through the SQL editor. Read-only aggregate checks: the sign-up and confirm triggers reference the code rule; `authenticated` can neither read `student_codes` nor execute `approve_listed_students()`; `test25025@iiitd.ac.in` matches and `professor@iiitd.ac.in` does not; no profile was waiting, so nobody was newly approved. The site was redeployed from source `8870e96` (Pages commit `91a3361`) so the privacy, terms and pending-page wording matches. Not yet exercised: a real new student's first Google sign-in.
 
 ## Not verified (needs the account owner)
 
@@ -44,9 +45,18 @@ Garv selected **Abhik's existing project** on 2026-10-31. Use project `mkepigikt
    insert into public.admin_bootstrap (email) values ('you@iiitd.ac.in') on conflict do nothing;
    update public.profiles set role = 'admin', status = 'approved' where email = 'you@iiitd.ac.in';
    ```
-3. Approve people in **Admin > Waiting for approval**, or paste verified student emails into the roster (they are approved on first sign-in). Admins get a bell alert when someone new signs up. Faculty and staff share the domain, so approve only people you can confirm.
+3. Current B.Tech students are approved automatically (see Student codes below). Approve everyone else in **Admin > Waiting for approval**, or paste verified emails into the roster (approved on first sign-in). Admins get a bell alert when someone new signs up. Faculty and staff share the domain, so approve only people you can confirm.
 4. Delete any Supabase access token you created for setup (Account > Access Tokens). Nothing here needs it.
 5. To let someone else administer the backend, transfer the Supabase project to their organization (Project settings > General).
+
+## Student codes (automatic approval, numbers only)
+
+IIIT-Delhi publishes current B.Tech roll numbers on its public students page (`https://iiitd.ac.in/people/btech`). A roll number such as 2025025 gives the numeric part of that student's address, `<name>25025@iiitd.ac.in` (last five digits). `0007_student_codes.sql` adds an admin-only `student_codes` table holding **only those five-digit codes** (no names, programs or addresses) and the sign-up rule: a provider-verified `@iiitd.ac.in` address that is letters followed by exactly five digits, where the digits are listed, is approved automatically. Everyone else (faculty, alumni, M.Tech/PhD, newly admitted, unlisted) still waits for an admin. Suspended or rejected accounts are never re-approved by this rule.
+
+- **Load or refresh (once per semester):** `cd app && npm run student-codes -- --out ~/iiitd-launch/student-codes.sql` reads the public page (certificate checking stays on), keeps only codes for the four current batches, refuses to write a suspiciously small list, and writes a SQL file of codes only. Run that file once in the Supabase SQL editor; it ends by approving people who were already waiting. Do not commit it (`*.local.sql` is ignored).
+- **Trim leavers:** `delete from public.student_codes where substring(code, 1, 2)::int < 23;` removes codes of batches older than 2023 (adjust the number each year).
+- **Limits:** the page lists B.Tech only. The numeric code proves only that the Google account holds a listed address, which is stronger than the domain alone but not a manual check; keep using the Admin page for anyone unusual. The snapshot used on 2026-10-31 had 2,376 codes (batches 2023 to 2026).
+- Privacy pages (`privacy.html`, `terms.html`) describe this accurately.
 
 ## Redeploying
 

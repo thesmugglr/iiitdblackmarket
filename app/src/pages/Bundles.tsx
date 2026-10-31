@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { inr } from '../lib/constants'
-import { useSignedUrls } from '../lib/useSignedUrls'
+import { usePhotoThumbs } from '../lib/useSignedUrls'
 import Sections from '../components/Sections'
 import type { Bundle } from '../lib/types'
 
 function BundleCard({ b }: { b: Bundle }) {
   const photos = (b.items ?? []).map((i) => i.listing?.photos[0]).filter((p): p is string => Boolean(p)).slice(0, 3)
-  const urls = useSignedUrls('listing-photos', photos)
+  const urls = usePhotoThumbs(photos)
   const total = (b.items ?? []).reduce((n, i) => n + (i.listing?.price_inr ?? 0), 0)
   return (
     <Link to={`/bundles/${b.id}`} className="card bundle">

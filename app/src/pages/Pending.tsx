@@ -26,7 +26,7 @@ export default function Pending() {
       <p className="muted">
         {suspended
           ? 'Your account has been suspended by an administrator.'
-          : `${profile.email} is an institute account, but an admin must confirm you are a current student before you can use the marketplace. The admins have been notified; this page updates by itself once you are approved.`}
+          : `${profile.email} is an institute account, but it did not match the current B.Tech student list, so an admin has to confirm you are a current student (M.Tech, PhD and newly admitted students are reviewed by hand). The admins have been notified; this page updates by itself once you are approved.`}
       </p>
       {!suspended && <button onClick={refresh}>Check again</button>}
       <button className="link" onClick={signOut}>Sign out</button>
