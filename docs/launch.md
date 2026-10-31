@@ -27,6 +27,8 @@ Browser settings that must match: Supabase **Site URL** `https://abhikrao.github
 
 ## Not verified (needs the account owner)
 
+Latest independent public delivery check (DEPLOY-03, 2026-10-31): build `20fd56b` declares source `981724d`, and the live JS bytes match it, including saved-item/editor/chat fix copy. Public install assets and pages return 200; Pages and keep-alive runs on that build succeeded. See docs/live-qa.md for evidence and limits. This reviewer has not inspected hosted billing/quotas or admin rows, installed on a physical phone, deployed the site or changed provider settings.
+
 Independent PR #15 review confirmed the live pages/bundle and Google-provider redirect using only public configuration; the live 390px sign-in screen and a deep link also render correctly. See docs/live-qa.md for exact observed statuses and limits. Garv reports Google authentication reaches Awaiting approval; owner admin setup, approved-user campus flows, reviewer dashboard access and full phone QA remain pending; Google app publication is reported by Abhik and has not been independently inspected in this chat. Preserve the 22-scenario local service coverage added in PR #14 when updating this document; the 19-scenario result above describes the earlier launch head.
 
 - A real Google sign-in on the hosted project. Public Auth settings show the Google provider enabled; the authorization redirect alone does not prove a completed sign-in. Check the provider hand-off with
