@@ -5,12 +5,21 @@ import { useAuth } from '../lib/auth'
 import { CATEGORIES, CONDITIONS, MAX_PHOTOS, PICKUP_AREAS, TYPES } from '../lib/constants'
 import { preparePhoto } from '../lib/image'
 import { useSignedUrls } from '../lib/useSignedUrls'
+import { observeEditableListing } from '../lib/editableListing'
 import type { Listing } from '../lib/types'
 
 export default function Sell() {
   const { id } = useParams()
+  // Create/edit routes must not inherit another listing's draft or photo paths.
+  return <ListingEditor key={id ? `edit:${id}` : 'create'} id={id} />
+}
+
+function ListingEditor({ id }: { id?: string }) {
   const { profile } = useAuth()
   const nav = useNavigate()
+  const [ready, setReady] = useState(!id)
+  const [loadError, setLoadError] = useState('')
+  const [attempt, setAttempt] = useState(0)
   const [f, setF] = useState({
     title: '', description: '', listing_type: 'sale', category: 'misc', condition: 'good',
     price_inr: '', negotiable: false, pickup_area: PICKUP_AREAS[0], rental_period: '', deposit_inr: '',
@@ -27,22 +36,25 @@ export default function Sell() {
 
   useEffect(() => {
     if (!id) return
-    supabase.from('listings').select('*').eq('id', id).maybeSingle().then(({ data }) => {
-      const l = data as Listing | null
-      if (!l || l.seller_id !== profile?.id) return setErr('You cannot edit this listing.')
+    return observeEditableListing(id, profile?.id ?? '', async () => {
+      const { data, error } = await supabase.from('listings').select('*').eq('id', id).maybeSingle()
+      if (error) throw error
+      return data as Listing | null
+    }, l => {
       setF({
         title: l.title, description: l.description, listing_type: l.listing_type, category: l.category,
         condition: l.condition, price_inr: String(l.price_inr), negotiable: l.negotiable,
         pickup_area: l.pickup_area ?? '', rental_period: l.rental_period ?? '', deposit_inr: l.deposit_inr?.toString() ?? '',
       })
       setPhotos(l.photos)
-    })
-  }, [id, profile?.id])
+      setReady(true)
+    }, setLoadError)
+  }, [id, profile?.id, attempt])
 
   const uploadLock = useRef(false)
   const upload = async (files: File[]) => {
     // One batch at a time: overlapping selections would otherwise race on the photo list.
-    if (!files.length || !profile || uploadLock.current || busy) return
+    if (!files.length || !profile || !ready || uploadLock.current || busy) return
     setErr('')
     if (photos.length + files.length > MAX_PHOTOS) return setErr(`At most ${MAX_PHOTOS} photos in total. Remove one first, or pick fewer.`)
     if (files.some((f) => !f.type.startsWith('image/') && !/\.(heic|heif)$/i.test(f.name))) return setErr('Choose image files (JPG, PNG, WebP, HEIC).')
@@ -80,7 +92,7 @@ export default function Sell() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!profile) return
+    if (!profile || !ready) return
     if (uploading || uploadLock.current) return setErr('Wait for your photos to finish uploading.')
     setBusy(true)
     setErr('')
@@ -103,6 +115,11 @@ export default function Sell() {
     nav(`/listing/${res.data.id}`)
   }
 
+  if (!ready) {
+    if (!loadError) return <p className="muted">Loading…</p>
+    return <div><p role="alert">{loadError}</p><button onClick={() => { setLoadError(''); setAttempt(n => n + 1) }}>Try again</button> <Link to="/profile">Back to profile</Link></div>
+  }
+
   return (
     <form onSubmit={submit} className="form">
       <h1>{id ? 'Edit listing' : 'List an item'}</h1>
@@ -120,7 +137,7 @@ export default function Sell() {
           {photos.map((p, i) => (
             <li key={p}>
               {urls[i] ? <img src={urls[i]} alt={`Photo ${i + 1}`} /> : <div className="skeleton" />}
-              {i === 0 ? <span className="tag">Cover</span> : <button type="button" className="mini" onClick={() => makeCover(p)}>Make cover</button>}
+              {i === 0 ? <span className="tag">Cover</span> : <button type="button" className="mini" disabled={uploading > 0 || busy} onClick={() => makeCover(p)}>Make cover</button>}
               <button type="button" className="mini danger" aria-label={`Remove photo ${i + 1}`} disabled={uploading > 0 || busy} onClick={() => remove(p)}>Remove</button>
             </li>
           ))}
