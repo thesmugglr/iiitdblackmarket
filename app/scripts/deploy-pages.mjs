@@ -1,6 +1,7 @@
 // Builds the site and publishes ONLY the static output to a GitHub Pages repository (source code stays private).
 //
 //   npm run deploy:pages -- <owner/repo>        e.g. npm run deploy:pages -- AbhikRao/iiitd-black-market
+//   npm run deploy:pages -- <owner/repo> --dry-run   (build only, to inspect dist/)
 //
 // Needs: `gh auth login` (git push over https), and production settings in app/.env.production.local:
 //   VITE_SUPABASE_URL=https://<project-ref>.supabase.co
@@ -13,7 +14,9 @@ import { join } from 'node:path'
 import { loadEnv } from 'vite'
 import { readClientConfig } from '../src/lib/config.ts'
 
-const repo = process.argv[2] ?? process.env.DEPLOY_REPO
+const args = process.argv.slice(2)
+const dryRun = args.includes('--dry-run') // build dist/ only; no clone, commit or push
+const repo = args.find((a) => !a.startsWith('--')) ?? process.env.DEPLOY_REPO
 if (!repo || !/^[\w.-]+\/[\w.-]+$/.test(repo)) {
   console.error('Usage: npm run deploy:pages -- <owner/repo>')
   process.exit(1)
@@ -48,11 +51,18 @@ jobs:
 const run = (cmd, args, opts = {}) => execFileSync(cmd, args, { stdio: 'inherit', ...opts })
 const out = (cmd, args, opts = {}) => execFileSync(cmd, args, { encoding: 'utf8', ...opts }).trim()
 
-// Demo and local-login switches must never reach a public build.
-const buildEnv = { ...process.env, VITE_BASE: base, VITE_SUPABASE_URL: config.url, VITE_SUPABASE_PUBLISHABLE_KEY: config.key }
-delete buildEnv.VITE_DEMO
-delete buildEnv.VITE_DEV_LOGIN
-run('npm', ['run', 'build'], { env: buildEnv })
+// Build from an isolated env directory so local dev files (.env.local, demo or local-login switches, local keys) can
+// never reach a public bundle. Only the two public values and the base path are provided.
+const envDir = await mkdtemp(join(tmpdir(), 'pages-env-'))
+await writeFile(join(envDir, '.env.production'), `VITE_SUPABASE_URL=${config.url}\nVITE_SUPABASE_PUBLISHABLE_KEY=${config.key}\nVITE_BASE=${base}\n`)
+const buildEnv = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('VITE_')))
+buildEnv.VITE_ENV_DIR = envDir
+try { run('npm', ['run', 'build'], { env: buildEnv }) } finally { await rm(envDir, { recursive: true, force: true }) }
+
+if (dryRun) {
+  console.log('Dry run: built dist/ only. Nothing was cloned, committed or pushed.')
+  process.exit(0)
+}
 
 let source = 'unknown'
 try { source = out('git', ['rev-parse', '--short', 'HEAD']) } catch { /* not a git checkout */ }
