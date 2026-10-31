@@ -2,6 +2,14 @@
 
 Owner: Garv Rao / Codex. Current status: **Garv selected Abhik's existing project `mkepigiktixxrowsteje`; access and hosted QA are not yet verified by this reviewer.**
 
+## Independent public deployment checks — 2026-10-31
+
+Reviewed Abhik's deployment record in PR #15 and verified the existing public site at https://abhikrao.github.io/iiitd-black-market/ (published source `a235788`, public build commit `7b1daca`). Home, JS, privacy, terms and favicon return HTTP 200. A nonexistent listing deep link returns the expected Pages HTTP 404 with the app shell; the live browser renders the signed-out login screen correctly. At 390px it has no page overflow, Google sign-in is enabled and no development password form is present.
+
+Using only the browser-public key from that deployed bundle, Auth settings report Google enabled and email/phone disabled; `ping` returns 200, anonymous listing reads return zero rows, and email-column/bootstrap reads return 401. Zero listing rows alone do not prove row-level isolation against populated data. The authorize endpoint returns 302 to accounts.google.com with the expected Supabase callback; this is not a completed Google login. No private key or token was printed/stored, no production data was mutated, and this review did not deploy or change access settings.
+
+Still required: a real institute Google login, pending/admin approval checks, approved-account listing/chat/privacy/concurrency tests, and full phone workflows. Supabase dashboard authentication remains pending in this chat. Other launch claims retain their author attribution in docs/launch.md.
+
 2026-10-31 access attempt: dashboard returned the Supabase sign-in page. Waiting for an authenticated account that can access the selected project; no provider settings, migrations or production data were changed.
 
 Hosted setup is now reported in docs/launch.md from Abhik's environment. The hosted checks below remain Not run by this reviewer. Merged PR #13 independently passes 19/19 local Supabase service scenarios in CI (Auth, Storage, RLS, Realtime, bootstrap and extras), alongside 41 local regression checks. These do not establish a successful hosted Google sign-in or phone QA.

@@ -29,8 +29,8 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 | CHAT-02 | Attachments, unread counts, and offers | Review | Codex | CHAT-01, LIST-03 | Implemented on `feat/mvp-app`; untested on live backend. |
 | USER-01 | Profiles, saved items, and personal dashboard | Review | Codex | AUTH-01, LIST-01 | Implemented on `feat/mvp-app`; untested on live backend. |
 | MOD-01 | Reporting, blocking, and admin moderation | Review | Codex | AUTH-01, LIST-01, CHAT-01 | Implemented on `feat/mvp-app`; untested on live backend. |
-| QA-01 | Verify separate-account access isolation and core marketplace flows | Review | Garv Rao / Codex | CLOUD-01 | 41 local regressions and 22 local Supabase service scenarios pass, including Storage rejection, concurrent offers and Realtime. Hosted Google, hosted separate-account/concurrency checks and phone QA remain pending in docs/live-qa.md. |
-| DEPLOY-01 | Configure deployment, verify live flows, and document operations | Backlog | Garv Rao / Codex | QA-01 | Setup/rewrite/preflight prepared. Host and production origin not selected; no deployment performed. |
+| QA-01 | Verify separate-account access isolation and core marketplace flows | Review | Garv Rao / Codex | CLOUD-01 | 41 local regressions and 22 local Supabase service scenarios pass. Hosted anonymous/API configuration and mobile sign-in screen checked; real Google, approved-user isolation and full phone flows remain pending in docs/live-qa.md. |
+| DEPLOY-01 | Configure deployment, verify live flows, and document operations | Review | Abhik / Claude (Garv / Codex review) | QA-01 | Deployed 2026-10-31 to https://abhikrao.github.io/iiitd-black-market/ from the public build-only repo `AbhikRao/iiitd-black-market` (source `a235788`); URLs, deep link, bundle contents and Google hand-off checked (docs/launch.md). Abhik reports his setup session published the Google OAuth app to production (Google Auth Platform shows In production; Branding URLs match the live pages). A real Google sign-in on the live site, first admin and phone QA are still pending. |
 
 ## Extras implementation and backlog
 
