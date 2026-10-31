@@ -32,6 +32,8 @@ Browser settings that must match: Supabase **Site URL** `https://abhikrao.github
 
 ## Owner checklist
 
+Garv confirmed on 2026-10-31 that he has not created his own Supabase project or Google OAuth client. The project above belongs to Abhik's organization according to this handoff. First decide whether to use that setup or create a Garv-owned one. Verify access and the intended project in the dashboards before applying migrations or changing providers. Do not request secrets in chat or recreate resources solely because older TODO entries said setup was absent.
+
 1. Approve public hosting, then deploy (see below).
 2. Open the site, choose **Continue with IIITD Google**. Make yourself admin if you are not already (Supabase > SQL Editor):
    ```sql

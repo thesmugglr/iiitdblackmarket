@@ -8,9 +8,9 @@ Launch review also adds a build-only repository marker/public-visibility check b
 
 [PR #13](https://github.com/garvrao80/iiitdblackmarket/pull/13) was reviewed and merged at `c51f541` after checks on exact head `f5011b7`. All 41 local tests, build/lint, Windows deployment dry-run, and both GitHub checks pass; disposable Supabase CI passes all 19 service scenarios including Realtime and admin bootstrap. Review fixes protect photo metadata, loopback-only password login, credential output, and build-repository replacement. Hosted Google sign-in, phone QA and owner-approved public deployment remain separate. PR #10 is closed unmerged; PR #12's simpler upload implementation is superseded by Abhik's newer UI in #13.
 
-**First release merged into `main` (PRs #3 to #9). Branch `feat/LAUNCH-01-production` adds production launch work: a hosted Supabase project and Google sign-in were configured on 2026-10-31 (details and verification in [docs/launch.md](docs/launch.md)). The public site is not deployed yet: that needs the owner's approval to create a public build-only repository.**
+**First release and launch-readiness work are merged into `main` (PRs #3 to #9 and #13). Abhik reports a Supabase project and Google provider setup under AbhikRao's organization; see [docs/launch.md](docs/launch.md). Garv has not created his own project or OAuth client. Decide whether to use Abhik's existing setup or create one under Garv's account before starting duplicate setup. The canonical public site remains undeployed.**
 
-The proposed first-release scope below was built. 37 database checks (`npm test`) and 19 end-to-end checks against a real local Supabase stack (`npm run e2e:local`) pass, and a hosted project exists. A real Google sign-in on the hosted project, and QA on phones and other laptops, are still to be done by the owner (QA-01).
+The first-release scope below is implemented. All 41 local regression checks (`npm test`) and 19 service scenarios against disposable local Supabase (`npm run e2e:local`) pass. Hosted Google sign-in and phone QA remain pending (QA-01); a configured provider is not a completed sign-in test.
 
 This README is the shared project record for the owner, their collaborator, and Codex. Update it with every meaningful project change so everyone can see what exists, what changed, and what remains.
 
