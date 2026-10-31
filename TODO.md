@@ -29,7 +29,7 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 | USER-01 | Profiles, saved items, and personal dashboard | Review | Codex | AUTH-01, LIST-01 | Implemented on `feat/mvp-app`; untested on live backend. |
 | MOD-01 | Reporting, blocking, and admin moderation | Review | Codex | AUTH-01, LIST-01, CHAT-01 | Implemented on `feat/mvp-app`; untested on live backend. |
 | QA-01 | Verify separate-account access isolation and core marketplace flows | Review | Garv Rao / Codex | CLOUD-01 | 41 local regressions and 19 local Supabase service scenarios pass, including Storage and Realtime. Hosted Google, hosted separate-account/concurrency checks and phone QA remain pending in docs/live-qa.md. |
-| DEPLOY-01 | Configure deployment, verify live flows, and document operations | Backlog | Garv Rao / Codex | QA-01 | Setup/rewrite/preflight prepared. Host and production origin not selected; no deployment performed. |
+| DEPLOY-01 | Configure deployment, verify live flows, and document operations | Review | Abhik / Claude (Garv / Codex review) | QA-01 | Deployed 2026-10-31 to https://abhikrao.github.io/iiitd-black-market/ from the public build-only repo `AbhikRao/iiitd-black-market` (source `a235788`); URLs, deep link, bundle contents and Google hand-off checked (docs/launch.md). Google app publication and real sign-in/phone QA pending. |
 
 ## Extras implementation and backlog
 
