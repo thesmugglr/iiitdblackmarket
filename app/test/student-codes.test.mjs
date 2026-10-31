@@ -72,6 +72,16 @@ test('student codes: approve by the numeric part of the institute address', asyn
     await insertUser(id(12), 'spoof24001@iiitd.ac.in');
     assert.deepEqual(await status(id(12)), { role: 'student', status: 'pending' });
   });
+  await t.test('client-editable metadata cannot impersonate provider verification or trigger approval', async () => {
+    await db.query('insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data,raw_app_meta_data) values($1,$2,null,$3,$4)',
+      [id(13), 'metadata24001@iiitd.ac.in', JSON.stringify({ provider: 'google', email_verified: true, status: 'approved', role: 'admin' }), JSON.stringify({ provider: 'email' })]);
+    assert.deepEqual(await status(id(13)), { role: 'student', status: 'pending' });
+    await as(id(13));
+    await assert.rejects(db.query('select approve_listed_students()'), /permission denied/);
+    await trusted();
+    await db.query('select approve_listed_students()');
+    assert.deepEqual(await status(id(13)), { role: 'student', status: 'pending' });
+  });
   await t.test('listed students do not trigger admin alerts but unlisted ones do', async () => {
     await as(id(1));
     const alerts = (await db.query("select count(*)::int as n from notifications where kind='approval'")).rows[0].n;
@@ -100,6 +110,8 @@ test('student codes: approve by the numeric part of the institute address', asyn
     await assert.rejects(db.query("select is_listed_student('abhik25025@iiitd.ac.in')"), /permission denied/);
     await as(null, 'anon');
     await assert.rejects(db.query('select * from student_codes'), /permission denied/);
+    await assert.rejects(db.query('select approve_listed_students()'), /permission denied/);
+    await assert.rejects(db.query("select is_listed_student('abhik25025@iiitd.ac.in')"), /permission denied/);
     await trusted();
   });
   await t.test('re-running the idempotent logic block changes nothing', async () => {

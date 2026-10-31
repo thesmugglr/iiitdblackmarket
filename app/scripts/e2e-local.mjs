@@ -10,7 +10,7 @@ const URL_ = env.API_URL, ANON = env.ANON_KEY
 const admin = createClient(URL_, env.SERVICE_ROLE_KEY, { auth: { persistSession: false } })
 const run = Date.now().toString(36)
 const results = []
-const createdUsers = [], clients = [], uploadedObjects = [], bootstrapEmails = []
+const createdUsers = [], clients = [], uploadedObjects = [], bootstrapEmails = [], studentCodes = []
 const step = async (name, fn) => {
   try { await fn(); results.push(['PASS', name]); console.log('PASS', name) }
   catch (e) { results.push(['FAIL', name]); console.log('FAIL', name, '\n    ', e.message) }
@@ -61,7 +61,13 @@ await step('bootstrap admin email becomes admin on first sign-in; a pending sign
 await step('a listed student code approves a sign-up; an unlisted code waits; students cannot read the codes', async () => {
   const code = '9' + String(Date.now() % 10000).padStart(4, '0') // five digits, in a range real batches never use
   ok(await admin.from('student_codes').insert({ code }))
-  const mk = async (email) => { const r = await admin.auth.admin.createUser({ email, password: 'localtest-pass', email_confirm: true }); if (r.error) throw r.error; return r.data.user.id }
+  studentCodes.push(code)
+  const mk = async (email) => {
+    const r = await admin.auth.admin.createUser({ email, password: 'localtest-pass', email_confirm: true })
+    if (r.error) throw r.error
+    createdUsers.push(r.data.user.id)
+    return r.data.user.id
+  }
   const listed = await mk(`listed${code}@iiitd.ac.in`)
   const unlisted = await mk(`unlisted${Number(code) - 1}@iiitd.ac.in`)
   const status = async (id) => ok(await admin.from('profiles').select('status').eq('id', id).single()).status
@@ -278,7 +284,7 @@ await step('realtime delivers a new message to the seller', async () => {
   try { await realtimeOnce(8000) } catch (e) { if (/insert failed/.test(e.message)) throw e; await realtimeOnce(12000) }
 })
 
-await step('remove only photos, bootstrap rows and accounts created by this run', async () => {
+await step('remove only photos, bootstrap rows, student codes and accounts created by this run', async () => {
   const errors = []
   for (const client of clients) { await client.removeAllChannels(); client.auth.stopAutoRefresh() }
   for (const [bucket,path] of uploadedObjects) {
@@ -288,10 +294,22 @@ await step('remove only photos, bootstrap rows and accounts created by this run'
   for (const id of createdUsers.reverse()) {
     const result = await admin.auth.admin.deleteUser(id)
     if (result.error) errors.push('fixture account cleanup failed')
+    else {
+      const missing = await admin.auth.admin.getUserById(id)
+      if (missing.error?.status !== 404 || missing.data.user) errors.push('fixture account still exists or deletion could not be verified')
+    }
   }
   for (const email of bootstrapEmails) {
     const result = await admin.from('admin_bootstrap').delete().eq('email',email)
     if (result.error) errors.push('fixture bootstrap cleanup failed')
+  }
+  for (const code of studentCodes) {
+    const result = await admin.from('student_codes').delete().eq('code', code).select('code')
+    if (result.error || result.data?.length !== 1) errors.push('fixture student code cleanup failed')
+  }
+  if (studentCodes.length) {
+    const remaining = await admin.from('student_codes').select('code').in('code', studentCodes)
+    if (remaining.error || remaining.data?.length !== 0) errors.push('fixture student code deletion could not be verified')
   }
   assert.deepEqual(errors,[])
 })
