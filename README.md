@@ -4,6 +4,8 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 ## Current status
 
+Launch review also adds a build-only repository marker/public-visibility check before deployment replaces any target contents, plus validation that rejects delimiter-bearing legacy keys and control characters in project URLs. Public deployment remains an owner decision and has not been performed by this review.
+
 PR #13 supersedes the closed local-backend PR #10 and is undergoing engineering review. Review fixes require loopback app/backend URLs for development password login, refuse hosted endpoints in the service runner, and reject undecodable photos rather than uploading original GPS/EXIF metadata contrary to the privacy notice. An independent local-service CI check is being added; the previous PR #10 service run passed 19/20 checks but timed out on Realtime. Do not treat the current launch PR as independently service-verified or deploy it until review is complete.
 
 **First release merged into `main` (PRs #3 to #9). Branch `feat/LAUNCH-01-production` adds production launch work: a hosted Supabase project and Google sign-in were configured on 2026-10-31 (details and verification in [docs/launch.md](docs/launch.md)). The public site is not deployed yet: that needs the owner's approval to create a public build-only repository.**

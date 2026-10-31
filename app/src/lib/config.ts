@@ -13,7 +13,7 @@ const value = (env: Environment, key: string) => typeof env[key] === 'string' ? 
 function legacyRole(key: string): string | undefined {
   try {
     const parts = key.split('.')
-    if (parts.length !== 3 || parts.some((part) => !part)) return undefined
+    if (parts.length !== 3 || parts.some((part) => !/^[A-Za-z0-9_-]+$/.test(part))) return undefined
     const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))) as { role?: string }
     return payload.role
   } catch { return undefined }
@@ -37,7 +37,9 @@ export function readClientConfig(env: Environment, allowLocal = false) {
   else {
     try {
       const parsed = new URL(url)
+      if ([...url].some(c => /\s/.test(c) || c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127)) issues.push('VITE_SUPABASE_URL must not contain whitespace or control characters.')
       const local = ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname)
+      if (!/^[a-z0-9.-]+$/i.test(parsed.hostname) && !(allowLocal && parsed.hostname === '[::1]')) issues.push('VITE_SUPABASE_URL must use a plain DNS hostname or local loopback address.')
       if (parsed.hostname === 'your-project.supabase.co') issues.push('VITE_SUPABASE_URL is still an example.')
       if (parsed.username || parsed.password || parsed.search || parsed.hash || parsed.pathname !== '/') issues.push('VITE_SUPABASE_URL must be a project base URL without credentials, path, query, or fragment.')
       if (parsed.protocol !== 'https:' && !(allowLocal && local && parsed.protocol === 'http:')) issues.push('Use HTTPS for the hosted Supabase project URL.')
