@@ -4,9 +4,9 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 ## Current status
 
-**First release merged into `main` through AbhikRao's PR #3, including review fixes from PR #5. Not yet tested against a live Supabase project or deployed.**
+**First release merged into `main` (PRs #3 to #9). Branch `feat/LAUNCH-01-production` adds production launch work: a hosted Supabase project and Google sign-in were configured on 2026-10-31 (details and verification in [docs/launch.md](docs/launch.md)). The public site is not deployed yet: that needs the owner's approval to create a public build-only repository.**
 
-The owner asked for the project to be completed, so the proposed first-release scope below was built. The app compiles and bundles (`npm run build`), but no end-to-end run with real accounts has happened: it needs a Supabase project and Google OAuth credentials that only the owner can create. Treat every feature as *implemented, unverified* until QA-01 is done.
+The proposed first-release scope below was built. 37 database checks (`npm test`) and 19 end-to-end checks against a real local Supabase stack (`npm run e2e:local`) pass, and a hosted project exists. A real Google sign-in on the hosted project, and QA on phones and other laptops, are still to be done by the owner (QA-01).
 
 This README is the shared project record for the owner, their collaborator, and Codex. Update it with every meaningful project change so everyone can see what exists, what changed, and what remains.
 
@@ -81,7 +81,7 @@ Layout: `app/` is the React + TypeScript (Vite) client; `supabase/migrations/000
 
 Follow [docs/backend-setup.md](docs/backend-setup.md) for the detailed backend/OAuth/configuration runbook and [docs/live-qa.md](docs/live-qa.md) for actual live test results. No live backend connection is confirmed yet. The backend-readiness work is tracked in [PR #6](https://github.com/garvrao80/iiitdblackmarket/pull/6).
 
-1. Create/select a Supabase project. Apply all unapplied files in `supabase/migrations/` in filename order: `0001_init.sql`, `0002_review_access.sql`, `0003_upload_limits.sql`, `0004_extras.sql`, `0005_expiry_access.sql`. Do not rerun applied migrations.
+1. Create/select a Supabase project. Apply all unapplied files in `supabase/migrations/` in filename order: `0001_init.sql`, `0002_review_access.sql`, `0003_upload_limits.sql`, `0004_extras.sql`, `0005_expiry_access.sql`, `0006_launch.sql`. Do not rerun applied migrations.
 2. Enable Google auth (Authentication → Providers) with OAuth credentials from Google Cloud; add your site URL and `http://localhost:5173` to the redirect URLs.
 3. Copy `app/.env.example` to `app/.env.local` and fill `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Legacy `VITE_SUPABASE_ANON_KEY` remains supported.
 4. From `app/`, run `npm ci`, `npm run check:config -- development`, then `npm run dev` (checks: `npm test`, `npm run build`, `npm run lint`).
@@ -90,7 +90,14 @@ Follow [docs/backend-setup.md](docs/backend-setup.md) for the detailed backend/O
 
 UI preview without a backend: put `VITE_DEMO=1` in `app/.env.local` and run `npm run dev`. This uses in-memory sample data (dev server only, ignored by production builds) and does not test any real access rules.
 
-Hosting is not chosen. `npm run build` outputs static files in `app/dist` for any static host (e.g. Vercel, Netlify, Cloudflare Pages); configure the two env vars there. Never commit `.env` or real rosters/chats.
+Production hosting: `npm run build` outputs static files in `app/dist` (with `404.html` for deep links). The chosen host is GitHub Pages from a public **build-only** repository, deployed with `npm run deploy:pages -- <owner/repo>` (details in [docs/launch.md](docs/launch.md)); any static host works if it rewrites unknown paths to `index.html`. Set `VITE_BASE` when serving from a sub-path. Never commit `.env` or real rosters/chats.
+
+### Run the whole stack locally (real backend)
+Needs Docker. From the repo root:
+1. `npx supabase start -x studio,mailpit,edge-runtime,vector,logflare,imgproxy,postgres-meta,supavisor` (the first run downloads images and applies all migrations).
+2. `npx supabase status -o env` prints the API URL and keys. Put the URL and the publishable (or anon) key in `app/.env.local`, plus `VITE_DEV_LOGIN=1` to show the local-only email/password form (Google sign-in needs real OAuth credentials).
+3. `cd app && npm run dev`. Create users through the form, then approve and promote the first admin in SQL.
+4. `cd app && npm run e2e:local` runs 19 end-to-end checks against that stack with separate accounts. `npx supabase stop` shuts it down.
 
 ### What is implemented
 - Sign-in with Google (domain hint in the client; `@iiitd.ac.in` enforced by a database trigger on sign-up). Marketplace access requires `approved` status (roster or admin approval).
@@ -162,3 +169,4 @@ See [TODO.md](TODO.md). Remaining: create the Supabase project and run the migra
 | 2026-10-31 | Reviewed extras PR #8 against current main. Assigned extras migration version 0004 to avoid the applied 0003 upload-limit version, added expired-listing RPC checks and suspended wanted-response protection, and expanded regression coverage. | Local checks recorded in the PR review; live Supabase/realtime/concurrency QA remains pending. |
 | 2026-10-31 | Reviewed editorial PR #9 over the current backend/extras stack, preserving Abhik's scene removal and visual design. Stabilized drawer focus during filter edits, added keyboard containment/reduced-motion handling, and corrected privacy copy to reflect authorized moderator access. | Local test/build/lint and review verification recorded with the PR. Live backend QA remains pending. |
 | 2026-10-31 | Approved and merged Abhik's stacked PRs #7, #8, and #9 after integration fixes and checks on each exact reviewed head. Final editorial design is on main (`c91f83a`); extras use migrations 0004 and 0005 after upload migration 0003. | 30 local checks pass; build/typecheck and GitHub CI pass; lint has warnings only. Demo-browser checks confirm filter typing retains focus, Tab is contained, and Escape restores focus. See docs/pr-review-log.md. Live provider QA/deployment remain pending. |
+| 2026-10-31 | Launch preparation: Pages-ready build (sub-path, 404 fallback, return-to-page after sign-in), browser-side photo resizing with previews, first-admin bootstrap and admin approval alerts (migration 0006, found and fixed a sign-up trigger ordering bug via the local end-to-end run), live notifications, share button, privacy and terms pages, deploy script, local Supabase stack with 19 end-to-end checks. Codex created the hosted Supabase project and Google sign-in in the owner's browser. | 37 unit and 19 end-to-end checks pass locally; hosted project verified with public-key probes only. Public site not deployed (needs owner approval); real Google sign-in on the hosted project not yet exercised. |

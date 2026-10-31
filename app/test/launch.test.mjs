@@ -28,55 +28,72 @@ test('launch: first-admin bootstrap, approval alerts and keep-alive', async (t) 
   for (const name of (await readdir(directory)).filter((n) => n.endsWith('.sql') && n !== '0001_init.sql').sort()) await db.exec(await sql(name));
   await db.exec('grant select,insert,delete on public.notifications to authenticated');
 
-  const owner = '00000000-0000-0000-0000-0000000000a1';
-  const student = '00000000-0000-0000-0000-0000000000a2';
-  const rostered = '00000000-0000-0000-0000-0000000000a3';
-  const spoofed = '00000000-0000-0000-0000-0000000000a4';
-  const as = async (id, role = 'authenticated') => {
+  const id = (n) => `00000000-0000-0000-0000-0000000000${String(n).padStart(2, '0')}`;
+  const as = async (uid, role = 'authenticated') => {
     await db.exec(`reset role; set role ${role}`);
-    await db.query("select set_config('request.jwt.claim.sub',$1,false)", [id ?? '']);
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)", [uid ?? '']);
   };
-  // GoTrue inserts the user first and confirms the email afterwards, so the Google provider marker is what counts.
-  const signUp = (id, email, verified = true) =>
-    db.query('insert into auth.users(id,email,email_confirmed_at,raw_app_meta_data) values($1,$2,null,$3)',
-      [id, email, verified ? '{"provider":"google","providers":["google"]}' : '{"provider":"email","providers":["email"]}']);
-  const profile = async (id) => (await db.query('select role,status from profiles where id=$1', [id])).rows[0];
+  // GoTrue inserts the user first and confirms the email in a follow-up update; Google sign-ups also carry the provider.
+  const insertUser = (uid, email, { provider = 'email', confirmed = false } = {}) =>
+    db.query('insert into auth.users(id,email,email_confirmed_at,raw_app_meta_data) values($1,$2,$3,$4)',
+      [uid, email, confirmed ? new Date().toISOString() : null, JSON.stringify({ provider, providers: [provider] })]);
+  const confirm = (uid) => db.query('update auth.users set email_confirmed_at = now() where id = $1', [uid]);
+  // Trusted SQL-editor / service access: no API role and no signed-in user.
+  const trusted = async () => { await db.exec('reset role'); await db.query("select set_config('request.jwt.claim.sub','',false)"); };
+  const profile = async (uid) => (await db.query('select role,status from profiles where id=$1', [uid])).rows[0];
+  const approvalAlerts = async (admin) => { await as(admin); const n = (await db.query("select link from notifications where kind='approval'")).rows; await trusted(); return n; };
 
-  await db.query("insert into admin_bootstrap(email) values('owner@iiitd.ac.in')");
-  await db.query("insert into student_roster(email) values('rostered@iiitd.ac.in')");
+  await db.query("insert into admin_bootstrap(email) values ('owner@iiitd.ac.in'),('late@iiitd.ac.in'),('spoof@iiitd.ac.in')");
+  await db.query("insert into student_roster(email) values ('rostered@iiitd.ac.in'),('slow@iiitd.ac.in')");
 
-  await t.test('bootstrap email becomes an approved admin on first verified sign-in', async () => {
-    await signUp(owner, 'Owner@iiitd.ac.in');
-    assert.deepEqual(await profile(owner), { role: 'admin', status: 'approved' });
+  await t.test('bootstrap email becomes an approved admin when the provider marks the sign-up as Google', async () => {
+    await insertUser(id(1), 'Owner@iiitd.ac.in', { provider: 'google' });
+    assert.deepEqual(await profile(id(1)), { role: 'admin', status: 'approved' });
   });
-  await t.test('rostered students are approved; others wait and the admin is alerted once', async () => {
-    await signUp(rostered, 'rostered@iiitd.ac.in');
-    assert.deepEqual(await profile(rostered), { role: 'student', status: 'approved' });
-    await signUp(student, 'someone@iiitd.ac.in');
-    assert.deepEqual(await profile(student), { role: 'student', status: 'pending' });
-    await as(owner);
-    const n = (await db.query("select title,link from notifications where kind='approval'")).rows;
-    assert.equal(n.length, 1);
-    assert.equal(n[0].link, '/admin');
-    await as(student);
-    assert.equal((await db.query('select * from notifications')).rows.length, 0);
+  await t.test('insert-then-confirm order (how GoTrue creates users) also promotes bootstrap and roster emails', async () => {
+    await insertUser(id(2), 'late@iiitd.ac.in');
+    assert.deepEqual(await profile(id(2)), { role: 'student', status: 'pending' });
+    await confirm(id(2));
+    assert.deepEqual(await profile(id(2)), { role: 'admin', status: 'approved' });
+    await insertUser(id(3), 'slow@iiitd.ac.in');
+    await confirm(id(3));
+    assert.deepEqual(await profile(id(3)), { role: 'student', status: 'approved' });
   });
-  await t.test('an unverified email never receives admin or roster privileges', async () => {
-    await db.exec('reset role');
-    await db.query("insert into admin_bootstrap(email) values('spoof@iiitd.ac.in')");
-    await signUp(spoofed, 'spoof@iiitd.ac.in', false);
-    assert.deepEqual(await profile(spoofed), { role: 'student', status: 'pending' });
+  await t.test('rostered Google sign-ups are approved; others wait and each pending sign-up alerts the admin once', async () => {
+    await insertUser(id(4), 'rostered@iiitd.ac.in', { provider: 'google' });
+    assert.deepEqual(await profile(id(4)), { role: 'student', status: 'approved' });
+    await insertUser(id(5), 'someone@iiitd.ac.in', { provider: 'google' });
+    assert.deepEqual(await profile(id(5)), { role: 'student', status: 'pending' });
+    await insertUser(id(6), 'another@iiitd.ac.in', { provider: 'google' });
+    const alerts = await approvalAlerts(id(1));
+    assert.equal(alerts.length, 1, 'one unread approval alert at a time');
+    assert.equal(alerts[0].link, '/admin');
+    await as(id(5));
+    assert.equal((await db.query('select * from notifications')).rows.length, 0, 'students never see admin alerts');
+    await trusted();
+  });
+  await t.test('an unverified email never receives admin or roster privileges, and confirming a non-listed email changes nothing', async () => {
+    await trusted();
+    await insertUser(id(7), 'spoof@iiitd.ac.in');
+    assert.deepEqual(await profile(id(7)), { role: 'student', status: 'pending' });
+    await confirm(id(5));
+    assert.deepEqual(await profile(id(5)), { role: 'student', status: 'pending' });
+    // An approved or suspended profile is never touched by a later confirmation.
+    await db.query("update profiles set status='suspended' where id=$1", [id(3)]);
+    await db.query("update auth.users set email_confirmed_at = null where id=$1", [id(3)]);
+    await confirm(id(3));
+    assert.equal((await profile(id(3))).status, 'suspended');
   });
   await t.test('API roles cannot read or change the bootstrap list', async () => {
-    await as(owner);
+    await as(id(1));
     await assert.rejects(db.query('select * from admin_bootstrap'), /permission denied/);
     await assert.rejects(db.query("insert into admin_bootstrap(email) values('me@iiitd.ac.in')"), /permission denied/);
     await as(null, 'anon');
     await assert.rejects(db.query('select * from admin_bootstrap'), /permission denied/);
   });
   await t.test('outside-domain accounts are still rejected and ping works for anon', async () => {
-    await db.exec('reset role');
-    await assert.rejects(signUp('00000000-0000-0000-0000-0000000000a9', 'x@gmail.com'), /Only @iiitd/);
+    await trusted();
+    await assert.rejects(insertUser(id(9), 'x@gmail.com', { provider: 'google' }), /Only @iiitd/);
     await as(null, 'anon');
     assert.ok((await db.query('select ping() as now')).rows[0].now);
   });

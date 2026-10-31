@@ -53,3 +53,8 @@ Work split: **Abhik owns design/UI. Garv Rao and Codex own the remaining enginee
 Tasks in `Review` are implemented but unverified. PLAN-02 is resolved as roster + admin approval (graduates handled manually). Still needed from the owner: Supabase project, Google OAuth credentials, hosting choice (QA-01, DEPLOY-01).
 
 The owner authorized checking and merging AbhikRao's PRs. A 3-minute review monitor is active (interval updated at owner request). Review the exact current head, resolve material findings, and run applicable checks before merge; leave blocked PRs unmerged. Local regression checks now cover a subset of QA-01, not live-provider verification.
+
+## Launch status (2026-10-31, branch `feat/LAUNCH-01-production`)
+- Done: hosted Supabase project (Mumbai) with migrations 0001 to 0006, auth URLs set, Google provider enabled, email/phone/anonymous sign-ups off (by Codex in the owner's browser). Local stack and 19 end-to-end checks.
+- Waiting on the owner: approve creating the public build-only repo (`AbhikRao/iiitd-black-market`), then deploy; Codex then publishes the Google app (needs the public privacy and terms pages served at the site address). First admin: run the two-line SQL in docs/launch.md if not already set.
+- See [docs/launch.md](docs/launch.md) for the verified / not-verified split and the owner checklist.

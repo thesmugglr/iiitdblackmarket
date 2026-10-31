@@ -43,8 +43,8 @@ await step('create users; unapproved student sees nothing', async () => {
 await step('bootstrap admin email becomes admin on first sign-in; a pending sign-up alerts admins', async () => {
   const email = `boot.${run}@iiitd.ac.in`
   ok(await admin.from('admin_bootstrap').insert({ email }))
-  // The local stack has no Google credentials, so mark the user as a Google sign-up the way GoTrue does at insert time.
-  const created = await admin.auth.admin.createUser({ email, password: 'localtest-pass', email_confirm: true, app_metadata: { provider: 'google', providers: ['google'] } })
+  // GoTrue inserts the user and confirms the email in a follow-up update, the same order as a Google sign-up.
+  const created = await admin.auth.admin.createUser({ email, password: 'localtest-pass', email_confirm: true })
   if (created.error) throw created.error
   const p = ok(await admin.from('profiles').select('role,status').eq('id', created.data.user.id).single())
   assert.deepEqual(p, { role: 'admin', status: 'approved' })

@@ -53,7 +53,7 @@ export default function Login() {
             <div className="row"><button className="primary">Sign in</button><button type="button" onClick={(e) => dev(e, true)}>Create account</button></div>
           </form>
         )}
-        <p className="fine">Only @iiitd.ac.in accounts can sign in. New members are approved by an admin before they can browse.</p>
+        <p className="fine">Only @iiitd.ac.in accounts can sign in. New members are approved by an admin before they can browse. By continuing you agree to the <a href={`${import.meta.env.BASE_URL}terms.html`}>terms</a> and <a href={`${import.meta.env.BASE_URL}privacy.html`}>privacy policy</a>.</p>
       </div>
       <ul className="login-board" aria-hidden="true">
         {Object.values(CATEGORIES).map((c) => <li key={c}>{c}</li>)}

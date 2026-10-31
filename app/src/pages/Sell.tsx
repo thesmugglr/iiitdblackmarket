@@ -16,7 +16,7 @@ export default function Sell() {
     price_inr: '', negotiable: false, pickup_area: PICKUP_AREAS[0], rental_period: '', deposit_inr: '',
   })
   const [photos, setPhotos] = useState<string[]>([])
-  const [uploading, setUploading] = useState(0)
+  const [uploading, setUploading] = useState(0) // photos still to upload in the current batch
   const [over, setOver] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -39,27 +39,31 @@ export default function Sell() {
     })
   }, [id, profile?.id])
 
+  const uploadLock = useRef(false)
   const upload = async (files: File[]) => {
-    if (!files.length || !profile) return
+    // One batch at a time: overlapping selections would otherwise race on the photo list.
+    if (!files.length || !profile || uploadLock.current || busy) return
     setErr('')
-    let next = [...photos]
-    const room = MAX_PHOTOS - next.length
-    if (files.length > room) setErr(room > 0 ? `Only ${room} more photo${room === 1 ? '' : 's'} fit. The rest were skipped.` : `At most ${MAX_PHOTOS} photos.`)
-    for (const file of files.slice(0, Math.max(room, 0))) {
-      setUploading((n) => n + 1)
-      try {
+    if (photos.length + files.length > MAX_PHOTOS) return setErr(`At most ${MAX_PHOTOS} photos in total. Remove one first, or pick fewer.`)
+    if (files.some((f) => !f.type.startsWith('image/') && !/\.(heic|heif)$/i.test(f.name))) return setErr('Choose image files (JPG, PNG, WebP, HEIC).')
+    uploadLock.current = true
+    setUploading(files.length)
+    try {
+      for (const file of files) {
         const { blob, ext, type } = await preparePhoto(file)
         const path = `${profile.id}/${crypto.randomUUID()}.${ext}`
         const { error } = await supabase.storage.from('listing-photos').upload(path, blob, { contentType: type })
-        if (error) throw error
+        if (error) throw new Error(error.message)
         fresh.current.add(path)
-        next = [...next, path]
-        setPhotos(next)
-      } catch (e) {
-        setErr(e instanceof Error ? e.message : 'Upload failed. Check your connection and try again.')
-      } finally {
+        // Commit each success immediately so a later failure never hides photos that already uploaded.
+        setPhotos((current) => [...current, path])
         setUploading((n) => n - 1)
       }
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Upload failed. Check your connection and try again.')
+    } finally {
+      uploadLock.current = false
+      setUploading(0)
     }
   }
   const onDrop = (e: DragEvent) => {
@@ -77,7 +81,7 @@ export default function Sell() {
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!profile) return
-    if (uploading) return setErr('Wait for your photos to finish uploading.')
+    if (uploading || uploadLock.current) return setErr('Wait for your photos to finish uploading.')
     setBusy(true)
     setErr('')
     const giveaway = f.listing_type === 'giveaway'
@@ -106,7 +110,7 @@ export default function Sell() {
 
       <div className={`dropzone ${over ? 'over' : ''}`} onDragOver={(e) => { e.preventDefault(); setOver(true) }} onDragLeave={() => setOver(false)} onDrop={onDrop}>
         <label className="btn" htmlFor="photo-input">{photos.length ? 'Add more photos' : 'Choose photos'}</label>
-        <input id="photo-input" className="visually-hidden" type="file" accept="image/*" multiple disabled={photos.length >= MAX_PHOTOS}
+        <input id="photo-input" className="visually-hidden" type="file" accept="image/*" multiple disabled={photos.length >= MAX_PHOTOS || uploading > 0 || busy}
           onChange={(e) => { void upload(Array.from(e.target.files ?? [])); e.target.value = '' }} />
         <span className="muted small">or drop them here. Up to {MAX_PHOTOS}; large photos are resized for you.</span>
         {uploading > 0 && <span role="status" className="small">Uploading {uploading} photo{uploading === 1 ? '' : 's'}…</span>}
@@ -117,7 +121,7 @@ export default function Sell() {
             <li key={p}>
               {urls[i] ? <img src={urls[i]} alt={`Photo ${i + 1}`} /> : <div className="skeleton" />}
               {i === 0 ? <span className="tag">Cover</span> : <button type="button" className="mini" onClick={() => makeCover(p)}>Make cover</button>}
-              <button type="button" className="mini danger" aria-label={`Remove photo ${i + 1}`} onClick={() => remove(p)}>Remove</button>
+              <button type="button" className="mini danger" aria-label={`Remove photo ${i + 1}`} disabled={uploading > 0 || busy} onClick={() => remove(p)}>Remove</button>
             </li>
           ))}
         </ul>
