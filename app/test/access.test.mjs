@@ -145,6 +145,21 @@ test('database access regression scenarios', async (t) => {
     assert.equal(await scalar('select status from offers where id=$1',[second]),'declined');
     await assert.rejects(db.query('select respond_offer($1,true)',[second]),/Offer not pending/);
   });
+  await t.test('saved items are idempotent, private to their owner and denied to pending members',async()=>{
+    await as(buyer);
+    for(let i=0;i<2;i++) await db.query('insert into saved_items(user_id,listing_id) values($1,$2) on conflict(user_id,listing_id) do nothing',[buyer,listing]);
+    assert.equal(await scalar('select count(*)::int from saved_items where listing_id=$1',[listing]),1);
+    await as(other);
+    assert.equal(await scalar('select count(*)::int from saved_items where user_id=$1',[buyer]),0);
+    assert.equal((await db.query('delete from saved_items where user_id=$1 returning listing_id',[buyer])).rows.length,0);
+    await assert.rejects(db.query('insert into saved_items(user_id,listing_id) values($1,$2)',[buyer,listing]),/row-level security/);
+    await as(pending);
+    await assert.rejects(db.query('insert into saved_items(user_id,listing_id) values($1,$2)',[pending,listing]),/row-level security/);
+    await as(buyer);
+    assert.equal(await scalar('select count(*)::int from saved_items where listing_id=$1',[listing]),1);
+    await db.query('delete from saved_items where user_id=$1 and listing_id=$2',[buyer,listing]);
+    assert.equal(await scalar('select count(*)::int from saved_items'),0);
+  });
   await t.test('seller cannot restore administrator-removed listing',async()=>{
     await owner(); await db.query("update listings set status='removed' where id=$1",[listing]);
     await as(seller);
