@@ -9,7 +9,7 @@ Scope: migration `0007_student_codes.sql`, loader `app/scripts/student-codes.mjs
 - The bulk helper only approves pending students; it does not restore suspended accounts or change admin roles. Code matching grants student approval, never admin access.
 - Code rows use RLS with no API policies, and table access plus helper execution are revoked from anonymous/authenticated API roles. Regression tests cover reads, writes and helper calls under those roles.
 - Loader fixtures verify batch selection, deduplication, exclusion of stray numbers, codes-only SQL and rejection of nonnumeric codes. The live loader dry run found 2,376 codes for 2023–2026 (570/597/607/602) and wrote no file. No names, addresses or source HTML were saved by this review.
-- All 114 local regressions, build/typecheck and lint pass, with the existing eight lint warnings and large-chunk warning. Final-head GitHub/service results are tracked in README/TODO and PR #21.
+- All 114 local regressions, build/typecheck and lint pass, with the existing eight lint warnings and large-chunk warning. Both GitHub checks and all 25 disposable Supabase service scenarios pass on reviewed head `403ccce`, including account/code cleanup verification (run 41197071008); PR #21 merged at `19cfe34`.
 
 ## Fixture cleanup correction (QA-03)
 
