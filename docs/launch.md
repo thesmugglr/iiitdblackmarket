@@ -21,20 +21,23 @@ Browser settings that must match: Supabase **Site URL** `https://abhikrao.github
 - A 4032 x 3024 photo uploaded through the real sell form is resized in the browser to a 1600 x 1200 JPEG of about 280 KB (this also removes EXIF data such as GPS), stored privately and shown with a signed URL. Chat attachments use the same path.
 - The sub-path build (`/iiitd-black-market/`) boots from `404.html` on a deep link and remembers the page you wanted across the Google round trip.
 - Against the hosted project with only the public key: `rpc/ping` works, anonymous users see zero listings, `profiles` and `admin_bootstrap` are permission denied.
+- **Live site (2026-10-31, after the owner approved creating the public build-only repo):** `AbhikRao/iiitd-black-market` is public, default branch `main`, with the `.iiitd-market-build-only` marker; Pages serves it at `https://abhikrao.github.io/iiitd-black-market/`. Deployed with `npm run deploy:pages` from source `a235788`. Checked: `/`, `/privacy.html`, `/terms.html`, `/favicon.svg` and the JS bundle return 200; a deep link such as `/listing/xyz` is served by `404.html` and boots the app (checked from a local copy of the same build in a browser: login page, Google button enabled, privacy and terms links correct); the bundle contains only the hosted project URL and the publishable key (no JWTs, no local values); the Google authorize link with this site as the return address reaches Google's "IIITD Black Market" sign-in page with no client or redirect errors.
 
 ## Not verified (needs the account owner)
 
-- A real Google sign-in on the hosted project. Needs the Google Cloud OAuth client and the Google provider to be saved in Supabase (README steps 5 and 6 in `~/iiitd-launch`). Check with
+Independent PR #15 review confirmed the live pages/bundle and Google-provider redirect using only public configuration; the live 390px sign-in screen and a deep link also render correctly. See docs/live-qa.md for exact observed statuses and limits. Real Google login, authenticated campus flows, dashboard access and full phone QA remain pending; Google app publication is reported by Abhik and has not been independently inspected in this chat. Preserve the 22-scenario local service coverage added in PR #14 when updating this document; the 19-scenario result above describes the earlier launch head.
+
+- A real Google sign-in on the hosted project. Public Auth settings show the Google provider enabled; the authorization redirect alone does not prove a completed sign-in. Check the provider hand-off with
   `curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" "https://mkepigiktixxrowsteje.supabase.co/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fabhikrao.github.io%2Fiiitd-black-market%2F"`
   which should print `302` and an `accounts.google.com` URL.
-- Public hosting. Creating a public repository is an owner decision; an automatic attempt was blocked by the safety classifier and not retried. Google's "Publish app" step also needs the public privacy and terms pages (`privacy.html`, `terms.html`, shipped in `app/public`) to be live at the site address, so publishing the OAuth app follows the first deploy. Until the app is published, only test users added in Google Cloud can sign in.
+- A real sign-in on the live site. Public hosting is verified here; Abhik reports his setup session published the Google OAuth app to production (Google Auth Platform shows `In production`; the saved Branding homepage, privacy and terms URLs match the live pages), so people with an @iiitd.ac.in Google account should be able to reach the site's approval screen. Nobody has completed a real sign-in yet.
 - Behaviour on phones and other laptops beyond the browser checks in this repo.
 
 ## Owner checklist
 
 Garv selected **Abhik's existing project** on 2026-10-31. Use project `mkepigiktixxrowsteje` and its reported Google provider configuration under Abhik's organization. Verify access and the intended project in the dashboards before applying migrations or changing providers. The selection does not itself grant new permissions, transfer ownership, or approve public deployment. Do not request secrets in chat or recreate resources solely because older TODO entries said setup was absent.
 
-1. Approve public hosting, then deploy (see below).
+1. Open the existing public site and test institute Google sign-in. Public deployment is already recorded; do not recreate it for this check.
 2. Open the site, choose **Continue with IIITD Google**. Make yourself admin if you are not already (Supabase > SQL Editor):
    ```sql
    insert into public.admin_bootstrap (email) values ('you@iiitd.ac.in') on conflict do nothing;
