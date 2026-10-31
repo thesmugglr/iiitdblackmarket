@@ -8,6 +8,8 @@ Hosted setup is now reported in docs/launch.md from Abhik's environment. The hos
 
 Record sanitized results only. Use account labels (Admin, Student A, Student B, Pending, Outsider); never paste tokens, actual emails, private chat contents, or real rosters.
 
+PR #14 expands the local service runner to 22 scenarios, including simultaneous accept requests from independently authenticated seller clients, type/5 MiB rejection in both buckets, and removal of only that run's generated users/bootstrap rows/photos. All 41 local regressions/build/lint pass; expanded service execution is pending CI. No hosted QA result changes until those checks run against the selected hosted project with authorized accounts.
+
 | Check | Expected | Result / evidence |
 | --- | --- | --- |
 | OAuth and institute eligibility | Outside accounts denied; unrostered institute account pending | Not run |

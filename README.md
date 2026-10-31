@@ -4,7 +4,7 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 ## Current status
 
-QA-02 on `test/QA-02-service-concurrency` is extending disposable service tests for simultaneous offer acceptance, upload size/type rejection and fixture cleanup. Verification is pending; this does not connect to the selected hosted project or alter Abhik's UI.
+[PR #14](https://github.com/garvrao80/iiitdblackmarket/pull/14) extends disposable service QA to 22 scenarios: simultaneous offer acceptance from independent seller sessions, actual size/type rejection in both private buckets, and run-scoped fixture cleanup. All 41 local regressions/build/lint pass with existing warnings; the expanded service suite awaits GitHub CI. This does not connect to the selected hosted project or alter Abhik's UI.
 
 Launch review also adds a build-only repository marker/public-visibility check before deployment replaces any target contents, plus validation that rejects delimiter-bearing legacy keys and control characters in project URLs. Public deployment remains an owner decision and has not been performed by this review.
 
