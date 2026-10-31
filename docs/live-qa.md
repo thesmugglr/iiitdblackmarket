@@ -1,6 +1,10 @@
 # Live backend verification record
 
-Owner: Garv Rao / Codex. Current status: **Garv selected Abhik's existing project `mkepigiktixxrowsteje`. Public hosted checks pass as recorded below; real Google login, authenticated workflows and dashboard access remain pending.**
+Owner: Garv Rao / Codex. Current status: **Garv selected Abhik's existing project `mkepigiktixxrowsteje`. Public hosted checks pass as recorded below; Garv reports successful institute Google sign-in; other authenticated workflows and dashboard access remain pending.**
+
+## User-reported Google login — 2026-10-31
+
+Garv answered “Marketplace opens” after the prompt to sign in on the live site using his institute Google account. Record this as one successful user-reported login, not an independently observed browser session or proof of other accounts’ access rules. The signed-in session is not available in this chat’s browser. Hosted listing/photo/chat, pending/admin/outsider and full phone tests remain outstanding.
 
 ## Independent public deployment checks — 2026-10-31
 
@@ -8,7 +12,7 @@ Reviewed Abhik's deployment record in PR #15 and verified the existing public si
 
 Using only the browser-public key from that deployed bundle, Auth settings report Google enabled and email/phone disabled; `ping` returns 200, anonymous listing reads return zero rows, and email-column/bootstrap reads return 401. Zero listing rows alone do not prove row-level isolation against populated data. The authorize endpoint returns 302 to accounts.google.com with the expected Supabase callback; this is not a completed Google login. No private key or token was printed/stored, no production data was mutated, and this review did not deploy or change access settings.
 
-Still required: a real institute Google login, pending/admin approval checks, approved-account listing/chat/privacy/concurrency tests, and full phone workflows. Supabase dashboard authentication remains pending in this chat. Other launch claims retain their author attribution in docs/launch.md.
+Still required: outside-account and pending/admin approval checks, approved-account listing/chat/privacy/concurrency tests, and full phone workflows. Supabase dashboard authentication remains pending in this chat. Other launch claims retain their author attribution in docs/launch.md.
 
 2026-10-31 access attempt: dashboard returned the Supabase sign-in page. Waiting for an authenticated account that can access the selected project; no provider settings, migrations or production data were changed.
 
@@ -20,7 +24,7 @@ PR #14 merged at `38b102e` after all 22 local service scenarios passed in [GitHu
 
 | Check | Expected | Result / evidence |
 | --- | --- | --- |
-| OAuth and institute eligibility | Outside accounts denied; unrostered institute account pending | Not run |
+| OAuth and institute eligibility | Outside accounts denied; unrostered institute account pending | Partial: Garv reports institute Google sign-in opens the marketplace (2026-10-31). Outside-domain and unrostered-account outcomes remain untested. |
 | Approval/admin permissions | Admin can approve; student cannot self-approve/read admin directory | Not run |
 | Listings and owner permissions | Create/edit own; other users cannot mutate | Not run |
 | Storage service | Private buckets, namespace rules, type/5 MiB limits | Not run |
