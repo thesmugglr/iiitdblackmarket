@@ -8,7 +8,7 @@ Hosted setup is now reported in docs/launch.md from Abhik's environment. The hos
 
 Record sanitized results only. Use account labels (Admin, Student A, Student B, Pending, Outsider); never paste tokens, actual emails, private chat contents, or real rosters.
 
-PR #14 expands the local service runner to 22 scenarios, including simultaneous accept requests from independently authenticated seller clients, type/5 MiB rejection in both buckets, and removal of only that run's generated users/bootstrap rows/photos. All 41 local regressions/build/lint pass; expanded service execution is pending CI. No hosted QA result changes until those checks run against the selected hosted project with authorized accounts.
+PR #14 merged at `38b102e` after all 22 local service scenarios passed in [GitHub CI](https://github.com/garvrao80/iiitdblackmarket/actions/runs/41186293555), exact head `336a91f`. Simultaneous seller sessions accepted exactly one offer and reserved the matching price; both buckets rejected disallowed types and files over 5 MiB without storing objects; cleanup removed only generated fixtures. All 41 local regressions/build/lint and GitHub verification also pass. No hosted QA result changes until those checks run against the selected hosted project with authorized accounts.
 
 | Check | Expected | Result / evidence |
 | --- | --- | --- |
