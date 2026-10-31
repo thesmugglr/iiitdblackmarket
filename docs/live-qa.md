@@ -27,7 +27,7 @@ PR #14 merged at `38b102e` after all 22 local service scenarios passed in [GitHu
 | Check | Expected | Result / evidence |
 | --- | --- | --- |
 | OAuth and institute eligibility | Outside accounts denied; unrostered institute account pending | Partial: Garv reports institute Google authentication reaches Awaiting approval (2026-10-31). Outside-domain rejection remains untested; roster membership is not independently inspected. |
-| Approval/admin permissions | Admin can approve; student cannot self-approve/read admin directory | Pending: owner account is awaiting approval by user report. Abhik must apply owner-requested admin setup (CLOUD-02); admin UI and separate-account denial remain untested. |
+| Approval/admin permissions | Admin can approve; student cannot self-approve/read admin directory | Abhik's own admin access was applied on 2026-10-31 through the project's SQL Editor and checked read-only (bootstrap row present; the existing profile reads role admin, status approved; address not recorded here). The live Admin page, approving a second account, and separate-account denial are still untested. Garv's separate request for admin on his own account (CLOUD-02) has not been applied. |
 | Listings and owner permissions | Create/edit own; other users cannot mutate | Not run |
 | Storage service | Private buckets, namespace rules, type/5 MiB limits | Not run |
 | Messages and realtime | Two sessions exchange messages/read receipts | Not run |
