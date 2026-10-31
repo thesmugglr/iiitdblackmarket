@@ -39,6 +39,8 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 
 ## Completion and handoff
 
+REVIEW-04 update: independent local Supabase CI passed all 19 service scenarios on `045638a`, including Realtime and bootstrap. Deployment review then added public build-only target safeguards and configuration delimiter checks; recheck the updated head before merging #13. Hosted Google/phone QA remains separate.
+
 Before marking a task Done, link the merged change, record meaningful verification, update the README for changed behavior/setup, and note unfinished work here. For Blocked tasks, name the missing dependency or decision and who can resolve it. For an unfinished handoff, leave the branch, current state, next step, and verification limits in the notes.
 
 ## Open decisions

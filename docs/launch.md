@@ -44,6 +44,8 @@ Browser settings that must match: Supabase **Site URL** `https://abhikrao.github
 
 ## Redeploying
 
+Before the first deploy, the owner must create the chosen **public build-only** repository with an initialized `main` branch, then add `.iiitd-market-build-only` containing exactly `iiitdblackmarket-static-output`. The deployer refuses private, archived, non-main, or unmarked targets before replacing files. Never add this marker to the source repository. This guard does not create repositories or grant publishing approval. The marker is preserved in generated deployments.
+
 ```sh
 cd app
 cp ~/iiitd-launch/public-config.env .env.production.local   # URL + publishable key only
