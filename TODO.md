@@ -15,7 +15,7 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 | REVIEW-02 | Review Abhik's stacked PRs #7, #8, #9 | Done | Codex | Latest main | #7 merged `ba1ae4b`, #8 `037cc7b`, #9 `c91f83a`. Reviewed heads pass local tests/build/lint and GitHub CI; final stack has 30 passing checks. See docs/pr-review-log.md. |
 | DESIGN-02 | Own and improve the main website design/UI | Ready | AbhikRao | Latest main | Owner delegated design to Abhik. Codex PR #4 retired; branch retained as optional reference. |
 | ENG-01 | Backend readiness: safe config, upload limits, broader tests, setup runbook | Done | Garv Rao / Codex | Latest main | [PR #6](https://github.com/garvrao80/iiitdblackmarket/pull/6) merged at `afe45c9`; 23 local tests and GitHub CI pass, build/lint pass with existing warnings. Live work below remains separate. |
-| CLOUD-01 | Confirm/select Supabase project; apply unapplied migrations and configure Google OAuth | Ready | Garv Rao / Codex | Owner cloud connection | GitHub has no configured secrets/variables/environments/deployments. A Supabase integration was suggested but connection is unconfirmed. See docs/backend-setup.md. |
+| CLOUD-01 | Confirm project ownership/access and hosted provider setup | Review | Garv Rao / Codex | Owner's project choice | Abhik reports an existing project/provider under AbhikRao's Org (docs/launch.md). Garv confirms he has not created his own project/client. Decide use of the existing setup versus a Garv-owned project before duplicating resources. Hosted Google QA remains pending. |
 | PLAN-01 | Approve or revise first-release scope | Review | Codex | — | Implemented on `feat/mvp-app`; untested on live backend. |
 | PLAN-02 | Decide current-student verification and approval process | Backlog | Unassigned | PLAN-01 | Institute domain alone does not establish student status. |
 | SETUP-01 | Choose framework/hosting and scaffold application | Review | Codex | PLAN-01 | Implemented on `feat/mvp-app`; untested on live backend. |
@@ -28,7 +28,7 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 | CHAT-02 | Attachments, unread counts, and offers | Review | Codex | CHAT-01, LIST-03 | Implemented on `feat/mvp-app`; untested on live backend. |
 | USER-01 | Profiles, saved items, and personal dashboard | Review | Codex | AUTH-01, LIST-01 | Implemented on `feat/mvp-app`; untested on live backend. |
 | MOD-01 | Reporting, blocking, and admin moderation | Review | Codex | AUTH-01, LIST-01, CHAT-01 | Implemented on `feat/mvp-app`; untested on live backend. |
-| QA-01 | Verify separate-account access isolation and core marketplace flows | Backlog | Garv Rao / Codex | CLOUD-01 | Record service-level results in docs/live-qa.md. Local DB/config checks pass; actual OAuth, transfers, realtime and concurrent sessions remain untested. |
+| QA-01 | Verify separate-account access isolation and core marketplace flows | Review | Garv Rao / Codex | CLOUD-01 | 41 local regressions and 19 local Supabase service scenarios pass, including Storage and Realtime. Hosted Google, hosted separate-account/concurrency checks and phone QA remain pending in docs/live-qa.md. |
 | DEPLOY-01 | Configure deployment, verify live flows, and document operations | Backlog | Garv Rao / Codex | QA-01 | Setup/rewrite/preflight prepared. Host and production origin not selected; no deployment performed. |
 
 ## Extras implementation and backlog
@@ -40,13 +40,13 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 
 ## Completion and handoff
 
-REVIEW-04 update: independent local Supabase CI passed all 19 service scenarios on `045638a`, including Realtime and bootstrap. Deployment review then added public build-only target safeguards and configuration delimiter checks; recheck the updated head before merging #13. Hosted Google/phone QA remains separate.
+REVIEW-04 is complete: #13 merged after all 19 service scenarios passed on final reviewed head `f5011b7`, alongside 41 regressions/build/lint. Public deployment and hosted Google/phone QA remain separate.
 
 Before marking a task Done, link the merged change, record meaningful verification, update the README for changed behavior/setup, and note unfinished work here. For Blocked tasks, name the missing dependency or decision and who can resolve it. For an unfinished handoff, leave the branch, current state, next step, and verification limits in the notes.
 
 ## Open decisions
 
-Work split: **Abhik owns design/UI. Garv Rao and Codex own the remaining engineering work.** Live account setup requires owner access; no Supabase connection is confirmed yet. EXTRA-01..03 are now merged but still need live QA; integrated payments remain outside scope.
+Work split: **Abhik owns design/UI. Garv Rao and Codex own the remaining engineering work.** Abhik reports hosted setup in his organization; Garv's use/ownership/access decision is pending. EXTRA-01..03 are merged and locally service-tested; hosted QA remains pending. Integrated payments remain outside scope.
 
 - First-release scope approval.
 - Student eligibility source, approval owner, and handling of graduates.
@@ -54,7 +54,7 @@ Work split: **Abhik owns design/UI. Garv Rao and Codex own the remaining enginee
 - Final rental rules and listing lifecycle.
 
 ## Status note (2026-10-31)
-Tasks in `Review` are implemented but unverified. PLAN-02 is resolved as roster + admin approval (graduates handled manually). Still needed from the owner: Supabase project, Google OAuth credentials, hosting choice (QA-01, DEPLOY-01).
+Tasks in `Review` need the verification or decision named in their notes. PLAN-02 uses roster + admin approval (graduates handled manually). Garv confirmed he has not created his own Supabase project or Google OAuth client; Abhik's setup is reported in docs/launch.md. Choose which account/organization to use, then complete hosted QA and hosting decisions (CLOUD-01, QA-01, DEPLOY-01).
 
 The owner authorized checking and merging AbhikRao's PRs. A 3-minute review monitor is active (interval updated at owner request). Review the exact current head, resolve material findings, and run applicable checks before merge; leave blocked PRs unmerged. Local regression checks now cover a subset of QA-01, not live-provider verification.
 
