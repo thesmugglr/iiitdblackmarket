@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
@@ -6,6 +6,7 @@ import { Arrow, Clip } from '../components/Icons'
 import { inr } from '../lib/constants'
 import { preparePhoto } from '../lib/image'
 import { useSignedUrls } from '../lib/useSignedUrls'
+import { emptyConversation, observeConversation } from '../lib/conversationState'
 import type { Conversation, Message, Offer } from '../lib/types'
 
 function Bubble({ m, mine, onReport }: { m: Message; mine: boolean; onReport: () => void }) {
@@ -25,48 +26,60 @@ function Bubble({ m, mine, onReport }: { m: Message; mine: boolean; onReport: ()
 
 export default function Chat() {
   const { id } = useParams()
+  // A new route must never render the preceding conversation or its draft.
+  return <ConversationChat key={id} id={id ?? ''} />
+}
+
+function ConversationChat({ id }: { id: string }) {
   const { profile } = useAuth()
-  const [conv, setConv] = useState<Conversation | null>(null)
-  const [msgs, setMsgs] = useState<Message[]>([])
-  const [offers, setOffers] = useState<Offer[]>([])
+  const [snapshot, setSnapshot] = useState(emptyConversation)
+  const [attempt, setAttempt] = useState(0)
+  const { conversation: conv, messages: msgs, offers, loading, error: loadError } = snapshot
   const [text, setText] = useState('')
   const [err, setErr] = useState('')
   const [offerAmt, setOfferAmt] = useState('')
   const bottom = useRef<HTMLDivElement>(null)
 
-  const loadMsgs = useCallback(async () => {
-    const { data } = await supabase.from('messages').select('*').eq('conversation_id', id!).order('created_at')
-    setMsgs((data ?? []) as Message[])
-    await supabase.rpc('mark_read', { p_conversation: id })
-  }, [id])
-  const loadOffers = useCallback(async () => {
-    const { data } = await supabase.from('offers').select('*').eq('conversation_id', id!).order('created_at')
-    setOffers((data ?? []) as Offer[])
-  }, [id])
-
   useEffect(() => {
-    supabase
-      .from('conversations')
-      .select('*, listing:listings(title,photos,status), buyer:profiles!conversations_buyer_id_fkey(display_name), seller:profiles!conversations_seller_id_fkey(display_name)')
-      .eq('id', id!)
-      .maybeSingle()
-      .then(({ data }) => setConv(data as unknown as Conversation | null))
-    void loadMsgs()
-    void loadOffers()
-    const ch = supabase
-      .channel(`conv-${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${id}` }, () => void loadMsgs())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'offers', filter: `conversation_id=eq.${id}` }, () => void loadOffers())
-      .subscribe()
-    return () => {
-      void supabase.removeChannel(ch)
-    }
-  }, [id, loadMsgs, loadOffers])
+    return observeConversation(id, {
+      loadConversation: async () => {
+        const { data, error } = await supabase.from('conversations')
+          .select('*, listing:listings(title,photos,status), buyer:profiles!conversations_buyer_id_fkey(display_name), seller:profiles!conversations_seller_id_fkey(display_name)')
+          .eq('id', id).maybeSingle()
+        if (error) throw error
+        return data as unknown as Conversation | null
+      },
+      loadMessages: async () => {
+        const { data, error } = await supabase.from('messages').select('*').eq('conversation_id', id).order('created_at')
+        if (error) throw error
+        return (data ?? []) as Message[]
+      },
+      loadOffers: async () => {
+        const { data, error } = await supabase.from('offers').select('*').eq('conversation_id', id).order('created_at')
+        if (error) throw error
+        return (data ?? []) as Offer[]
+      },
+      markRead: async () => {
+        const { error } = await supabase.rpc('mark_read', { p_conversation: id })
+        if (error) throw error
+      },
+      subscribe: (messagesChanged, offersChanged) => {
+        const ch = supabase.channel(`conv-${id}`)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${id}` }, messagesChanged)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'offers', filter: `conversation_id=eq.${id}` }, offersChanged)
+          .subscribe()
+        return () => { void supabase.removeChannel(ch) }
+      },
+      publish: setSnapshot,
+    })
+  }, [id, attempt])
 
-  useEffect(() => bottom.current?.scrollIntoView({ behavior: 'smooth' }), [msgs.length])
+  useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs.length])
 
   if (!profile) return null
-  if (!conv) return <p className="muted">Loading…</p>
+  if (loading) return <p className="muted">Loading…</p>
+  const retry = <button onClick={() => setAttempt(n => n + 1)}>Try again</button>
+  if (!conv) return <div><p>{loadError || 'This conversation is not available.'}</p>{retry} <Link to="/inbox">Back to inbox</Link></div>
   const isBuyer = conv.buyer_id === profile.id
   const otherId = isBuyer ? conv.seller_id : conv.buyer_id
   const otherName = isBuyer ? conv.seller?.display_name : conv.buyer?.display_name
@@ -143,6 +156,7 @@ export default function Chat() {
         </div>
       )}
       {err && <p className="error small">{err}</p>}
+      {loadError && <p className="error small">{loadError} {retry}</p>}
       <form className="composer" onSubmit={send}>
         <label className="attach" title="Attach photo"><Clip /><input type="file" accept="image/*" hidden onChange={(e) => { void attach(e.target.files?.[0]); e.target.value = '' }} /></label>
         <input value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} placeholder="Type a message" />
