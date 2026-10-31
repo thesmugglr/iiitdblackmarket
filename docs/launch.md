@@ -9,7 +9,7 @@ Written overnight on 2026-10-31 by Claude (code, deployment tooling) with Codex 
 | Site (static React app) | GitHub Pages from a **public build-only repo**, `AbhikRao/iiitd-black-market`, at `https://abhikrao.github.io/iiitd-black-market/` | The private source repo is never published. `npm run deploy:pages -- AbhikRao/iiitd-black-market` builds and pushes only `dist/`. |
 | Backend | Supabase project `iiitd-black-market` (Free plan, Mumbai, ref `mkepigiktixxrowsteje`) | Database, Google sign-in, private photo storage, realtime messages. Created by Codex under `AbhikRao's Org`. |
 | Sign-in | Google, restricted to `@iiitd.ac.in` by a database trigger (not just the browser hint) | New people wait for admin approval unless they are on the roster. |
-| Keep-alive | Workflow `keepalive.yml` in the public repo pings `rpc/ping` twice a week | Free Supabase projects pause after about a week without activity. |
+| Keep-alive | Workflow `keepalive.yml` in the public repo pings `rpc/ping` twice a week and adds an empty commit when the repo has been quiet for 30 days | Free Supabase projects pause after about a week without activity, and GitHub switches off scheduled workflows in a public repo after 60 days without a commit. Ran once on 2026-10-31 after the redeploy: success. |
 
 Browser settings that must match: Supabase **Site URL** `https://abhikrao.github.io/iiitd-black-market/`, redirect URLs `https://abhikrao.github.io/iiitd-black-market/**` and `http://localhost:5173/**`, and Google's authorized redirect URI `https://mkepigiktixxrowsteje.supabase.co/auth/v1/callback`.
 
@@ -86,5 +86,5 @@ The script refuses non-HTTPS or secret-looking keys, builds with `VITE_BASE=/iii
 ## Limits worth knowing
 
 - No email or push notifications. People see alerts in the bell and, if they allow it, as desktop notifications while the site is open in a tab.
-- Free tier: 500 MB database, 1 GB file storage (photos are about 300 KB each after resizing), limited bandwidth. Upgrade the Supabase plan if the campus outgrows it.
+- Free tier: 500 MB database, 1 GB file storage (a resized photo is roughly 100 to 200 KB plus a 480 px thumbnail), 5 GB of bandwidth a month. Going over restricts the project until the monthly reset instead of charging anything; see [free-tier.md](free-tier.md). The owner cannot pay, so upgrading is not an option: reduce photo sizes or purge old photos if the campus outgrows it.
 - Search is simple substring matching and the home grid shows the newest 60 results.
