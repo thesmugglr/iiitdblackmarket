@@ -21,13 +21,14 @@ Browser settings that must match: Supabase **Site URL** `https://abhikrao.github
 - A 4032 x 3024 photo uploaded through the real sell form is resized in the browser to a 1600 x 1200 JPEG of about 280 KB (this also removes EXIF data such as GPS), stored privately and shown with a signed URL. Chat attachments use the same path.
 - The sub-path build (`/iiitd-black-market/`) boots from `404.html` on a deep link and remembers the page you wanted across the Google round trip.
 - Against the hosted project with only the public key: `rpc/ping` works, anonymous users see zero listings, `profiles` and `admin_bootstrap` are permission denied.
+- **Live site (2026-10-31, after the owner approved creating the public build-only repo):** `AbhikRao/iiitd-black-market` is public, default branch `main`, with the `.iiitd-market-build-only` marker; Pages serves it at `https://abhikrao.github.io/iiitd-black-market/`. Deployed with `npm run deploy:pages` from source `a235788`. Checked: `/`, `/privacy.html`, `/terms.html`, `/favicon.svg` and the JS bundle return 200; a deep link such as `/listing/xyz` is served by `404.html` and boots the app (checked from a local copy of the same build in a browser: login page, Google button enabled, privacy and terms links correct); the bundle contains only the hosted project URL and the publishable key (no JWTs, no local values); the Google authorize link with this site as the return address reaches Google's "IIITD Black Market" sign-in page with no client or redirect errors.
 
 ## Not verified (needs the account owner)
 
 - A real Google sign-in on the hosted project. Needs the Google Cloud OAuth client and the Google provider to be saved in Supabase (README steps 5 and 6 in `~/iiitd-launch`). Check with
   `curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" "https://mkepigiktixxrowsteje.supabase.co/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fabhikrao.github.io%2Fiiitd-black-market%2F"`
   which should print `302` and an `accounts.google.com` URL.
-- Public hosting. Creating a public repository is an owner decision; an automatic attempt was blocked by the safety classifier and not retried. Google's "Publish app" step also needs the public privacy and terms pages (`privacy.html`, `terms.html`, shipped in `app/public`) to be live at the site address, so publishing the OAuth app follows the first deploy. Until the app is published, only test users added in Google Cloud can sign in.
+- Google publication. Public hosting is done (see Verified). Google's "Publish app" step also needs the public privacy and terms pages (`privacy.html`, `terms.html`, shipped in `app/public`) to be live at the site address, so publishing the OAuth app follows the first deploy. Until the app is published, only test users added in Google Cloud can sign in.
 - Behaviour on phones and other laptops beyond the browser checks in this repo.
 
 ## Owner checklist
