@@ -4,6 +4,8 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 ## Current status
 
+AUTH-02 is fixing profile-request ordering during account changes/sign-out on `fix/AUTH-02-session-state`. Backend access policies and Abhik's design remain as implemented; regression verification is pending.
+
 [PR #14](https://github.com/garvrao80/iiitdblackmarket/pull/14) merged at `38b102e` after all 22 disposable Supabase service scenarios passed on exact head `336a91f`. Coverage includes simultaneous offer acceptance from independent seller sessions, actual size/type rejection in both private buckets, and run-scoped fixture cleanup. All 41 local regressions/build/lint and both GitHub checks pass with existing warnings. This does not connect to the selected hosted project or alter Abhik's UI.
 
 Launch review also adds a build-only repository marker/public-visibility check before deployment replaces any target contents, plus validation that rejects delimiter-bearing legacy keys and control characters in project URLs. Public deployment remains an owner decision and has not been performed by this review.
