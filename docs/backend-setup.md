@@ -24,6 +24,7 @@ Run each migration **once, in filename order** through the Supabase SQL editor o
 4. `supabase/migrations/0004_extras.sql` — wanted posts, bundles, expiry, and notifications.
 5. `supabase/migrations/0005_expiry_access.sql` — privileged expiry checks and suspended-response access protection.
 6. `supabase/migrations/0006_launch.sql` — verified-email bootstrap, approval notices and public health ping.
+7. `supabase/migrations/0007_student_codes.sql` — automatic approval of current students by the five-digit numeric part of their institute address (admin-only `student_codes` table; no names stored). Load codes with `npm run student-codes` (see docs/launch.md).
 
 On an existing database, apply only migrations that have not already run. Do not rerun 0001 over existing tables, and do not reset a project to resolve migration errors. Retain the migration history in the provider/tool used. Schema and access policies must be ready before inviting users.
 
