@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
+import { useSavedItems } from '../lib/useSavedItems'
 import { CATEGORIES, CONDITIONS, inr } from '../lib/constants'
 import { useSignedUrls } from '../lib/useSignedUrls'
 import { Heart } from '../components/Icons'
@@ -13,7 +14,8 @@ export default function ListingDetail() {
   const { profile } = useAuth()
   const nav = useNavigate()
   const [l, setL] = useState<Listing | null>(null)
-  const [saved, setSaved] = useState(false)
+  const { ids: savedIds, toggle: toggleSaved, loading: savedLoading, pending: saving, error: saveError, retry: retrySaved } = useSavedItems(profile?.id)
+  const saved = savedIds.has(id ?? '')
   const [msg, setMsg] = useState('')
   const [missing, setMissing] = useState(false)
   const urls = useSignedUrls('listing-photos', l?.photos ?? [])
@@ -22,8 +24,6 @@ export default function ListingDetail() {
     const { data } = await supabase.from('listings').select('*, seller:profiles!listings_seller_id_fkey(display_name,batch)').eq('id', id!).maybeSingle()
     if (!data) return setMissing(true)
     setL(data as unknown as Listing)
-    const s = await supabase.from('saved_items').select('listing_id').eq('listing_id', id!).maybeSingle()
-    setSaved(Boolean(s.data))
   }
   useEffect(() => {
     void load()
@@ -42,9 +42,7 @@ export default function ListingDetail() {
     } catch { /* sharing cancelled */ }
   }
   const toggleSave = async () => {
-    if (saved) await supabase.from('saved_items').delete().eq('listing_id', l.id).eq('user_id', profile.id)
-    else await supabase.from('saved_items').insert({ listing_id: l.id, user_id: profile.id })
-    setSaved(!saved)
+    await toggleSaved(l.id)
   }
   const chat = async () => {
     const { data, error } = await supabase.rpc('start_conversation', { p_listing: l.id })
@@ -95,7 +93,7 @@ export default function ListingDetail() {
         <p className="muted small">Listed by {l.seller?.display_name}{l.seller?.batch ? ` (${l.seller.batch})` : ''} on {new Date(l.created_at).toLocaleDateString()}</p>
         <div className="row">
           {!mine && l.status !== 'sold' && l.status !== 'removed' && <button className="primary" onClick={chat}>Chat with seller</button>}
-          <button onClick={toggleSave}><Heart filled={saved} /> {saved ? 'Saved' : 'Save'}</button>
+          <button onClick={toggleSave} disabled={savedLoading || saving.has(l.id)}><Heart filled={saved} /> {saved ? 'Saved' : 'Save'}</button>
           <button onClick={share}>Share</button>
           {!mine && <button className="link" onClick={report}>Report</button>}
         </div>
@@ -112,6 +110,7 @@ export default function ListingDetail() {
           <p className={daysLeft <= 3 ? 'error small' : 'muted small'}>{daysLeft > 0 ? `Listing expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}.` : 'This listing has expired and is hidden from others.'} <button className="link" onClick={renew}>Renew for 30 days</button></p>
         )}
         {msg && <p className="muted">{msg}</p>}
+        {saveError && <p className="error" role="alert">{saveError} <button onClick={retrySaved} disabled={savedLoading || saving.size > 0}>Reload saved items</button></p>}
       </div>
     </div>
   )
