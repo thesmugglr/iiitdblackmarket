@@ -4,6 +4,8 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 ## Current status
 
+LIST-04 is fixing listing-editor loading/ownership guards on `fix/LIST-04-editor-loading`. It prevents editing/uploading before a current owned listing is loaded, supports retry and isolates route drafts. Verification is pending; Abhik's editor layout and database policies are unchanged.
+
 [PR #18](https://github.com/garvrao80/iiitdblackmarket/pull/18) merged at `f6aa5aa` after final-head GitHub verification and review of `91ce656`. It records the independently checked public redeployment of the auth/chat fixes and attributes Abhik's own admin setup to his report. Garv's already-authorized admin promotion remains unapplied; no hosted role/configuration change or deployment was performed by this review.
 
 CHAT-03 ([PR #17](https://github.com/garvrao80/iiitdblackmarket/pull/17)) merged at `f4b94af`, exact reviewed head `185beee`. It ends indefinite loading for unavailable conversations, shows query failures with retry, and prevents obsolete requests from replacing newer messages/offers or publishing after navigation. Each conversation route gets fresh draft/data state, and read receipts only follow current message loads. The scroll effect no longer returns a browser result as React cleanup. All 60 regressions (9 new chat lifecycle cases), build/typecheck, lint and both GitHub checks pass with existing warnings; disposable Supabase CI passes all 22 scenarios. Browser checks cover a populated fictional chat, unavailable chat, retry and return to Inbox; final chat/retry checks have no console errors. Published by Abhik from source `8dc2c60` in build `1228bc4`; independently checked in PR #18. Abhik's layout and database policies remain unchanged.
