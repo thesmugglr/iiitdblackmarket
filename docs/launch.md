@@ -25,6 +25,8 @@ Browser settings that must match: Supabase **Site URL** `https://abhikrao.github
 
 ## Not verified (needs the account owner)
 
+Independent PR #15 review confirmed the live pages/bundle and Google-provider redirect using only public configuration; the live 390px sign-in screen and a deep link also render correctly. See docs/live-qa.md for exact observed statuses and limits. Real Google login, authenticated campus flows, console publication/access and full phone QA remain pending. Preserve the 22-scenario local service coverage added in PR #14 when updating this document; the 19-scenario result above describes the earlier launch head.
+
 - A real Google sign-in on the hosted project. Needs the Google Cloud OAuth client and the Google provider to be saved in Supabase (README steps 5 and 6 in `~/iiitd-launch`). Check with
   `curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" "https://mkepigiktixxrowsteje.supabase.co/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fabhikrao.github.io%2Fiiitd-black-market%2F"`
   which should print `302` and an `accounts.google.com` URL.
