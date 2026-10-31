@@ -72,9 +72,24 @@ export default function Admin() {
         ))}
       </ul>
 
-      <h2>Users</h2>
+      <h2>Waiting for approval ({users.filter((u) => u.status === 'pending').length})</h2>
+      <p className="muted small">Approve only people you can confirm are current students: faculty and staff share the institute email domain.</p>
+      {users.every((u) => u.status !== 'pending') && <p className="muted">Nobody is waiting.</p>}
       <ul className="list">
-        {users.map((u) => (
+        {users.filter((u) => u.status === 'pending').map((u) => (
+          <li key={u.id} className="row between">
+            <span>{u.display_name} <span className="muted small">{u.email}</span></span>
+            <span className="row">
+              <button className="primary" onClick={() => setStatus(u.id, 'approved')}>Approve</button>
+              <button className="danger" onClick={() => setStatus(u.id, 'suspended')}>Reject</button>
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <h2>All members</h2>
+      <ul className="list">
+        {users.filter((u) => u.status !== 'pending').map((u) => (
           <li key={u.id} className="row between">
             <span>{u.display_name} <span className="muted small">{u.email} · {u.role} · {u.status}</span></span>
             <span className="row">

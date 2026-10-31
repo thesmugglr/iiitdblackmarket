@@ -10,7 +10,14 @@ export default function Notifications() {
     const { data } = await supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(50)
     setItems((data ?? []) as Notice[])
   }
-  useEffect(() => { void load() }, [])
+  const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('Notification' in window ? Notification.permission : 'unsupported')
+  useEffect(() => {
+    void load()
+    const reload = () => void load()
+    window.addEventListener('notices-changed', reload)
+    return () => window.removeEventListener('notices-changed', reload)
+  }, [])
+  const enableAlerts = async () => setPermission(await Notification.requestPermission())
   const markOne = async (n: Notice) => {
     if (!n.read_at) await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', n.id)
     window.dispatchEvent(new Event('notices-changed'))
@@ -24,6 +31,7 @@ export default function Notifications() {
   return (
     <>
       <div className="row between"><h1>Notifications</h1>{items.some((n) => !n.read_at) && <button onClick={markAll}>Mark all read</button>}</div>
+      {permission === 'default' && <p className="panel small">Get a desktop alert when someone messages you while this tab is in the background. <button onClick={enableAlerts}>Turn on alerts</button></p>}
       {items.length === 0 && <div className="empty"><strong>You're all caught up</strong><span>New messages, replies to your requests and expiry reminders show up here.</span></div>}
       <ul className="list">
         {items.map((n) => (
