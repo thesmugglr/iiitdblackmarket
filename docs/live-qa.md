@@ -1,6 +1,8 @@
 # Live backend verification record
 
-Owner: Garv Rao / Codex. Current status: **Hosted QA not run by this reviewer. Abhik reports hosted setup; Garv's project/account choice is pending.**
+Owner: Garv Rao / Codex. Current status: **Garv selected Abhik's existing project `mkepigiktixxrowsteje`; access and hosted QA are not yet verified by this reviewer.**
+
+2026-10-31 access attempt: dashboard returned the Supabase sign-in page. Waiting for an authenticated account that can access the selected project; no provider settings, migrations or production data were changed.
 
 Hosted setup is now reported in docs/launch.md from Abhik's environment. The hosted checks below remain Not run by this reviewer. Merged PR #13 independently passes 19/19 local Supabase service scenarios in CI (Auth, Storage, RLS, Realtime, bootstrap and extras), alongside 41 local regression checks. These do not establish a successful hosted Google sign-in or phone QA.
 
