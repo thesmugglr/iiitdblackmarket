@@ -6,7 +6,7 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 Launch review also adds a build-only repository marker/public-visibility check before deployment replaces any target contents, plus validation that rejects delimiter-bearing legacy keys and control characters in project URLs. Public deployment remains an owner decision and has not been performed by this review.
 
-PR #13 supersedes the closed local-backend PR #10 and is undergoing engineering review. Review fixes require loopback app/backend URLs for development password login, refuse hosted endpoints in the service runner, and reject undecodable photos rather than uploading original GPS/EXIF metadata contrary to the privacy notice. An independent local-service CI check is being added; the previous PR #10 service run passed 19/20 checks but timed out on Realtime. Do not treat the current launch PR as independently service-verified or deploy it until review is complete.
+[PR #13](https://github.com/garvrao80/iiitdblackmarket/pull/13) was reviewed and merged at `c51f541` after checks on exact head `f5011b7`. All 41 local tests, build/lint, Windows deployment dry-run, and both GitHub checks pass; disposable Supabase CI passes all 19 service scenarios including Realtime and admin bootstrap. Review fixes protect photo metadata, loopback-only password login, credential output, and build-repository replacement. Hosted Google sign-in, phone QA and owner-approved public deployment remain separate. PR #10 is closed unmerged; PR #12's simpler upload implementation is superseded by Abhik's newer UI in #13.
 
 **First release merged into `main` (PRs #3 to #9). Branch `feat/LAUNCH-01-production` adds production launch work: a hosted Supabase project and Google sign-in were configured on 2026-10-31 (details and verification in [docs/launch.md](docs/launch.md)). The public site is not deployed yet: that needs the owner's approval to create a public build-only repository.**
 
@@ -136,6 +136,8 @@ Before production, enable Google sign-in and disable unused account providers, v
 Expected configuration needs include a backend project, Google OAuth credentials and callback URLs, the accepted institute domain, a student eligibility mechanism, and deployment configuration. Never commit secrets, private student rosters, or real chat data. Document configuration key names and use placeholders in examples.
 
 ## Working together
+
+The separate [amber concept PR #11](https://github.com/garvrao80/iiitdblackmarket/pull/11) remains open for design review, with its own dependencies/styles and sample data. It does not replace Abhik's canonical `app/`. Its owner-private preview is linked in that PR. Coordinate any future adoption rather than merging competing Sell/layout implementations.
 
 **Ownership:** AbhikRao owns the main website design/UI. Garv Rao and Codex own backend, authentication, database/access policies, tests, CI, and deployment preparation. Codex's old design PR #4 is closed; its branch is reference material only. The standing review monitor follows this split.
 
