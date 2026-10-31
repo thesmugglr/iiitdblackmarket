@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useSavedItems } from '../lib/useSavedItems'
 import { CATEGORIES, CONDITIONS, inr } from '../lib/constants'
+import { thumbPath } from '../lib/image'
 import { useSignedUrls } from '../lib/useSignedUrls'
 import { Heart } from '../components/Icons'
 import { priceLabel } from '../components/ListingCard'
@@ -63,8 +64,10 @@ export default function ListingDetail() {
   const remove = async () => {
     if (!confirm('Delete this listing permanently?')) return
     const { error } = await supabase.from('listings').delete().eq('id', l.id)
-    if (error) setMsg(error.message)
-    else nav('/profile')
+    if (error) return setMsg(error.message)
+    // Storage is limited on the free plan: delete the pictures with the listing (only the seller's own folder can be deleted).
+    if (mine && l.photos.length) void supabase.storage.from('listing-photos').remove(l.photos.flatMap((p) => [p, thumbPath(p)]))
+    nav('/profile')
   }
   const report = async () => {
     const reason = prompt('Why are you reporting this listing?')
@@ -76,7 +79,7 @@ export default function ListingDetail() {
   return (
     <div className="detail">
       <div className="gallery">
-        {urls.length ? urls.map((u, i) => u && <img key={i} src={u} alt={`${l.title} photo ${i + 1}`} />) : <div className="thumb big"><span>No photo</span></div>}
+        {urls.length ? urls.map((u, i) => u && <img key={i} src={u} alt={`${l.title} photo ${i + 1}`} loading={i ? 'lazy' : undefined} decoding="async" />) : <div className="thumb big"><span>No photo</span></div>}
       </div>
       <div className="info">
         <h1>{l.title}</h1>

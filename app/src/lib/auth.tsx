@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { supabase } from './supabase'
 import type { Profile } from './types'
 import { observeAuth, type AuthSnapshot } from './authState'
+import { forgetPhotoLinks } from './useSignedUrls'
 
 interface AuthState extends AuthSnapshot {
   refresh: () => Promise<void>
@@ -46,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...snapshot,
         refresh,
         signOut: async () => {
+          forgetPhotoLinks()
           await supabase.auth.signOut()
         },
       }}

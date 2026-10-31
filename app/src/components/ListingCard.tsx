@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { CATEGORIES, inr } from '../lib/constants'
-import { useSignedUrls } from '../lib/useSignedUrls'
+import { usePhotoThumbs } from '../lib/useSignedUrls'
 import { Heart } from './Icons'
 import type { Listing } from '../lib/types'
 
@@ -12,7 +12,7 @@ export function priceLabel(l: Pick<Listing, 'listing_type' | 'price_inr'>) {
 interface Props { l: Listing; feature?: boolean; saved?: boolean; onSave?: (l: Listing) => void }
 
 export default function ListingCard({ l, feature, saved, onSave }: Props) {
-  const [url] = useSignedUrls('listing-photos', l.photos.slice(0, 1))
+  const [url] = usePhotoThumbs(l.photos.slice(0, 1))
   return (
     <div className={`card ${feature ? 'feature' : ''}`}>
       <Link to={`/listing/${l.id}`} className="card-link" aria-label={`${l.title}, ${priceLabel(l)}`}>

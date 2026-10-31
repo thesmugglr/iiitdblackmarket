@@ -62,7 +62,7 @@ export function Footer() {
   return (
     <footer className="foot">
       <div><strong className="wordmark">IIITD Black Market</strong><p>A student-run noticeboard for passing things on. Not affiliated with the institute.</p></div>
-      <nav aria-label="Footer"><Link to="/">Browse</Link><Link to="/wanted">Looking for</Link><Link to="/bundles">Bundles</Link><Link to="/sell">Sell</Link><a href={`${import.meta.env.BASE_URL}privacy.html`}>Privacy</a><a href={`${import.meta.env.BASE_URL}terms.html`}>Terms</a></nav>
+      <nav aria-label="Footer"><Link to="/">Browse</Link><Link to="/wanted">Looking for</Link><Link to="/bundles">Bundles</Link><Link to="/sell">Sell</Link><Link to="/install">Install app</Link><a href={`${import.meta.env.BASE_URL}privacy.html`}>Privacy</a><a href={`${import.meta.env.BASE_URL}terms.html`}>Terms</a></nav>
     </footer>
   )
 }
