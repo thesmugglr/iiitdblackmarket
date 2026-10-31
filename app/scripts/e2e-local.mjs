@@ -77,6 +77,20 @@ await step('member cannot edit or delete another seller\'s listing', async () =>
   const l = ok(await seller.c.from('listings').select('title').eq('id', listing.id).single())
   assert.equal(l.title, 'E2E kettle')
 })
+await step('saved-item upserts are idempotent and isolated; pending users cannot save', async () => {
+  const entry = { user_id: buyer.id, listing_id: listing.id }
+  for (let i = 0; i < 2; i++) {
+    ok(await buyer.c.from('saved_items').upsert(entry, { onConflict: 'user_id,listing_id', ignoreDuplicates: true }))
+  }
+  assert.equal(ok(await buyer.c.from('saved_items').select('listing_id').eq('user_id', buyer.id)).length, 1)
+  assert.equal(ok(await outsider.c.from('saved_items').select('listing_id').eq('user_id', buyer.id)).length, 0)
+  assert.equal(ok(await outsider.c.from('saved_items').delete().eq('user_id', buyer.id).select('listing_id')).length, 0)
+  assert.ok((await outsider.c.from('saved_items').upsert(entry, { onConflict: 'user_id,listing_id', ignoreDuplicates: true })).error)
+  assert.ok((await pending.c.from('saved_items').upsert({ user_id: pending.id, listing_id: listing.id }, { onConflict: 'user_id,listing_id', ignoreDuplicates: true })).error)
+  assert.equal(ok(await buyer.c.from('saved_items').select('listing_id').eq('user_id', buyer.id)).length, 1)
+  ok(await buyer.c.from('saved_items').delete().eq('user_id', buyer.id).eq('listing_id', listing.id))
+  assert.equal(ok(await buyer.c.from('saved_items').select('listing_id').eq('user_id', buyer.id)).length, 0)
+})
 await step('profiles hide other users\' emails', async () => {
   const r = await buyer.c.from('profiles').select('email').eq('id', seller.id)
   assert.ok(r.error, 'email column must not be readable')

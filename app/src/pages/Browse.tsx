@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
+import { useSavedItems } from '../lib/useSavedItems'
 import { CATEGORIES, CONDITIONS, TYPES } from '../lib/constants'
 import Hero from '../components/Hero'
 import Sections from '../components/Sections'
@@ -22,7 +23,7 @@ export default function Browse() {
   const [sort, setSort] = useState('new')
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [latest, setLatest] = useState<Listing[]>([])
-  const [saved, setSaved] = useState<Set<string>>(new Set())
+  const { ids: saved, error: saveError, retry: retrySaved, toggle: toggleSaved, loading: savedLoading, pending: saving } = useSavedItems(profile?.id)
   const [drawer, setDrawer] = useState(false)
 
   useEffect(() => {
@@ -34,7 +35,6 @@ export default function Browse() {
         setCounts(m)
         setLatest(rows)
       })
-    supabase.from('saved_items').select('listing_id').then(({ data }) => setSaved(new Set(((data ?? []) as { listing_id: string }[]).map((r) => r.listing_id))))
   }, [])
 
   useEffect(() => {
@@ -61,11 +61,7 @@ export default function Browse() {
   }, [q, category, type, condition, maxPrice, sort])
 
   const toggleSave = async (l: Listing) => {
-    if (!profile) return
-    const next = new Set(saved)
-    if (next.has(l.id)) { next.delete(l.id); await supabase.from('saved_items').delete().eq('listing_id', l.id).eq('user_id', profile.id) }
-    else { next.add(l.id); await supabase.from('saved_items').insert({ listing_id: l.id, user_id: profile.id }) }
-    setSaved(next)
+    await toggleSaved(l.id)
   }
   const toResults = () => document.getElementById('results')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   const active = [type, condition, maxPrice].filter(Boolean).length + (sort !== 'new' ? 1 : 0)
@@ -92,6 +88,7 @@ export default function Browse() {
           <button onClick={() => setDrawer(true)}>Filters{active > 0 && <span className="badge unread">{active}</span>}</button>
         </div>
         {state === 'error' && <p className="error">Couldn't load listings. Check your connection and try again.</p>}
+        {saveError && <p className="error" role="alert">{saveError} <button onClick={retrySaved} disabled={savedLoading || saving.size > 0}>Reload saved items</button></p>}
         {state === 'loading' && <div className="bento" aria-busy="true">{Array.from({ length: 6 }, (_, i) => <div key={i} className="skeleton" />)}</div>}
         {state === 'ok' && items.length === 0 && (
           <div className="empty"><strong>Nothing matches yet</strong><span>Loosen a filter, or be the first to list it.</span><button onClick={clear}>Clear filters</button></div>
