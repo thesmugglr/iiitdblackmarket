@@ -4,6 +4,8 @@ Owner: **Garv Rao / Codex**. Website design/UI: **AbhikRao**. Use `app/`; the ba
 
 ## Current evidence
 
+Update after merged launch PR #13: Abhik reports a hosted project and provider setup in [launch.md](launch.md). This chat independently verified the merged code with 41 local tests and 19/19 disposable Supabase service scenarios in GitHub CI, including Realtime and bootstrap. Hosted Google sign-in and phone workflows remain unverified here. The earlier repository inspection below is historical evidence, not a claim that no cloud project now exists. No hosted deployment or production migration was performed by this engineering review.
+
 The GitHub repository was checked on 31 October 2026. It contains `.env.example` placeholders, migrations, and local tests. GitHub returned no repository secret names, variable names, environments, deployments, or homepage. The current checkout has no local project environment file or Supabase access token. This establishes that live setup is not available through those paths; it does not establish whether Garv or Abhik already created cloud projects elsewhere. A Supabase connection was suggested but has not been confirmed.
 
 ## 1. Project and database

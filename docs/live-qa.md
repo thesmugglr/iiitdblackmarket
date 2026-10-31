@@ -2,6 +2,8 @@
 
 Owner: Garv Rao / Codex. Current status: **Not run — live Supabase/Google configuration is not connected.**
 
+Hosted setup is now reported in docs/launch.md from Abhik's environment. The hosted checks below remain Not run by this reviewer. Merged PR #13 independently passes 19/19 local Supabase service scenarios in CI (Auth, Storage, RLS, Realtime, bootstrap and extras), alongside 41 local regression checks. These do not establish a successful hosted Google sign-in or phone QA.
+
 Record sanitized results only. Use account labels (Admin, Student A, Student B, Pending, Outsider); never paste tokens, actual emails, private chat contents, or real rosters.
 
 | Check | Expected | Result / evidence |
