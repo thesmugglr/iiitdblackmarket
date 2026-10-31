@@ -1,0 +1,32 @@
+name: Local Supabase integration
+on:
+  pull_request:
+    paths:
+      - 'supabase/**'
+      - 'app/**'
+      - '.github/workflows/local-backend.yml'
+permissions:
+  contents: read
+jobs:
+  local-backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.0
+      - run: npm ci
+        working-directory: app
+      - name: Start disposable local services (credentials suppressed)
+        run: supabase start > /dev/null 2>&1
+      - run: npm run e2e:local
+        working-directory: app
+      - name: Stop this runner's disposable services
+        if: always()
+        run: supabase stop > /dev/null 2>&1

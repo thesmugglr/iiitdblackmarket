@@ -1,11 +1,10 @@
 // End-to-end checks against the LOCAL Supabase stack (`npx supabase start` from the repo root).
 // Usage: node scripts/e2e-local.mjs   (reads keys from `supabase status`)
 import { createClient } from '@supabase/supabase-js'
-import { execSync } from 'node:child_process'
+import { readLocalStack } from './local-stack.mjs'
 import assert from 'node:assert/strict'
 
-const env = Object.fromEntries(execSync('npx supabase status -o env', { cwd: new URL('../../', import.meta.url), encoding: 'utf8' })
-  .split('\n').map((l) => l.match(/^(\w+)="(.*)"$/)).filter(Boolean).map((m) => [m[1], m[2]]))
+const env = readLocalStack()
 const URL_ = env.API_URL, ANON = env.ANON_KEY
 const admin = createClient(URL_, env.SERVICE_ROLE_KEY, { auth: { persistSession: false } })
 const run = Date.now().toString(36)

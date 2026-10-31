@@ -1,15 +1,13 @@
-import { MAX_PHOTO_BYTES } from './constants'
+import { MAX_PHOTO_BYTES } from './constants.ts'
 
 const MAX_EDGE = 1600
-const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif', 'image/heic', 'image/heif']
-const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/avif': 'avif', 'image/heic': 'heic', 'image/heif': 'heif' }
 
 export interface PreparedPhoto { blob: Blob; ext: string; type: string }
 
 /**
  * Shrinks a phone or camera photo to a web-friendly JPEG before upload. Re-encoding also drops EXIF data such
- * as the GPS location the photo was taken at. If the browser cannot decode the file (for example HEIC on some
- * laptops) the original is uploaded as long as it is an allowed type under the size limit.
+ * as the GPS location the photo was taken at. If the browser cannot decode the file, ask for a compatible
+ * image rather than silently uploading an original that may retain location metadata.
  */
 export async function preparePhoto(file: File): Promise<PreparedPhoto> {
   if (!file.type.startsWith('image/') && !/\.(heic|heif)$/i.test(file.name)) throw new Error('Choose an image file.')
@@ -30,7 +28,6 @@ export async function preparePhoto(file: File): Promise<PreparedPhoto> {
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85))
       if (blob && blob.size <= MAX_PHOTO_BYTES) return { blob, ext: 'jpg', type: 'image/jpeg' }
     }
-  } catch { /* fall through to the original file */ }
-  if (ALLOWED.includes(file.type) && file.size <= MAX_PHOTO_BYTES) return { blob: file, ext: EXT[file.type], type: file.type }
+  } catch { /* Never fall back to original bytes: they may contain camera/GPS metadata. */ }
   throw new Error("Couldn't read that photo. Try a JPG or PNG.")
 }
