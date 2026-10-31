@@ -4,6 +4,8 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 ## Current status
 
+CHAT-03 is fixing indefinite loading for unavailable conversations and obsolete chat request completions on `fix/CHAT-03-loading`. Verification is pending; Abhik's layout and database policies remain unchanged.
+
 AUTH-02 ([PR #16](https://github.com/garvrao80/iiitdblackmarket/pull/16)) merged at `2258e4e` after review of exact head `184557f`. It prevents delayed profile/session lookups from restoring a previous account after sign-out or an account change. Account changes clear the old profile immediately; same-account token refreshes preserve the active page while membership reloads. Failed profile loads end loading and allow retry. All 51 local regressions (including 10 new auth lifecycle scenarios), build/typecheck, lint and both GitHub checks pass; existing lint/chunk-size warnings remain. Disposable Supabase CI passed all 22 service scenarios. The local demo opens the approved marketplace without console errors. This fix has not been deployed. Abhik's design and backend access policies are unchanged.
 
 [PR #14](https://github.com/garvrao80/iiitdblackmarket/pull/14) merged at `38b102e` after all 22 disposable Supabase service scenarios passed on exact head `336a91f`. Coverage includes simultaneous offer acceptance from independent seller sessions, actual size/type rejection in both private buckets, and run-scoped fixture cleanup. All 41 local regressions/build/lint and both GitHub checks pass with existing warnings. This does not connect to the selected hosted project or alter Abhik's UI.
