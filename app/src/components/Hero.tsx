@@ -1,7 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { CATEGORIES } from '../lib/constants'
-import { useSignedUrls } from '../lib/useSignedUrls'
+import { usePhotoThumbs } from '../lib/useSignedUrls'
 import { priceLabel } from './ListingCard'
 import { Search } from './Icons'
 import type { Listing } from '../lib/types'
@@ -13,7 +13,7 @@ const SLOTS = [
 ]
 
 function Floating({ l, slot, i }: { l: Listing; slot: (typeof SLOTS)[number]; i: number }) {
-  const [url] = useSignedUrls('listing-photos', l.photos.slice(0, 1))
+  const [url] = usePhotoThumbs(l.photos.slice(0, 1))
   const calm = useReducedMotion()
   return (
     <motion.div className="float-card glass" style={{ top: slot.top, left: slot.left, width: slot.w, rotate: slot.rot }}
