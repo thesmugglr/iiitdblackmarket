@@ -28,7 +28,7 @@ Browser settings that must match: Supabase **Site URL** `https://abhikrao.github
 - A real Google sign-in on the hosted project. Needs the Google Cloud OAuth client and the Google provider to be saved in Supabase (README steps 5 and 6 in `~/iiitd-launch`). Check with
   `curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" "https://mkepigiktixxrowsteje.supabase.co/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fabhikrao.github.io%2Fiiitd-black-market%2F"`
   which should print `302` and an `accounts.google.com` URL.
-- Google publication. Public hosting is done (see Verified). Google's "Publish app" step also needs the public privacy and terms pages (`privacy.html`, `terms.html`, shipped in `app/public`) to be live at the site address, so publishing the OAuth app follows the first deploy. Until the app is published, only test users added in Google Cloud can sign in.
+- A real sign-in on the live site. Public hosting is done and Codex published the Google OAuth app to production (Google Auth Platform shows `In production`; the saved Branding homepage, privacy and terms URLs match the live pages), so people with an @iiitd.ac.in Google account should be able to reach the site's approval screen. Nobody has completed a real sign-in yet.
 - Behaviour on phones and other laptops beyond the browser checks in this repo.
 
 ## Owner checklist
