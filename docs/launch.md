@@ -30,7 +30,7 @@ Independent PR #15 review confirmed the live pages/bundle and Google-provider re
 - A real Google sign-in on the hosted project. Public Auth settings show the Google provider enabled; the authorization redirect alone does not prove a completed sign-in. Check the provider hand-off with
   `curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" "https://mkepigiktixxrowsteje.supabase.co/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fabhikrao.github.io%2Fiiitd-black-market%2F"`
   which should print `302` and an `accounts.google.com` URL.
-- A real sign-in on the live site. Public hosting is verified here; Abhik reports his setup session published the Google OAuth app to production (Google Auth Platform shows `In production`; the saved Branding homepage, privacy and terms URLs match the live pages), so people with an @iiitd.ac.in Google account should be able to reach the site's approval screen. Nobody has completed a real sign-in yet.
+- A real sign-in on the live site. Public hosting is verified here; Abhik reports his setup session published the Google OAuth app to production (Google Auth Platform shows `In production`; the saved Branding homepage, privacy and terms URLs match the live pages), so people with an @iiitd.ac.in Google account should be able to reach the site's approval screen. Garv now reports that institute Google sign-in opens the marketplace. Other authenticated flows and account-isolation checks remain pending.
 - Behaviour on phones and other laptops beyond the browser checks in this repo.
 
 ## Owner checklist

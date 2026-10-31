@@ -10,13 +10,13 @@ Launch review also adds a build-only repository marker/public-visibility check b
 
 Abhik's PR #15 reports public deployment after approval in his workflow. This review independently confirmed the existing live pages, mobile sign-in screen, public Auth settings and Google redirect without deploying anything. Real institute sign-in and authenticated flows are still pending; see docs/live-qa.md.
 
-[PR #15](https://github.com/garvrao80/iiitdblackmarket/pull/15) is merged at `097fdcd` after current GitHub checks and review of exact head `af2c599`. The next hosted test is user sign-in on [the live site](https://abhikrao.github.io/iiitd-black-market/) using an institute Google account. Supabase dashboard access is needed for configuration changes/administration, rather than for this ordinary end-user login test.
+[PR #15](https://github.com/garvrao80/iiitdblackmarket/pull/15) is merged at `097fdcd` after current GitHub checks and review of exact head `af2c599`. Garv reports successful institute Google sign-in on [the live site](https://abhikrao.github.io/iiitd-black-market/); authenticated listing/photo/chat and cross-account QA are next. Supabase dashboard access is needed for configuration changes/administration, rather than for this ordinary end-user login test.
 
 [PR #13](https://github.com/garvrao80/iiitdblackmarket/pull/13) was reviewed and merged at `c51f541` after checks on exact head `f5011b7`. All 41 local tests, build/lint, Windows deployment dry-run, and both GitHub checks pass; disposable Supabase CI passes all 19 service scenarios including Realtime and admin bootstrap. Review fixes protect photo metadata, loopback-only password login, credential output, and build-repository replacement. Hosted Google sign-in, phone QA and owner-approved public deployment remain separate. PR #10 is closed unmerged; PR #12's simpler upload implementation is superseded by Abhik's newer UI in #13.
 
-**First release and launch-readiness work are merged into `main` (PRs #3 to #9 and #13). Garv selected Abhik's existing Supabase project on 2026-10-31: `iiitd-black-market`, ref `mkepigiktixxrowsteje`, under AbhikRao's organization. Reuse its reported Google provider setup; see [docs/launch.md](docs/launch.md). Dashboard/connector access and hosted Google QA still need verification in this chat. The site was deployed on 2026-10-31 (source `a235788`) to https://abhikrao.github.io/iiitd-black-market/ from the public build-only repository `AbhikRao/iiitd-black-market`, with approval reported by Abhik in his setup workflow. He also reports Google OAuth publication to production; a real Google sign-in on the live site, the first admin and phone QA are still pending.**
+**First release and launch-readiness work are merged into `main` (PRs #3 to #9 and #13). Garv selected Abhik's existing Supabase project on 2026-10-31: `iiitd-black-market`, ref `mkepigiktixxrowsteje`, under AbhikRao's organization. Reuse its reported Google provider setup; see [docs/launch.md](docs/launch.md). Dashboard/connector access and hosted Google QA still need verification in this chat. The site was deployed on 2026-10-31 (source `a235788`) to https://abhikrao.github.io/iiitd-black-market/ from the public build-only repository `AbhikRao/iiitd-black-market`, with approval reported by Abhik in his setup workflow. He also reports Google OAuth publication to production; Garv now reports that institute Google sign-in opens the marketplace. First-admin verification, other authenticated flows and full phone QA remain pending.**
 
-The first-release scope below is implemented. All 41 local regression checks (`npm test`) and 22 service scenarios against disposable local Supabase (`npm run e2e:local`) pass. Hosted Google sign-in and phone QA remain pending (QA-01); a configured provider is not a completed sign-in test.
+The first-release scope below is implemented. All 41 local regression checks (`npm test`) and 22 service scenarios against disposable local Supabase (`npm run e2e:local`) pass. Garv reports one successful institute Google login. Hosted access isolation, listing/photo/chat and full phone QA remain pending (QA-01).
 
 This README is the shared project record for the owner, their collaborator, and Codex. Update it with every meaningful project change so everyone can see what exists, what changed, and what remains.
 
@@ -127,7 +127,7 @@ Migration `supabase/migrations/0004_extras.sql` (apply after 0001–0003), follo
 Verified by local PostgreSQL checks in `app/test/extras.test.mjs` (permissions, ownership, one-reminder, expiry visibility) and a browser check with demo data. Not verified on live Supabase, and notifications only appear while the app is open (no email or push).
 
 ### Known limits
-- Unverified against a live backend; RLS policies need the separate-account tests in QA-01.
+- One hosted Google login is user-reported; other hosted flows and RLS policies still need the separate-account tests in QA-01.
 - No integrated payments, email or push notifications.
 - Search is simple substring matching; no pagination beyond the first 60 results.
 - Blocking stops new messages and new chats; admin listing removal uses the status field.
@@ -135,7 +135,7 @@ Verified by local PostgreSQL checks in `app/test/extras.test.mjs` (permissions, 
 
 ### Review checks
 
-`cd app` then `npm test` runs 30 checks: two database parent tests, 21 database scenarios, and seven configuration/CLI tests. These cover membership, listing ownership, email privacy, chat/attachments/read receipts, offers, moderation, storage settings, wanted posts/bundles/expiry/notifications, missing configuration, and secret rejection before bundling. Public profile joins cannot select email; self/admin screens use authorized RPCs. The fixture supplies minimal auth/storage schemas and grants and excludes pgcrypto (UUID generation is built in). These tests do not verify live OAuth, actual Storage file/type enforcement, realtime, or multi-connection concurrency. QA-01 still requires real accounts.
+`cd app` then `npm test` runs 41 local regression checks covering database permissions, bootstrap, config/secret handling, photo privacy and deployment safeguards. `npm run e2e:local` runs 22 scenarios against disposable Supabase services, including real Storage validation, Realtime and concurrent offer acceptance. Both pass on the reviewed source. These do not replace hosted Google identity, live approved-account isolation or full phone QA. Public profile joins exclude email; private fields use authorized RPCs. The PGlite fixture supplies approximate platform schemas/grants, while the separate service suite exercises actual local services.
 
 Before production, enable Google sign-in and disable unused account providers, verify institute identity and current-student eligibility, and run the live access checks. Client domain hints are not an authorization boundary.
 
@@ -158,7 +158,7 @@ The separate [amber concept PR #11](https://github.com/garvrao80/iiitdblackmarke
 
 ## Next steps
 
-See [TODO.md](TODO.md). Remaining: confirm access to the selected existing Supabase project, test real institute Google sign-in and approved-user flows, and complete phone QA on the live site.
+See [TODO.md](TODO.md). Remaining: confirm access to the selected existing Supabase project, test the remaining approved-user and access-isolation flows, and complete phone QA on the live site.
 
 ## Progress log
 
