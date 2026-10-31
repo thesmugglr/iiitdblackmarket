@@ -4,7 +4,9 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 ## Current status
 
-CHAT-03 ([PR #17](https://github.com/garvrao80/iiitdblackmarket/pull/17)) ends indefinite loading for unavailable conversations, shows query failures with retry, and prevents obsolete requests from replacing newer messages/offers or publishing after navigation. Each conversation route gets fresh draft/data state, and read receipts only follow current message loads. The scroll effect no longer returns a browser result as React cleanup. All 60 regressions (9 new chat lifecycle cases), build/typecheck and lint pass with existing warnings. Browser checks cover a populated fictional chat, unavailable chat, retry and return to Inbox; the final chat/retry checks have no console errors. GitHub checks/merge are pending; not deployed. Abhik's layout and database policies remain unchanged.
+CHAT-03 ([PR #17](https://github.com/garvrao80/iiitdblackmarket/pull/17)) merged at `f4b94af`, exact reviewed head `185beee`. It ends indefinite loading for unavailable conversations, shows query failures with retry, and prevents obsolete requests from replacing newer messages/offers or publishing after navigation. Each conversation route gets fresh draft/data state, and read receipts only follow current message loads. The scroll effect no longer returns a browser result as React cleanup. All 60 regressions (9 new chat lifecycle cases), build/typecheck, lint and both GitHub checks pass with existing warnings; disposable Supabase CI passes all 22 scenarios. Browser checks cover a populated fictional chat, unavailable chat, retry and return to Inbox; final chat/retry checks have no console errors. Not deployed. Abhik's layout and database policies remain unchanged.
+
+**Owner access clarification (2026-10-31):** Garv reports that institute Google authentication reaches **Awaiting approval**, rather than the approved marketplace. First-admin promotion is outstanding. Garv requested admin access for his own account; a guarded private SQL handoff is prepared, but Abhik must apply it using his existing project access. No hosted role/status was changed by this chat, and no account email is included in the public source.
 
 AUTH-02 ([PR #16](https://github.com/garvrao80/iiitdblackmarket/pull/16)) merged at `2258e4e` after review of exact head `184557f`. It prevents delayed profile/session lookups from restoring a previous account after sign-out or an account change. Account changes clear the old profile immediately; same-account token refreshes preserve the active page while membership reloads. Failed profile loads end loading and allow retry. All 51 local regressions (including 10 new auth lifecycle scenarios), build/typecheck, lint and both GitHub checks pass; existing lint/chunk-size warnings remain. Disposable Supabase CI passed all 22 service scenarios. The local demo opens the approved marketplace without console errors. This fix has not been deployed. Abhik's design and backend access policies are unchanged.
 
@@ -12,15 +14,15 @@ AUTH-02 ([PR #16](https://github.com/garvrao80/iiitdblackmarket/pull/16)) merged
 
 Launch review also adds a build-only repository marker/public-visibility check before deployment replaces any target contents, plus validation that rejects delimiter-bearing legacy keys and control characters in project URLs. Public deployment remains an owner decision and has not been performed by this review.
 
-Abhik's PR #15 reports public deployment after approval in his workflow. This review independently confirmed the existing live pages, mobile sign-in screen, public Auth settings and Google redirect without deploying anything. Garv subsequently reported that institute sign-in opens the marketplace; the other authenticated flows remain pending in docs/live-qa.md.
+Abhik's PR #15 reports public deployment after approval in his workflow. This review independently confirmed the existing live pages, mobile sign-in screen, public Auth settings and Google redirect without deploying anything. Garv subsequently clarified that institute sign-in reaches Awaiting approval; approved-user flows remain pending in docs/live-qa.md.
 
-[PR #15](https://github.com/garvrao80/iiitdblackmarket/pull/15) is merged at `097fdcd` after current GitHub checks and review of exact head `af2c599`. Garv reports successful institute Google sign-in on [the live site](https://abhikrao.github.io/iiitd-black-market/); authenticated listing/photo/chat and cross-account QA are next. Supabase dashboard access is needed for configuration changes/administration, rather than for this ordinary end-user login test.
+[PR #15](https://github.com/garvrao80/iiitdblackmarket/pull/15) is merged at `097fdcd` after current GitHub checks and review of exact head `af2c599`. Garv reports institute Google authentication on [the live site](https://abhikrao.github.io/iiitd-black-market/) reaches Awaiting approval; first-admin setup and approved-user listing/photo/chat/cross-account QA are next. Supabase dashboard access is needed for the owner admin update.
 
 [PR #13](https://github.com/garvrao80/iiitdblackmarket/pull/13) was reviewed and merged at `c51f541` after checks on exact head `f5011b7`. All 41 local tests, build/lint, Windows deployment dry-run, and both GitHub checks pass; disposable Supabase CI passes all 19 service scenarios including Realtime and admin bootstrap. Review fixes protect photo metadata, loopback-only password login, credential output, and build-repository replacement. Hosted Google sign-in, phone QA and owner-approved public deployment remain separate. PR #10 is closed unmerged; PR #12's simpler upload implementation is superseded by Abhik's newer UI in #13.
 
-**First release and launch-readiness work are merged into `main` (PRs #3 to #9 and #13). Garv selected Abhik's existing Supabase project on 2026-10-31: `iiitd-black-market`, ref `mkepigiktixxrowsteje`, under AbhikRao's organization. Reuse its reported Google provider setup; see [docs/launch.md](docs/launch.md). Dashboard/connector access and hosted Google QA still need verification in this chat. The site was deployed on 2026-10-31 (source `a235788`) to https://abhikrao.github.io/iiitd-black-market/ from the public build-only repository `AbhikRao/iiitd-black-market`, with approval reported by Abhik in his setup workflow. He also reports Google OAuth publication to production; Garv now reports that institute Google sign-in opens the marketplace. First-admin verification, other authenticated flows and full phone QA remain pending.**
+**First release and launch-readiness work are merged into `main` (PRs #3 to #9 and #13). Garv selected Abhik's existing Supabase project on 2026-10-31: `iiitd-black-market`, ref `mkepigiktixxrowsteje`, under AbhikRao's organization. Reuse its reported Google provider setup; see [docs/launch.md](docs/launch.md). Dashboard/connector access and hosted Google QA still need verification in this chat. The site was deployed on 2026-10-31 (source `a235788`) to https://abhikrao.github.io/iiitd-black-market/ from the public build-only repository `AbhikRao/iiitd-black-market`, with approval reported by Abhik in his setup workflow. He also reports Google OAuth publication to production; Garv clarifies that institute Google authentication reaches Awaiting approval; Abhik must apply the owner-requested admin setup. First-admin verification, other authenticated flows and full phone QA remain pending.**
 
-The first-release scope below is implemented. All 60 local regression checks (`npm test`) pass on CHAT-03; 22 disposable Supabase service scenarios (`npm run e2e:local`) passed on merged AUTH-02 before this client-only change. Garv reports one successful institute Google login. Hosted access isolation, listing/photo/chat and full phone QA remain pending (QA-01).
+The first-release scope below is implemented. All 60 local regression checks (`npm test`) and 22 disposable Supabase service scenarios (`npm run e2e:local`) pass on reviewed CHAT-03. Garv reports institute Google authentication reaches Awaiting approval. First-admin setup, hosted access isolation, listing/photo/chat and full phone QA remain pending (CLOUD-02, QA-01).
 
 This README is the shared project record for the owner, their collaborator, and Codex. Update it with every meaningful project change so everyone can see what exists, what changed, and what remains.
 
@@ -36,7 +38,7 @@ Shared development files: [TODO.md](TODO.md) tracks tasks and ownership, [CONTRI
 
 ## Proposed first release
 
-The features below are implemented and locally tested. Garv reports one successful hosted Google login; the remaining authenticated live flows are unverified. Local database tests cover selected access rules, not all end-to-end behavior.
+The features below are implemented and locally tested. Garv reports hosted Google authentication reaches Awaiting approval; the remaining authenticated live flows are unverified. Local database tests cover selected access rules, not all end-to-end behavior.
 
 | Area | Planned behavior |
 | --- | --- |
@@ -93,7 +95,7 @@ Hosting remains to be finalized. The canonical runnable app on main is `app/`, u
 
 Layout: `app/` is the React + TypeScript (Vite) client; `supabase/migrations/0001_init.sql` is the full schema, row-level security, RPCs, storage buckets and realtime setup.
 
-Follow [docs/backend-setup.md](docs/backend-setup.md) for the detailed backend/OAuth/configuration runbook and [docs/live-qa.md](docs/live-qa.md) for actual live test results. Browser-public probes confirm the selected backend configuration; Garv reports successful Google login. The backend-readiness work is tracked in [PR #6](https://github.com/garvrao80/iiitdblackmarket/pull/6).
+Follow [docs/backend-setup.md](docs/backend-setup.md) for the detailed backend/OAuth/configuration runbook and [docs/live-qa.md](docs/live-qa.md) for actual live test results. Browser-public probes confirm the selected backend configuration; Garv reports Google authentication reaches Awaiting approval. The backend-readiness work is tracked in [PR #6](https://github.com/garvrao80/iiitdblackmarket/pull/6).
 
 1. Create/select a Supabase project. Apply all unapplied files in `supabase/migrations/` in filename order: `0001_init.sql`, `0002_review_access.sql`, `0003_upload_limits.sql`, `0004_extras.sql`, `0005_expiry_access.sql`, `0006_launch.sql`. Do not rerun applied migrations.
 2. Enable Google auth (Authentication → Providers) with OAuth credentials from Google Cloud; add your site URL and `http://localhost:5173` to the redirect URLs.
@@ -131,7 +133,7 @@ Migration `supabase/migrations/0004_extras.sql` (apply after 0001–0003), follo
 Verified by local PostgreSQL checks in `app/test/extras.test.mjs` (permissions, ownership, one-reminder, expiry visibility) and a browser check with demo data. Not verified on live Supabase, and notifications only appear while the app is open (no email or push).
 
 ### Known limits
-- One hosted Google login is user-reported; other hosted flows and RLS policies still need the separate-account tests in QA-01.
+- Google authentication reaching Awaiting approval is user-reported; owner admin setup and approved-user flows and RLS policies still need the separate-account tests in QA-01.
 - No integrated payments, email or push notifications.
 - Search is simple substring matching; no pagination beyond the first 60 results.
 - Blocking stops new messages and new chats; admin listing removal uses the status field.
@@ -162,7 +164,7 @@ The separate [amber concept PR #11](https://github.com/garvrao80/iiitdblackmarke
 
 ## Next steps
 
-See [TODO.md](TODO.md). Remaining: confirm access to the selected existing Supabase project, test the remaining approved-user and access-isolation flows, and complete phone QA on the live site.
+See [TODO.md](TODO.md). Remaining: Abhik applies the owner admin setup in the selected Supabase project (CLOUD-02), then test approved-user/access-isolation flows and complete phone QA on the live site.
 
 ## Progress log
 

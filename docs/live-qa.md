@@ -1,10 +1,12 @@
 # Live backend verification record
 
-Owner: Garv Rao / Codex. Current status: **Garv selected Abhik's existing project `mkepigiktixxrowsteje`. Public hosted checks pass as recorded below; Garv reports successful institute Google sign-in; other authenticated workflows and dashboard access remain pending.**
+Owner: Garv Rao / Codex. Current status: **Garv selected Abhik's existing project `mkepigiktixxrowsteje`. Public hosted checks pass as recorded below; Garv clarifies institute Google authentication reaches Awaiting approval. First-admin access and approved-user workflows remain pending. Abhik has project access and must apply the owner-requested admin update.**
 
 ## User-reported Google login — 2026-10-31
 
-Garv answered “Marketplace opens” after the prompt to sign in on the live site using his institute Google account. Record this as one successful user-reported login, not an independently observed browser session or proof of other accounts’ access rules. The signed-in session is not available in this chat’s browser. Hosted listing/photo/chat, pending/admin/outsider and full phone tests remain outstanding.
+Garv initially answered “Marketplace opens,” then clarified that the actual screen is **Awaiting approval from admin**. This is evidence of user-reported institute Google authentication, not approved marketplace access. He requested admin access for his own account and confirmed that Abhik has project access and must apply it. A guarded private SQL handoff checks for a verified account/matching profile, adds the bootstrap entry, promotes only that account and returns its role/status. The script passed local fixture checks for success, idempotence and refusal/rollback for unverified or missing profiles; it has not been applied to the hosted project. Do not publish the actual account email here.
+
+The signed-in session is not available in this chat's browser. A fresh attempt to open the selected project's SQL Editor returned Supabase sign-in; no admin connector is connected. Hosted owner promotion, approved-user listing/photo/chat, other account isolation and full phone tests remain outstanding.
 
 ## Independent public deployment checks — 2026-10-31
 
@@ -24,8 +26,8 @@ PR #14 merged at `38b102e` after all 22 local service scenarios passed in [GitHu
 
 | Check | Expected | Result / evidence |
 | --- | --- | --- |
-| OAuth and institute eligibility | Outside accounts denied; unrostered institute account pending | Partial: Garv reports institute Google sign-in opens the marketplace (2026-10-31). Outside-domain and unrostered-account outcomes remain untested. |
-| Approval/admin permissions | Admin can approve; student cannot self-approve/read admin directory | Not run |
+| OAuth and institute eligibility | Outside accounts denied; unrostered institute account pending | Partial: Garv reports institute Google authentication reaches Awaiting approval (2026-10-31). Outside-domain rejection remains untested; roster membership is not independently inspected. |
+| Approval/admin permissions | Admin can approve; student cannot self-approve/read admin directory | Pending: owner account is awaiting approval by user report. Abhik must apply owner-requested admin setup (CLOUD-02); admin UI and separate-account denial remain untested. |
 | Listings and owner permissions | Create/edit own; other users cannot mutate | Not run |
 | Storage service | Private buckets, namespace rules, type/5 MiB limits | Not run |
 | Messages and realtime | Two sessions exchange messages/read receipts | Not run |
