@@ -4,6 +4,8 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 ## Current status
 
+USER-02 is fixing saved-item persistence feedback and overlapping request state on `fix/USER-02-saved-state`. Verification pending; Abhik's cards/page layouts and database policies remain unchanged.
+
 LIST-04 ([PR #19](https://github.com/garvrao80/iiitdblackmarket/pull/19)) merged at `bcfd18d`, exact reviewed head `05e2b2f`. It gates listing edits/uploads until the current owned record loads. Missing, non-owned, removed or mismatched records cannot open the editor; query failures support retry and late completions are discarded. Create/edit routes get fresh draft/photo state, and cover reordering is disabled during upload/save. All 68 regressions (8 new editor-loading cases), build/typecheck, lint and both GitHub checks pass with existing warnings; disposable Supabase passes all 22 scenarios. Demo-browser checks confirm a non-owner edit stays blocked after retry, while the Sell link opens a fresh empty create form with uploads enabled and no console errors. Not deployed. Abhik's editor layout and database policies are unchanged.
 
 [PR #18](https://github.com/garvrao80/iiitdblackmarket/pull/18) merged at `f6aa5aa` after final-head GitHub verification and review of `91ce656`. It records the independently checked public redeployment of the auth/chat fixes and attributes Abhik's own admin setup to his report. Garv's already-authorized admin promotion remains unapplied; no hosted role/configuration change or deployment was performed by this review.
