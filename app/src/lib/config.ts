@@ -1,5 +1,13 @@
 /** Configuration diagnostics only. Supabase verifies keys and user identity. */
 type Environment = Record<string, unknown>
+export function isLoopbackUrl(input: unknown): boolean {
+  try {
+    const url = new URL(String(input))
+    return ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+      && url.protocol === 'http:' && !url.username && !url.password
+      && url.pathname === '/' && !url.search && !url.hash
+  } catch { return false }
+}
 const value = (env: Environment, key: string) => typeof env[key] === 'string' ? (env[key] as string).trim() : ''
 
 function legacyRole(key: string): string | undefined {
