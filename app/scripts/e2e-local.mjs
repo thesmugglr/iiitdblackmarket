@@ -56,6 +56,17 @@ await step('bootstrap admin email becomes admin on first sign-in; a pending sign
   assert.ok(ok(await adm.c.from('notifications').select('*').eq('kind', 'approval')).length >= 1)
   assert.ok((await outsider.c.from('admin_bootstrap').select('*')).error, 'students must not read the bootstrap list')
 })
+await step('a listed student code approves a sign-up; an unlisted code waits; students cannot read the codes', async () => {
+  const code = '9' + String(Date.now() % 10000).padStart(4, '0') // five digits, in a range real batches never use
+  ok(await admin.from('student_codes').insert({ code }))
+  const mk = async (email) => { const r = await admin.auth.admin.createUser({ email, password: 'localtest-pass', email_confirm: true }); if (r.error) throw r.error; return r.data.user.id }
+  const listed = await mk(`listed${code}@iiitd.ac.in`)
+  const unlisted = await mk(`unlisted${Number(code) - 1}@iiitd.ac.in`)
+  const status = async (id) => ok(await admin.from('profiles').select('status').eq('id', id).single()).status
+  assert.equal(await status(listed), 'approved')
+  assert.equal(await status(unlisted), 'pending')
+  assert.ok((await outsider.c.from('student_codes').select('*')).error, 'students must not read the code list')
+})
 await step('seller creates a listing with a photo (private bucket)', async () => {
   photoPath = `${seller.id}/test-${run}.png`
   ok(await seller.c.storage.from('listing-photos').upload(photoPath, png, { contentType: 'image/png' }), 'upload')
