@@ -1,6 +1,6 @@
 # Live backend verification record
 
-Owner: Garv Rao / Codex. Current status: **Garv selected Abhik's existing project `mkepigiktixxrowsteje`. Public hosted checks pass as recorded below; Garv clarifies institute Google authentication reaches Awaiting approval. First-admin access and approved-user workflows remain pending. Abhik has project access and must apply the owner-requested admin update.**
+Owner: Garv Rao / Codex. Current status: **Garv selected Abhik's existing project `mkepigiktixxrowsteje`. Public hosted checks pass as recorded below; Garv clarifies institute Google authentication reaches Awaiting approval. Garv's requested admin access and approved-user workflows remain pending. Abhik reports applying his own admin access, has project access and must apply Garv's already-authorized admin update.**
 
 ## User-reported Google login — 2026-10-31
 
@@ -9,6 +9,8 @@ Garv initially answered “Marketplace opens,” then clarified that the actual 
 The signed-in session is not available in this chat's browser. A fresh attempt to open the selected project's SQL Editor returned Supabase sign-in; no admin connector is connected. Hosted owner promotion, approved-user listing/photo/chat, other account isolation and full phone tests remain outstanding.
 
 ## Independent public deployment checks — 2026-10-31
+
+PR #18 review confirmed the newer public build `1228bc4017203dcc9c7e8629465925302468cdd4` declares source `8dc2c60`. The live JS bytes match that recorded build and contain the CHAT-03 fallback/error copy. Home, privacy, terms, favicon and JS return 200; deep-link fallback remains 404 with the app shell. Public Auth settings, Google redirect and limited anonymous probes retain the expected results below. This is independent public deployment evidence, not verification of Abhik's reported admin SQL or of Garv's pending admin access. No deployment, role update or configuration mutation was performed by this review.
 
 Reviewed Abhik's deployment record in PR #15 and verified the existing public site at https://abhikrao.github.io/iiitd-black-market/ (published source `a235788`, public build commit `7b1daca`). Home, JS, privacy, terms and favicon return HTTP 200. A nonexistent listing deep link returns the expected Pages HTTP 404 with the app shell; the live browser renders the signed-out login screen correctly. At 390px it has no page overflow, Google sign-in is enabled and no development password form is present.
 
@@ -27,7 +29,7 @@ PR #14 merged at `38b102e` after all 22 local service scenarios passed in [GitHu
 | Check | Expected | Result / evidence |
 | --- | --- | --- |
 | OAuth and institute eligibility | Outside accounts denied; unrostered institute account pending | Partial: Garv reports institute Google authentication reaches Awaiting approval (2026-10-31). Outside-domain rejection remains untested; roster membership is not independently inspected. |
-| Approval/admin permissions | Admin can approve; student cannot self-approve/read admin directory | Pending: owner account is awaiting approval by user report. Abhik must apply owner-requested admin setup (CLOUD-02); admin UI and separate-account denial remain untested. |
+| Approval/admin permissions | Admin can approve; student cannot self-approve/read admin directory | Abhik reports that his own admin access was applied on 2026-10-31 through the project's SQL Editor and checked read-only (bootstrap row present; the existing profile reads role admin, status approved; address not recorded here). The live Admin page, approving a second account, and separate-account denial are still untested. Garv already authorized admin access for his own account in this chat; that separate request (CLOUD-02) has not been applied. This reviewer has not independently inspected hosted admin rows. |
 | Listings and owner permissions | Create/edit own; other users cannot mutate | Not run |
 | Storage service | Private buckets, namespace rules, type/5 MiB limits | Not run |
 | Messages and realtime | Two sessions exchange messages/read receipts | Not run |
