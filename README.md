@@ -4,6 +4,8 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 ## Current status
 
+QA-02 on `test/QA-02-service-concurrency` is extending disposable service tests for simultaneous offer acceptance, upload size/type rejection and fixture cleanup. Verification is pending; this does not connect to the selected hosted project or alter Abhik's UI.
+
 Launch review also adds a build-only repository marker/public-visibility check before deployment replaces any target contents, plus validation that rejects delimiter-bearing legacy keys and control characters in project URLs. Public deployment remains an owner decision and has not been performed by this review.
 
 [PR #13](https://github.com/garvrao80/iiitdblackmarket/pull/13) was reviewed and merged at `c51f541` after checks on exact head `f5011b7`. All 41 local tests, build/lint, Windows deployment dry-run, and both GitHub checks pass; disposable Supabase CI passes all 19 service scenarios including Realtime and admin bootstrap. Review fixes protect photo metadata, loopback-only password login, credential output, and build-repository replacement. Hosted Google sign-in, phone QA and owner-approved public deployment remain separate. PR #10 is closed unmerged; PR #12's simpler upload implementation is superseded by Abhik's newer UI in #13.
