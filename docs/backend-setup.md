@@ -10,7 +10,9 @@ The GitHub repository was checked on 31 October 2026. It contains `.env.example`
 
 ## 1. Project and database
 
-Create or select a Supabase development project in the owner's account. Retain ownership of its organization, database password, and billing. Use a development project for first verification.
+Garv selected the existing Supabase project `iiitd-black-market` (`mkepigiktixxrowsteje`) under AbhikRao's organization. Confirm the signed-in account can access that project before hosted setup or QA. Inspect its existing migration history first, and reuse its reported Google provider setup. This decision does not transfer account ownership or grant new dashboard access. Keep service-testing fixtures in the disposable local stack unless dedicated hosted test accounts are explicitly arranged.
+
+Access check on 2026-10-31: the project dashboard redirected this chat's browser to Supabase sign-in; no Supabase plugin connection is available here yet. Sign in using an account with access to Abhik's organization (or connect Supabase using that account). If the selected project is absent, its organization owner must arrange access. Credentials stay in Supabase's sign-in/connection flow; do not paste passwords, management tokens or OAuth secrets into chat. Resume by confirming the project name/ref before reviewing provider settings or migration history.
 
 Run each migration **once, in filename order** through the Supabase SQL editor or an authorized migration tool:
 
@@ -19,6 +21,7 @@ Run each migration **once, in filename order** through the Supabase SQL editor o
 3. `supabase/migrations/0003_upload_limits.sql` — private image buckets with 5 MiB limits.
 4. `supabase/migrations/0004_extras.sql` — wanted posts, bundles, expiry, and notifications.
 5. `supabase/migrations/0005_expiry_access.sql` — privileged expiry checks and suspended-response access protection.
+6. `supabase/migrations/0006_launch.sql` — verified-email bootstrap, approval notices and public health ping.
 
 On an existing database, apply only migrations that have not already run. Do not rerun 0001 over existing tables, and do not reset a project to resolve migration errors. Retain the migration history in the provider/tool used. Schema and access policies must be ready before inviting users.
 
