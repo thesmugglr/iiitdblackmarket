@@ -3,8 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { CATEGORIES, CONDITIONS, MAX_PHOTOS, PICKUP_AREAS, TYPES } from '../lib/constants'
-import { preparePhoto } from '../lib/image'
-import { useSignedUrls } from '../lib/useSignedUrls'
+import { preparePhoto, thumbPath } from '../lib/image'
+import { usePhotoThumbs } from '../lib/useSignedUrls'
 import { observeEditableListing } from '../lib/editableListing'
 import type { Listing } from '../lib/types'
 
@@ -31,8 +31,14 @@ function ListingEditor({ id }: { id?: string }) {
   const [err, setErr] = useState('')
   const fresh = useRef(new Set<string>()) // photos uploaded in this session and not yet saved
   const dropped = useRef<string[]>([]) // saved photos the seller removed; deleted once the edit is saved
-  const urls = useSignedUrls('listing-photos', photos)
+  const urls = usePhotoThumbs(photos)
   const set = (k: string, v: string | boolean) => setF((p) => ({ ...p, [k]: v }))
+
+  // Pictures uploaded but never saved (the seller left the page) would otherwise sit in limited free storage for good.
+  useEffect(() => () => {
+    const abandoned = [...fresh.current]
+    if (abandoned.length) void supabase.storage.from('listing-photos').remove(abandoned.flatMap((p) => [p, thumbPath(p)]))
+  }, [])
 
   useEffect(() => {
     if (!id) return
@@ -62,11 +68,14 @@ function ListingEditor({ id }: { id?: string }) {
     setUploading(files.length)
     try {
       for (const file of files) {
-        const { blob, ext, type } = await preparePhoto(file)
+        const { blob, thumb, ext, type } = await preparePhoto(file, { thumb: true })
         const path = `${profile.id}/${crypto.randomUUID()}.${ext}`
-        const { error } = await supabase.storage.from('listing-photos').upload(path, blob, { contentType: type })
+        // File names are random and never reused, so browsers may keep the pictures for a year.
+        const { error } = await supabase.storage.from('listing-photos').upload(path, blob, { contentType: type, cacheControl: '31536000' })
         if (error) throw new Error(error.message)
         fresh.current.add(path)
+        // The small copy used in grids is optional: if it does not upload, the full-size photo is shown instead.
+        if (thumb) await supabase.storage.from('listing-photos').upload(thumbPath(path), thumb, { contentType: type, cacheControl: '31536000' })
         // Commit each success immediately so a later failure never hides photos that already uploaded.
         setPhotos((current) => [...current, path])
         setUploading((n) => n - 1)
@@ -85,7 +94,7 @@ function ListingEditor({ id }: { id?: string }) {
   }
   const remove = (p: string) => {
     setPhotos((list) => list.filter((x) => x !== p))
-    if (fresh.current.has(p)) { fresh.current.delete(p); void supabase.storage.from('listing-photos').remove([p]) }
+    if (fresh.current.has(p)) { fresh.current.delete(p); void supabase.storage.from('listing-photos').remove([p, thumbPath(p)]) }
     else dropped.current.push(p)
   }
   const makeCover = (p: string) => setPhotos((list) => [p, ...list.filter((x) => x !== p)])
@@ -111,7 +120,7 @@ function ListingEditor({ id }: { id?: string }) {
     setBusy(false)
     if (res.error) return setErr(res.error.message)
     fresh.current.clear()
-    if (dropped.current.length) void supabase.storage.from('listing-photos').remove(dropped.current)
+    if (dropped.current.length) void supabase.storage.from('listing-photos').remove(dropped.current.flatMap((p) => [p, thumbPath(p)]))
     nav(`/listing/${res.data.id}`)
   }
 

@@ -1,6 +1,12 @@
 # Mobile apps (Android first, then iPhone)
 
-Status on 2026-10-31: **installable web app is live; Android Play Store build and iOS are planned, not built.** Keep planned, built, tested and published states separate when updating this file.
+Status on 2026-10-31: **installable web app is live; no native app is built, and native work is paused.** Keep planned, built, tested and published states separate when updating this file.
+
+**Owner constraint (2026-10-31): the owner cannot pay for anything, so the whole app must stay on free services** (see [free-tier.md](free-tier.md)). That rules out both store routes below: Google Play needs a one-time US$25 developer account (and, for new personal accounts, a closed test with 12 testers for 14 days), and the Apple App Store needs the US$99-a-year Developer Program. **The installable web app in section 1 is the free app for Android and iPhone.** Sections 2 and 3 are kept only in case someone else later covers the fees.
+
+Free alternatives to the stores, researched 2026-10-31 (confirm before relying on them):
+- A signed APK on GitHub Releases is free to publish, but Google's developer verification for sideloaded apps is live in Brazil, Indonesia, Singapore and Thailand since 2026-09-30 and is planned to go global in 2027. An unverified app then installs only through a slow "advanced flow" (developer mode, restart, a 24-hour wait). Full verification carries a one-time US$25 fee, and the free limited-distribution account is capped at 20 devices, so neither fits a campus of about 2,400 students. Not recommended.
+- iPhone: Add to Home Screen from Safari is the only free route.
 
 ## 1. Installable web app (done)
 
