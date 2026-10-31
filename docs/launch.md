@@ -25,19 +25,19 @@ Browser settings that must match: Supabase **Site URL** `https://abhikrao.github
 
 ## Not verified (needs the account owner)
 
-Independent PR #15 review confirmed the live pages/bundle and Google-provider redirect using only public configuration; the live 390px sign-in screen and a deep link also render correctly. See docs/live-qa.md for exact observed statuses and limits. Real Google login, authenticated campus flows, console publication/access and full phone QA remain pending. Preserve the 22-scenario local service coverage added in PR #14 when updating this document; the 19-scenario result above describes the earlier launch head.
+Independent PR #15 review confirmed the live pages/bundle and Google-provider redirect using only public configuration; the live 390px sign-in screen and a deep link also render correctly. See docs/live-qa.md for exact observed statuses and limits. Real Google login, authenticated campus flows, dashboard access and full phone QA remain pending; Google app publication is reported by Abhik and has not been independently inspected in this chat. Preserve the 22-scenario local service coverage added in PR #14 when updating this document; the 19-scenario result above describes the earlier launch head.
 
-- A real Google sign-in on the hosted project. Needs the Google Cloud OAuth client and the Google provider to be saved in Supabase (README steps 5 and 6 in `~/iiitd-launch`). Check with
+- A real Google sign-in on the hosted project. Public Auth settings show the Google provider enabled; the authorization redirect alone does not prove a completed sign-in. Check the provider hand-off with
   `curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" "https://mkepigiktixxrowsteje.supabase.co/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fabhikrao.github.io%2Fiiitd-black-market%2F"`
   which should print `302` and an `accounts.google.com` URL.
-- Google publication. Public hosting is done (see Verified). Google's "Publish app" step also needs the public privacy and terms pages (`privacy.html`, `terms.html`, shipped in `app/public`) to be live at the site address, so publishing the OAuth app follows the first deploy. Until the app is published, only test users added in Google Cloud can sign in.
+- A real sign-in on the live site. Public hosting is verified here; Abhik reports his setup session published the Google OAuth app to production (Google Auth Platform shows `In production`; the saved Branding homepage, privacy and terms URLs match the live pages), so people with an @iiitd.ac.in Google account should be able to reach the site's approval screen. Nobody has completed a real sign-in yet.
 - Behaviour on phones and other laptops beyond the browser checks in this repo.
 
 ## Owner checklist
 
 Garv selected **Abhik's existing project** on 2026-10-31. Use project `mkepigiktixxrowsteje` and its reported Google provider configuration under Abhik's organization. Verify access and the intended project in the dashboards before applying migrations or changing providers. The selection does not itself grant new permissions, transfer ownership, or approve public deployment. Do not request secrets in chat or recreate resources solely because older TODO entries said setup was absent.
 
-1. Approve public hosting, then deploy (see below).
+1. Open the existing public site and test institute Google sign-in. Public deployment is already recorded; do not recreate it for this check.
 2. Open the site, choose **Continue with IIITD Google**. Make yourself admin if you are not already (Supabase > SQL Editor):
    ```sql
    insert into public.admin_bootstrap (email) values ('you@iiitd.ac.in') on conflict do nothing;
