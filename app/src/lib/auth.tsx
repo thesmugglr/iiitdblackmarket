@@ -1,12 +1,9 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import type { Session } from '@supabase/supabase-js'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { supabase } from './supabase'
 import type { Profile } from './types'
+import { observeAuth, type AuthSnapshot } from './authState'
 
-interface AuthState {
-  session: Session | null
-  profile: Profile | null
-  loading: boolean
+interface AuthState extends AuthSnapshot {
   refresh: () => Promise<void>
   signOut: () => Promise<void>
 }
@@ -14,36 +11,40 @@ const Ctx = createContext<AuthState>(null!)
 export const useAuth = () => useContext(Ctx)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  const loadProfile = async (s: Session | null) => {
-    if (!s) return setProfile(null)
-    const { data } = await supabase.rpc('my_profile').maybeSingle()
-    setProfile(data as Profile | null)
-  }
+  const [snapshot, setSnapshot] = useState<AuthSnapshot>({ session: null, profile: null, loading: true })
+  const observer = useRef<ReturnType<typeof observeAuth> | null>(null)
+  const refresh = useCallback(async () => { await observer.current?.refresh() }, [])
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
-      setSession(data.session)
-      await loadProfile(data.session)
-      setLoading(false)
+    const current = observeAuth({
+      getSession: async () => {
+        const { data, error } = await supabase.auth.getSession()
+        if (error) throw error
+        return data.session
+      },
+      subscribe: callback => {
+        const { data } = supabase.auth.onAuthStateChange((_event, session) => callback(session))
+        return () => data.subscription.unsubscribe()
+      },
+      loadProfile: async () => {
+        const { data, error } = await supabase.rpc('my_profile').maybeSingle()
+        if (error) throw error
+        return data as Profile | null
+      },
+      publish: setSnapshot,
     })
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s)
-      void loadProfile(s)
-    })
-    return () => sub.subscription.unsubscribe()
+    observer.current = current
+    return () => {
+      observer.current = null
+      current.dispose()
+    }
   }, [])
 
   return (
     <Ctx.Provider
       value={{
-        session,
-        profile,
-        loading,
-        refresh: () => loadProfile(session),
+        ...snapshot,
+        refresh,
         signOut: async () => {
           await supabase.auth.signOut()
         },
