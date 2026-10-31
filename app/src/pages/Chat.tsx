@@ -3,7 +3,8 @@ import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { Arrow, Clip } from '../components/Icons'
-import { inr, MAX_PHOTO_BYTES } from '../lib/constants'
+import { inr } from '../lib/constants'
+import { preparePhoto } from '../lib/image'
 import { useSignedUrls } from '../lib/useSignedUrls'
 import type { Conversation, Message, Offer } from '../lib/types'
 
@@ -81,12 +82,17 @@ export default function Chat() {
   }
   const attach = async (file?: File) => {
     if (!file) return
-    if (!file.type.startsWith('image/') || file.size > MAX_PHOTO_BYTES) return setErr('Attach an image under 5 MB.')
-    const path = `${conv.id}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, '_')}`
-    const up = await supabase.storage.from('chat-attachments').upload(path, file)
-    if (up.error) return setErr(up.error.message)
-    const { error } = await supabase.from('messages').insert({ conversation_id: conv.id, sender_id: profile.id, image_path: path })
-    if (error) setErr(error.message)
+    setErr('')
+    try {
+      const { blob, ext, type } = await preparePhoto(file)
+      const path = `${conv.id}/${crypto.randomUUID()}.${ext}`
+      const up = await supabase.storage.from('chat-attachments').upload(path, blob, { contentType: type })
+      if (up.error) return setErr(up.error.message)
+      const { error } = await supabase.from('messages').insert({ conversation_id: conv.id, sender_id: profile.id, image_path: path })
+      if (error) setErr(error.message)
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Could not send that photo.')
+    }
   }
   const makeOffer = async () => {
     const { error } = await supabase.rpc('make_offer', { p_conversation: conv.id, p_amount: Number(offerAmt) })
@@ -138,7 +144,7 @@ export default function Chat() {
       )}
       {err && <p className="error small">{err}</p>}
       <form className="composer" onSubmit={send}>
-        <label className="attach" title="Attach photo"><Clip /><input type="file" accept="image/*" hidden onChange={(e) => attach(e.target.files?.[0])} /></label>
+        <label className="attach" title="Attach photo"><Clip /><input type="file" accept="image/*" hidden onChange={(e) => { void attach(e.target.files?.[0]); e.target.value = '' }} /></label>
         <input value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} placeholder="Type a message" />
         <button className="primary">Send</button>
       </form>

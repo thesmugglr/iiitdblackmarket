@@ -10,6 +10,7 @@ export default function Inbox() {
   const [unread, setUnread] = useState<Record<string, number>>({})
 
   useEffect(() => {
+    const load = () => {
     supabase
       .from('conversations')
       .select('*, listing:listings(title,photos,status), buyer:profiles!conversations_buyer_id_fkey(display_name), seller:profiles!conversations_seller_id_fkey(display_name)')
@@ -20,6 +21,10 @@ export default function Inbox() {
       for (const r of (data ?? []) as { conversation_id: string; unread: number }[]) m[r.conversation_id] = Number(r.unread)
       setUnread(m)
     })
+    }
+    load()
+    window.addEventListener('notices-changed', load)
+    return () => window.removeEventListener('notices-changed', load)
   }, [])
 
   if (!convs) return <p className="muted">Loading…</p>
