@@ -174,6 +174,8 @@ The separate [amber concept PR #11](https://github.com/garvrao80/iiitdblackmarke
 
 ## Next steps
 
+MOD-02 is in progress on `fix/MOD-02-confirm-admin-actions`: administrator operations need confirmed writes and accurate failure reporting. Hosted access remains a separate dependency.
+
 See [TODO.md](TODO.md). Remaining: Abhik applies Garv's already-authorized admin request (CLOUD-02), approve test accounts in the Admin page, then test approved-user/access-isolation flows and complete phone QA on the live site.
 
 ## Progress log
