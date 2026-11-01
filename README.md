@@ -174,6 +174,8 @@ The separate [amber concept PR #11](https://github.com/garvrao80/iiitdblackmarke
 
 ## Next steps
 
+LIST-05 is in progress on `fix/LIST-05-detail-loading`: isolate listing-detail requests by route/account and show retryable load failures separately from unavailable records. Existing layout and access policies are preserved; checks pending.
+
 MOD-02 ([PR #22](https://github.com/garvrao80/iiitdblackmarket/pull/22)) merged at `c2dae29`, exact reviewed head `3a4a945`. Listing removal must return the removed row before resolving its report; failed report updates and partial roster approvals remain visible and retryable. Existing-member status changes are read back, roster addresses are deduplicated, and invalid mixed batches are refused before writing. Failed administrator reads show a retry and disable actions; overlapping actions are guarded. 127 local regression checks, build/typecheck and lint pass (8 existing warnings and the existing bundle-size warning). Both final-head GitHub checks pass, including all 26 disposable Supabase scenarios with actual helper/policy behavior and verified fixture cleanup (run 41353902769). Browser checks could not run because local browser use is disabled in Work settings. No schema/policy/layout changes or deployment; hosted access remains separate.
 
 See [TODO.md](TODO.md). Remaining: Abhik applies Garv's already-authorized admin request (CLOUD-02), approve test accounts in the Admin page, then test approved-user/access-isolation flows and complete phone QA on the live site.
