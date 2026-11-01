@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { readLocalStack } from './local-stack.mjs'
 import { thumbPath } from '../src/lib/image.ts'
+import { addStudentRoster, changeMemberStatus, removeReportedListing, updateReportStatus } from '../src/lib/adminActions.ts'
 import assert from 'node:assert/strict'
 
 const env = readLocalStack()
@@ -10,7 +11,7 @@ const URL_ = env.API_URL, ANON = env.ANON_KEY
 const admin = createClient(URL_, env.SERVICE_ROLE_KEY, { auth: { persistSession: false } })
 const run = Date.now().toString(36)
 const results = []
-const createdUsers = [], clients = [], uploadedObjects = [], bootstrapEmails = [], studentCodes = []
+const createdUsers = [], clients = [], uploadedObjects = [], bootstrapEmails = [], studentCodes = [], rosterEmails = []
 const step = async (name, fn) => {
   try { await fn(); results.push(['PASS', name]); console.log('PASS', name) }
   catch (e) { results.push(['FAIL', name]); console.log('FAIL', name, '\n    ', e.message) }
@@ -195,7 +196,7 @@ await step('report goes to admin; admin can approve a pending user', async () =>
   ok(await buyer.c.from('reports').insert({ reporter_id: buyer.id, listing_id: listing.id, reason: 'testing' }))
   assert.equal(ok(await adm.c.from('reports').select('id').eq('status', 'open')).length >= 1, true)
   assert.equal((await outsider.c.from('reports').select('id')).data.length, 0)
-  ok(await adm.c.rpc('admin_set_status', { p_user: pending.id, p_status: 'approved' }))
+  await changeMemberStatus(adm.c, pending.id, 'approved')
   assert.equal((await adm.c.rpc('admin_profiles')).data.some((p) => p.email === pending.email), true)
   assert.ok((await buyer.c.rpc('admin_profiles')).data?.length === 0)
 })
@@ -284,8 +285,30 @@ await step('realtime delivers a new message to the seller', async () => {
   try { await realtimeOnce(8000) } catch (e) { if (/insert failed/.test(e.message)) throw e; await realtimeOnce(12000) }
 })
 
-await step('remove only photos, bootstrap rows, student codes and accounts created by this run', async () => {
+await step('admin helpers confirm roster approvals and moderation; rejected removal leaves report open', async () => {
+  const member = await user('roster', { approve: false })
+  rosterEmails.push(member.email)
+  const before = ok(await adm.c.rpc('admin_profiles'))
+  assert.deepEqual(await addStudentRoster(adm.c, `${member.email};${member.email}`, before), { added: 1, approved: 1, failed: 0 })
+  const target = ok(await buyer.c.from('reports').insert({ reporter_id: buyer.id, listing_id: listing.id, reason: 'moderation helper fixture' }).select('id,listing_id').single())
+  await assert.rejects(removeReportedListing(outsider.c, target))
+  assert.equal(ok(await adm.c.from('reports').select('status').eq('id', target.id).single()).status, 'open')
+  assert.equal(ok(await adm.c.from('listings').select('status').eq('id', listing.id).single()).status, 'reserved')
+  await removeReportedListing(adm.c, target)
+  assert.equal(ok(await adm.c.from('listings').select('status').eq('id', listing.id).single()).status, 'removed')
+  assert.equal(ok(await adm.c.from('reports').select('status').eq('id', target.id).single()).status, 'resolved')
+  await assert.rejects(updateReportStatus(outsider.c, target.id, 'dismissed'))
+  await updateReportStatus(adm.c, target.id, 'dismissed')
+  assert.equal(ok(await adm.c.from('reports').select('status').eq('id', target.id).single()).status, 'dismissed')
+})
+
+await step('remove only photos, bootstrap rows, roster entries, student codes and accounts created by this run', async () => {
   const errors = []
+  for (const email of rosterEmails) {
+    const removed = await admin.from('student_roster').delete().eq('email', email)
+    const remaining = await admin.from('student_roster').select('email').eq('email', email)
+    if (removed.error || remaining.error || remaining.data?.length !== 0) errors.push('fixture roster cleanup failed')
+  }
   for (const client of clients) { await client.removeAllChannels(); client.auth.stopAutoRefresh() }
   for (const [bucket,path] of uploadedObjects) {
     const result = await admin.storage.from(bucket).remove([path])
