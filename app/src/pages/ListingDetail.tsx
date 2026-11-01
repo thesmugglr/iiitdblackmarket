@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useSavedItems } from '../lib/useSavedItems'
+import { emptyListing, observeListing } from '../lib/listingState'
 import { CATEGORIES, CONDITIONS, inr } from '../lib/constants'
 import { thumbPath } from '../lib/image'
 import { useSignedUrls } from '../lib/useSignedUrls'
@@ -13,26 +14,30 @@ import type { Listing, Status } from '../lib/types'
 export default function ListingDetail() {
   const { id } = useParams()
   const { profile } = useAuth()
+  return <ListingDetailPage key={`${profile?.id}:${id}`} id={id ?? ''} />
+}
+
+function ListingDetailPage({ id }: { id: string }) {
+  const { profile } = useAuth()
   const nav = useNavigate()
-  const [l, setL] = useState<Listing | null>(null)
+  const [{ listing: l, loading, error }, setSnapshot] = useState(emptyListing)
+  const [attempt, setAttempt] = useState(0)
+  const [viewedAt] = useState(() => Date.now())
   const { ids: savedIds, toggle: toggleSaved, loading: savedLoading, pending: saving, error: saveError, retry: retrySaved } = useSavedItems(profile?.id)
   const saved = savedIds.has(id ?? '')
   const [msg, setMsg] = useState('')
-  const [missing, setMissing] = useState(false)
   const urls = useSignedUrls('listing-photos', l?.photos ?? [])
 
-  const load = async () => {
-    const { data } = await supabase.from('listings').select('*, seller:profiles!listings_seller_id_fkey(display_name,batch)').eq('id', id!).maybeSingle()
-    if (!data) return setMissing(true)
-    setL(data as unknown as Listing)
-  }
-  useEffect(() => {
-    void load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+  const load = () => setAttempt((value) => value + 1)
+  useEffect(() => observeListing(id, async () => {
+    const { data, error } = await supabase.from('listings').select('*, seller:profiles!listings_seller_id_fkey(display_name,batch)').eq('id', id).maybeSingle()
+    if (error) throw error
+    return data as unknown as Listing | null
+  }, setSnapshot), [id, attempt])
 
-  if (missing) return <p>This listing is not available.</p>
-  if (!l || !profile) return <p className="muted">Loading…</p>
+  if (loading || !profile) return <p className="muted" role="status">Loading…</p>
+  if (error) return <p className="error" role="alert">{error} <button onClick={load}>Retry</button></p>
+  if (!l) return <p>This listing is not available.</p>
   const mine = l.seller_id === profile.id
 
   const share = async () => {
@@ -60,7 +65,7 @@ export default function ListingDetail() {
     setMsg(error ? error.message : 'Renewed for 30 days.')
     void load()
   }
-  const daysLeft = l.expires_at ? Math.ceil((new Date(l.expires_at).getTime() - Date.now()) / 86400000) : null
+  const daysLeft = l.expires_at ? Math.ceil((new Date(l.expires_at).getTime() - viewedAt) / 86400000) : null
   const remove = async () => {
     if (!confirm('Delete this listing permanently?')) return
     const { error } = await supabase.from('listings').delete().eq('id', l.id)
