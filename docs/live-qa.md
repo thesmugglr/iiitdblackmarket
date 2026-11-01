@@ -8,6 +8,10 @@ Garv initially answered “Marketplace opens,” then clarified that the actual 
 
 The signed-in session is not available in this chat's browser. A fresh attempt to open the selected project's SQL Editor returned Supabase sign-in; no admin connector is connected. Hosted owner promotion, approved-user listing/photo/chat, other account isolation and full phone tests remain outstanding.
 
+## Local engineering verification — 2026-11-02
+
+MOD-02 verification (Asia/Kolkata): MOD-02 / PR #22 merged at `c2dae29`, reviewed head `3a4a945`. All 127 regression checks/build/lint pass with existing warnings. Final-head integration run 41353902769 passed all 26 disposable Supabase scenarios, including confirmed roster approvals, a denied removal retaining an open report, successful administrator removal/resolution, and generated roster cleanup. These are local service results, not hosted Admin verification. Browser use is currently disabled in Work settings; this change was not deployed and did not alter hosted accounts.
+
 ## Independent public deployment checks — 2026-10-31
 
 Latest check at 14:19 UTC: public build `20fd56b2a3ce1acaa32e222396162f8ee2d81f1c` declares source `981724d`. Live JS bytes match that recorded build (SHA-256 `1cb301315ccefe8933fdec399e16791b818656b4c11a6560d0e8ef2b3a7cac0b`) and contain USER-02, LIST-04 and CHAT-03 fallback/error copy. Home/JS/privacy/terms/favicon/manifest/service worker and declared app icons return 200; the manifest declares standalone display. Deep-link fallback is 404 with the app shell. Public Auth settings, ping, Google callback redirect and limited anonymous reads retain the expected results below. GitHub reports successful Pages run 41199365321 and keep-alive run 41199431207 on this build. These checks do not prove physical-device installation, authenticated flows, hosted student/admin rows, billing settings or long-term schedule reliability. The deployment was performed by Abhik's workflow; this reviewer only read public state and made no hosted configuration or role changes.
