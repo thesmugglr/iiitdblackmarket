@@ -10,6 +10,8 @@ The signed-in session is not available in this chat's browser. A fresh attempt t
 
 ## Local engineering verification — 2026-11-02
 
+LIST-05 / PR #23 merged at `15dfaff`, reviewed head `f39066b`. All 137 regression tests, build/typecheck and lint pass with existing warnings. Ten new cases cover listing-detail missing/error/retry and obsolete request isolation; integration run 41354689571 passed all 26 existing service scenarios and fixture cleanup. This does not prove rendered navigation or hosted flows: browser use remains disabled and nothing was deployed.
+
 MOD-02 verification (Asia/Kolkata): MOD-02 / PR #22 merged at `c2dae29`, reviewed head `3a4a945`. All 127 regression checks/build/lint pass with existing warnings. Final-head integration run 41353902769 passed all 26 disposable Supabase scenarios, including confirmed roster approvals, a denied removal retaining an open report, successful administrator removal/resolution, and generated roster cleanup. These are local service results, not hosted Admin verification. Browser use is currently disabled in Work settings; this change was not deployed and did not alter hosted accounts.
 
 ## Independent public deployment checks — 2026-10-31
