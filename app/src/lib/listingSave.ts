@@ -18,9 +18,9 @@ export async function writeListingDraft(api: Pick<SupabaseClient, 'from'>, owner
     // Retry a committed creation without overwriting a UUID collision.
     const result = await api.from('listings').upsert({ ...row, id, seller_id: owner }, { onConflict: 'id', ignoreDuplicates: true })
     if (result.error) {
-      // Only an explicit SQL error proves this attempt rolled back. Transport
-      // errors (including error objects returned by fetch) remain uncertain.
-      if (/^[0-9A-Z]{5}$/.test(result.error.code ?? '')) throw new ListingWriteRejected('Listing creation was rejected')
+      // Known constraint/input/permission rejections roll back this statement.
+      // Connection errors and unknown transaction outcomes remain uncertain.
+      if (['23514', '23502', '23503', '23505', '42501', '22P02', '22003', '22001'].includes(result.error.code ?? '')) throw new ListingWriteRejected('Listing creation was rejected')
       throw new Error('Listing creation failed')
     }
     confirmed = await api.from('listings').select(selection).eq('id', id).eq('seller_id', owner).single()
