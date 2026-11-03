@@ -5,6 +5,7 @@ import { cleanupListingPhotos, deleteOwnedListing, updateOwnedListingStatus } fr
 const success = data => ({ data, error: null })
 const failure = { data: null, error: { message: 'denied' } }
 const deleted = { id: 'item', seller_id: 'owner', photos: ['owner/current.jpg'] }
+const member = success({ id: 'owner', status: 'approved' })
 
 // Fake only network responses; record row filters and storage calls. Unexpected
 // calls fail, so a rejected listing mutation cannot silently begin cleanup.
@@ -15,7 +16,13 @@ function api(...responses) {
     const response = responses.shift()
     return response instanceof Error ? Promise.reject(response) : Promise.resolve(response)
   }
-  return { calls, from(table) {
+  return { calls, rpc(name) {
+    const call = { rpc: name, query: [] }, b = {}
+    calls.push(call)
+    b.select = (...args) => { call.query.push(['select', ...args]); return b }
+    b.single = result
+    return b
+  }, from(table) {
     const call = { table, query: [] }, b = {}
     calls.push(call)
     for (const method of ['update', 'delete', 'eq', 'select']) b[method] = (...args) => { call.query.push([method, ...args]); return b }
@@ -70,10 +77,11 @@ for (const [name, response] of [
 })
 
 test('confirmed deletion cleans only returned originals and thumbnails, deduplicated', async () => {
-  const client = api(success(deleted), success([]))
+  const client = api(success(deleted), success([]), member)
   const photos = await deleteOwnedListing(client, 'item', 'owner')
   await cleanupListingPhotos(client, 'owner', [...photos, ...photos])
   assert.deepEqual(client.calls[1], { bucket: 'listing-photos', paths: ['owner/current.jpg', 'owner/current_t.jpg'] })
+  assert.deepEqual(client.calls[2], { rpc: 'my_profile', query: [['select', 'id,status']] })
 })
 
 test('listing without photos needs no storage request', async () => {
@@ -92,7 +100,7 @@ test('foreign, nested and malformed paths refuse the whole cleanup batch', async
 
 for (const [name, response] of [['API error', failure], ['network exception', new Error('offline')], ['missing response', success(null)]]) {
   test(`cleanup ${name} retains an explicitly partial result and retries without another listing deletion`, async () => {
-    const client = api(success(deleted), response, success([]))
+    const client = api(success(deleted), response, success([]), member)
     const photos = await deleteOwnedListing(client, 'item', 'owner')
     await assert.rejects(cleanupListingPhotos(client, 'owner', photos), /listing was deleted.*Retry photo cleanup/)
     await cleanupListingPhotos(client, 'owner', photos)
@@ -100,3 +108,12 @@ for (const [name, response] of [['API error', failure], ['network exception', ne
     assert.deepEqual(client.calls[1], client.calls[2])
   })
 }
+
+for (const [name, response] of [
+  ['suspended owner', success({ id: 'owner', status: 'suspended' })],
+  ['different authenticated account', success({ id: 'other', status: 'approved' })],
+  ['unavailable identity', failure],
+]) test(`empty storage removal cannot claim success for ${name}`, async () => {
+  const client = api(success([]), response)
+  await assert.rejects(cleanupListingPhotos(client, 'owner', deleted.photos), /Retry photo cleanup/)
+})

@@ -21,7 +21,7 @@ export async function deleteOwnedListing(api: ListingApi, id: string, owner: str
   return result.data.photos as string[]
 }
 
-export async function cleanupListingPhotos(api: Pick<SupabaseClient, 'storage'>, owner: string, photos: string[]) {
+export async function cleanupListingPhotos(api: Pick<SupabaseClient, 'storage' | 'rpc'>, owner: string, photos: string[]) {
   // A returned row still must not cause cleanup outside this seller's folder.
   if (!owner || photos.some(p => typeof p !== 'string' || !p.startsWith(`${owner}/`) || p.split('/').length !== 2 || ['.', '..', ''].includes(p.split('/')[1]))) {
     throw new Error('The listing was deleted, but its photo paths could not be verified. No photo cleanup was started.')
@@ -33,6 +33,11 @@ export async function cleanupListingPhotos(api: Pick<SupabaseClient, 'storage'>,
     // Missing objects (including legacy thumbnails) are already clean. Retrying
     // a partial removal is safe because Storage deletion is idempotent.
     if (result.error || !result.data) throw new Error('Storage cleanup failed')
+    // An empty removal can also mean RLS hid the objects. Confirm the caller
+    // still owns this folder and has read access before treating absent files
+    // as already clean. my_profile returns only the authenticated account.
+    const current = await api.rpc('my_profile').select('id,status').single()
+    if (current.error || current.data?.id !== owner || current.data?.status !== 'approved') throw new Error('Cleanup authorization changed')
   } catch {
     throw new Error('The listing was deleted, but photo cleanup could not be confirmed. Retry photo cleanup before leaving.')
   }
