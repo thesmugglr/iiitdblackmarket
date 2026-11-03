@@ -3,7 +3,6 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 type AdminApi = Pick<SupabaseClient, 'from' | 'rpc'>
 type ReportTarget = { id: string; listing_id: string | null }
 type PendingMember = { id: string; email: string; status: string }
-export const ROSTER_BATCH_SIZE = 200
 const requireCurrent = (current: () => boolean) => {
   if (!current()) throw new Error('Administrator action stopped. Reload before retrying.')
 }
@@ -62,23 +61,17 @@ export async function addStudentRoster(api: AdminApi, input: string, users: Pend
   if (!emails.length || emails.some(e => !/^[^\s@]+@iiitd\.ac\.in$/.test(e))) {
     throw new Error('Enter only valid @iiitd.ac.in emails; no entries were added.')
   }
-  let confirmed = 0
-  for (let start = 0; start < emails.length; start += ROSTER_BATCH_SIZE) {
+  try {
+    const result = await api.from('student_roster').upsert(emails.map(email => ({ email }))).select('email')
     requireCurrent(current)
-    const batch = emails.slice(start, start + ROSTER_BATCH_SIZE)
-    try {
-      const result = await api.from('student_roster').upsert(batch.map(email => ({ email }))).select('email')
-      requireCurrent(current)
-      const returned = new Set((Array.isArray(result.data) ? result.data : []).map(row => row?.email))
-      if (result.error || !batch.every(email => returned.has(email))) throw new Error('Unconfirmed roster batch')
-      confirmed += batch.length
-    } catch {
-      requireCurrent(current)
-      throw new Error(`Could not confirm the full roster update (${confirmed} entries confirmed). Other entries may have been saved. Keep these emails and retry.`)
-    }
+    const returned = new Set((Array.isArray(result.data) ? result.data : []).map(row => row?.email))
+    if (result.error || !emails.every(email => returned.has(email))) throw new Error('Unconfirmed roster write')
+  } catch {
+    requireCurrent(current)
+    throw new Error('Could not confirm the roster update. The update may already have been saved. Keep these emails and retry.')
   }
-  // Start existing-member approvals only after every roster batch is confirmed.
-  // Partial writes remain retryable; never remove entries as a rollback.
+  // Keep the existing atomic roster upsert. Only confirmed writes may start
+  // existing-member approvals; uncertain replies remain safe to retry.
   let approved = 0, failed = 0
   const listed = new Set(emails)
   for (const user of users.filter(u => u.status === 'pending' && listed.has(u.email.toLowerCase()))) {

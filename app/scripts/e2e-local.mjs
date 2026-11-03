@@ -804,15 +804,15 @@ await step('keyset discovery reaches later pages across inserts/deletions, tied 
   assert.equal(capped.length, 65); assert.equal(capped.every(item => item.price_inr === 50), true)
 })
 
-await step('large roster batches confirm beyond the API cap without restoring a concurrently suspended member', async () => {
+await step('large roster writes retain atomic confirmation and preserve a concurrently suspended member', async () => {
   const rosterAdmin = await user('bulk-admin', { role: 'admin' })
   const a = await user(`bulk-${run}-a`, { approve: false }), b = await user(`bulk-${run}-b`, { approve: false }), c = await user(`bulk-${run}-c`, { approve: false })
   const emails = [a.email, ...Array.from({ length: 1002 }, (_, i) => `bulk-${run}-${i}@iiitd.ac.in`), b.email, c.email]
   rosterEmails.push(...emails)
-  // The old single-upsert path saves all rows but returns only 1,000. Existing
-  // members are not automatically approved by merely inserting roster rows.
+  // Mutation representations are not truncated by the read cap. Preserve the
+  // existing atomic write; inserting roster rows alone does not approve old accounts.
   const capped = ok(await rosterAdmin.c.from('student_roster').upsert(emails.map(email => ({ email }))).select('email'))
-  assert.equal(capped.length, 1000)
+  assert.equal(capped.length, 1005)
   const snapshot = [a, b, c].map(member => ({ id: member.id, email: member.email, status: 'pending' }))
   ok(await admin.from('profiles').update({ status: 'suspended' }).eq('id', c.id))
   const input = emails.join('\n')
