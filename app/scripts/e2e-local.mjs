@@ -13,6 +13,7 @@ import { makeOfferOnce, observeOfferComposer, respondOfferOnce } from '../src/li
 import { observeAttachment, sendChatImage, uploadChatAttachment } from '../src/lib/chatAttachments.ts'
 import { loadInbox } from '../src/lib/inboxState.ts'
 import { observeListingSave, writeListingDraft } from '../src/lib/listingSave.ts'
+import { emptyBrowseFilters, loadBrowseListings, loadBrowseOverview } from '../src/lib/browseState.ts'
 
 const env = readLocalStack()
 const URL_ = env.API_URL, ANON = env.ANON_KEY
@@ -690,6 +691,57 @@ await step('editor updates reject unauthorized/removed writes and retry partial 
   await assert.rejects(writeListingDraft(member.c, member.id, { id, create: false, row: { ...next, title: 'Cannot restore removed listing' } }))
   assert.equal(ok(await adm.c.from('listings').select('status,title').eq('id', id).single()).status, 'removed')
   editor.dispose()
+})
+
+await step('discovery counts exceed 200 accurately and exclude expired/sold/removed rows for every role', async () => {
+  const member = await user('discovery'), cutoff = new Date().toISOString(), marker = `discovery-${run}`
+  const before = await loadBrowseOverview(member.c, cutoff)
+  const base = Date.now(), expires_at = new Date(base + 86400000).toISOString()
+  const rows = Array.from({ length: 205 }, (_, i) => ({
+    seller_id: member.id, title: `${marker} ${i}`, listing_type: i === 0 ? 'giveaway' : i % 3 === 0 ? 'rent' : 'sale',
+    category: 'books', condition: i % 2 ? 'good' : 'like_new', price_inr: i, status: i % 4 ? 'active' : 'reserved',
+    created_at: new Date(base + 3600000 + i * 1000).toISOString(), expires_at,
+  }))
+  ok(await member.c.from('listings').insert(rows))
+  const excluded = ['expired', 'sold', 'removed'].map(kind => ({
+    seller_id: member.id, title: `${marker} ${kind}`, listing_type: 'sale', category: 'books', condition: 'good', price_inr: 99999,
+    status: kind === 'expired' ? 'active' : kind, expires_at: kind === 'expired' ? new Date(base - 86400000).toISOString() : expires_at,
+    created_at: new Date(base + 7200000).toISOString(),
+  }))
+  ok(await member.c.from('listings').insert(excluded))
+  const after = await loadBrowseOverview(member.c, cutoff)
+  assert.equal(after.counts.books, before.counts.books + 205)
+  assert.deepEqual(after.latest.map(l => l.title), [204, 203, 202].map(i => `${marker} ${i}`))
+  const newest = await loadBrowseListings(member.c, { ...emptyBrowseFilters(), q: marker, category: 'books' }, cutoff)
+  assert.equal(newest.length, 60); assert.equal(newest[0].title, `${marker} 204`)
+  const highest = await loadBrowseListings(member.c, { ...emptyBrowseFilters(), q: marker, sort: 'high' }, cutoff)
+  assert.deepEqual(highest.map(l => l.price_inr), Array.from({ length: 60 }, (_, i) => 204 - i))
+  const filtered = await loadBrowseListings(member.c, { q: marker, category: 'books', type: 'sale', condition: 'good', maxPrice: '10.9', sort: 'low' }, cutoff)
+  assert.deepEqual(filtered.map(l => l.price_inr), [1, 5, 7])
+  const free = await loadBrowseListings(member.c, { ...emptyBrowseFilters(), q: marker, maxPrice: '0' }, cutoff)
+  assert.deepEqual(free.map(l => l.price_inr), [0])
+  for (const client of [member.c, adm.c, buyer.c]) {
+    for (const kind of ['expired', 'sold', 'removed']) assert.deepEqual(await loadBrowseListings(client, { ...emptyBrowseFilters(), q: `${marker} ${kind}` }, cutoff), [])
+  }
+  assert.equal((await loadBrowseOverview(adm.c, cutoff)).counts.books, after.counts.books)
+  const unapproved = await user('discovery-pending', { approve: false })
+  assert.deepEqual(await loadBrowseListings(unapproved.c, emptyBrowseFilters(), cutoff), [])
+  assert.equal(Object.values((await loadBrowseOverview(unapproved.c, cutoff)).counts).every(count => count === 0), true)
+  const anonymous = createClient(URL_, ANON, { auth: { persistSession: false } }); clients.push(anonymous)
+  assert.deepEqual(await loadBrowseListings(anonymous, emptyBrowseFilters(), cutoff), [])
+})
+
+await step('quoted discovery search handles reserved punctuation, literal LIKE characters and filter-shaped input', async () => {
+  const member = await user('discovery-search'), title = `Notes (CS_101), "50%" ${run}`, description = `C:\\Course ${run}`
+  const rows = ok(await member.c.from('listings').insert([
+    { seller_id: member.id, title, description, listing_type: 'sale', category: 'misc', condition: 'new', price_inr: 25 },
+    { seller_id: member.id, title: `Notes (CSX101), "50X" ${run}`, description: `C:/Course ${run}`, listing_type: 'sale', category: 'misc', condition: 'new', price_inr: 25 },
+  ]).select('id,title'))
+  for (const q of ['(CS_101), "50%"', 'CS_101', '50%', `C:\\Course ${run}`]) {
+    const found = await loadBrowseListings(member.c, { ...emptyBrowseFilters(), q, category: 'misc' })
+    assert.deepEqual(found.map(l => l.id), [rows[0].id])
+  }
+  assert.deepEqual(await loadBrowseListings(member.c, { ...emptyBrowseFilters(), q: 'x"),description.ilike.*' }), [])
 })
 
 await step('remove only photos, bootstrap rows, roster entries, student codes and accounts created by this run', async () => {
