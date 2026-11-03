@@ -1,15 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useSavedItems } from '../lib/useSavedItems'
 import { emptyListing, observeListing } from '../lib/listingState'
 import { CATEGORIES, CONDITIONS, inr } from '../lib/constants'
-import { thumbPath } from '../lib/image'
+import { cleanupListingPhotos, deleteOwnedListing, updateOwnedListingStatus } from '../lib/listingActions'
 import { useSignedUrls } from '../lib/useSignedUrls'
 import { Heart } from '../components/Icons'
 import { priceLabel } from '../components/ListingCard'
-import type { Listing, Status } from '../lib/types'
+import type { Listing } from '../lib/types'
 
 export default function ListingDetail() {
   const { id } = useParams()
@@ -26,8 +26,16 @@ function ListingDetailPage({ id }: { id: string }) {
   const { ids: savedIds, toggle: toggleSaved, loading: savedLoading, pending: saving, error: saveError, retry: retrySaved } = useSavedItems(profile?.id)
   const saved = savedIds.has(id ?? '')
   const [msg, setMsg] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [deletedPhotos, setDeletedPhotos] = useState<string[] | null>(null)
+  const actionLock = useRef(false)
+  const active = useRef(false)
   const urls = useSignedUrls('listing-photos', l?.photos ?? [])
 
+  useEffect(() => {
+    active.current = true
+    return () => { active.current = false }
+  }, [])
   const load = () => setAttempt((value) => value + 1)
   useEffect(() => observeListing(id, async () => {
     const { data, error } = await supabase.from('listings').select('*, seller:profiles!listings_seller_id_fkey(display_name,batch)').eq('id', id).maybeSingle()
@@ -35,7 +43,30 @@ function ListingDetailPage({ id }: { id: string }) {
     return data as unknown as Listing | null
   }, setSnapshot), [id, attempt])
 
-  if (loading || !profile) return <p className="muted" role="status">Loading…</p>
+  const runOwnerAction = async (action: () => Promise<void>) => {
+    if (actionLock.current || !active.current) return
+    actionLock.current = true
+    setBusy(true)
+    setMsg('')
+    try { await action() }
+    catch (error) {
+      if (active.current) setMsg(error instanceof Error ? error.message : 'Could not confirm this action. Refresh and try again.')
+    } finally {
+      actionLock.current = false
+      if (active.current) setBusy(false)
+    }
+  }
+  if (!profile) return <p className="muted" role="status">Loading…</p>
+  const cleanDeletedPhotos = async (photos: string[]) => {
+    await cleanupListingPhotos(supabase, profile.id, photos)
+    if (active.current) nav('/profile')
+  }
+  if (deletedPhotos !== null) return <div>
+    <p role="status">{msg || 'Listing deleted. Removing photos…'}</p>
+    <button disabled={busy} onClick={() => void runOwnerAction(() => cleanDeletedPhotos(deletedPhotos))}>Retry photo cleanup</button>{' '}
+    <Link to="/profile">Back to profile</Link>
+  </div>
+  if (loading) return <p className="muted" role="status">Loading…</p>
   if (error) return <p className="error" role="alert">{error} <button onClick={load}>Retry</button></p>
   if (!l) return <p>This listing is not available.</p>
   const mine = l.seller_id === profile.id
@@ -55,24 +86,27 @@ function ListingDetailPage({ id }: { id: string }) {
     if (error) return setMsg(error.message)
     nav(`/inbox/${data}`)
   }
-  const setStatus = async (status: Status) => {
-    const { error } = await supabase.from('listings').update({ status }).eq('id', l.id)
-    if (error) setMsg(error.message)
-    else void load()
-  }
-  const renew = async () => {
+  const setStatus = (status: 'active' | 'reserved' | 'sold') => runOwnerAction(async () => {
+    await updateOwnedListingStatus(supabase, l.id, profile.id, status)
+    if (active.current) load()
+  })
+  const renew = () => runOwnerAction(async () => {
     const { error } = await supabase.rpc('renew_listing', { p_listing: l.id })
-    setMsg(error ? error.message : 'Renewed for 30 days.')
-    void load()
-  }
+    if (error) throw new Error(error.message)
+    // The RPC raises if no owned active/reserved listing was renewed.
+    if (active.current) { setMsg('Renewed for 30 days.'); load() }
+  })
   const daysLeft = l.expires_at ? Math.ceil((new Date(l.expires_at).getTime() - viewedAt) / 86400000) : null
-  const remove = async () => {
+  const remove = () => {
+    if (actionLock.current) return
     if (!confirm('Delete this listing permanently?')) return
-    const { error } = await supabase.from('listings').delete().eq('id', l.id)
-    if (error) return setMsg(error.message)
-    // Storage is limited on the free plan: delete the pictures with the listing (only the seller's own folder can be deleted).
-    if (mine && l.photos.length) void supabase.storage.from('listing-photos').remove(l.photos.flatMap((p) => [p, thumbPath(p)]))
-    nav('/profile')
+    void runOwnerAction(async () => {
+      const photos = await deleteOwnedListing(supabase, l.id, profile.id)
+      if (!active.current) return
+      setDeletedPhotos(photos)
+      setMsg('Listing deleted. Removing photos…')
+      await cleanDeletedPhotos(photos)
+    })
   }
   const report = async () => {
     const reason = prompt('Why are you reporting this listing?')
@@ -107,15 +141,15 @@ function ListingDetailPage({ id }: { id: string }) {
         </div>
         {mine && (
           <div className="row">
-            <Link to={`/sell/${l.id}`} className="btn">Edit</Link>
-            {l.status !== 'reserved' && <button onClick={() => setStatus('reserved')}>Mark reserved</button>}
-            {l.status !== 'active' && <button onClick={() => setStatus('active')}>Mark available</button>}
-            {l.status !== 'sold' && <button onClick={() => setStatus('sold')}>Mark sold</button>}
-            <button className="danger" onClick={remove}>Delete</button>
+            <Link to={`/sell/${l.id}`} className="btn" aria-disabled={busy} onClick={(e) => { if (actionLock.current) e.preventDefault() }}>Edit</Link>
+            {l.status !== 'reserved' && <button disabled={busy} onClick={() => void setStatus('reserved')}>Mark reserved</button>}
+            {l.status !== 'active' && <button disabled={busy} onClick={() => void setStatus('active')}>Mark available</button>}
+            {l.status !== 'sold' && <button disabled={busy} onClick={() => void setStatus('sold')}>Mark sold</button>}
+            <button className="danger" disabled={busy} onClick={remove}>Delete</button>
           </div>
         )}
         {mine && daysLeft !== null && l.status !== 'sold' && (
-          <p className={daysLeft <= 3 ? 'error small' : 'muted small'}>{daysLeft > 0 ? `Listing expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}.` : 'This listing has expired and is hidden from others.'} <button className="link" onClick={renew}>Renew for 30 days</button></p>
+          <p className={daysLeft <= 3 ? 'error small' : 'muted small'}>{daysLeft > 0 ? `Listing expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}.` : 'This listing has expired and is hidden from others.'} <button className="link" disabled={busy} onClick={() => void renew()}>Renew for 30 days</button></p>
         )}
         {msg && <p className="muted">{msg}</p>}
         {saveError && <p className="error" role="alert">{saveError} <button onClick={retrySaved} disabled={savedLoading || saving.size > 0}>Reload saved items</button></p>}
