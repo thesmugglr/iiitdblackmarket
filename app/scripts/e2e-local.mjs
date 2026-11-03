@@ -770,14 +770,14 @@ await step('keyset discovery reaches later pages across inserts/deletions, tied 
   assert.equal(new Set(loaded.map(l => l.id)).size, loaded.length)
   assert.equal((await loadBrowsePage(buyer.c, filters, null, cutoff)).items[0].id, incoming.id, 'refresh can show the newly inserted row')
 
-  const member = await user('paging-ties'), tieMarker = `paging-${run}`
+  const member = await user('paging-ties'), tieMarker = `paging-${run} (CS_101), "50%"`
   const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, '.123456Z')
   const rows = Array.from({ length: 130 }, (_, i) => ({ seller_id: member.id, title: `${tieMarker} ${i}`, listing_type: 'sale', category: 'electronics', condition: 'good',
     price_inr: i < 65 ? 50 : 51, created_at: timestamp,
   }))
   ok(await member.c.from('listings').insert(rows))
   for (const sort of ['new', 'low', 'high']) {
-    let expectedQuery = member.c.from('listings').select('id').eq('seller_id', member.id).like('title', `${tieMarker} %`)
+    let expectedQuery = member.c.from('listings').select('id').eq('seller_id', member.id)
     if (sort !== 'new') expectedQuery = expectedQuery.order('price_inr', { ascending: sort === 'low' })
     const expected = ok(await expectedQuery.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(1000))
     const actual = []; let cursor = null, count = 0
@@ -790,6 +790,13 @@ await step('keyset discovery reaches later pages across inserts/deletions, tied 
     assert.equal(count, 3); assert.equal(actual.length, 130)
     assert.deepEqual(actual.map(l => l.id), expected.map(l => l.id)); assert.equal(new Set(actual.map(l => l.id)).size, 130)
   }
+  const capped = []; let cursor = null
+  do {
+    const page = await loadBrowsePage(member.c, { q: tieMarker, category: 'electronics', type: 'sale', condition: 'good', maxPrice: '50.9', sort: 'low' }, cursor)
+    capped.push(...page.items); cursor = page.next
+    assert.ok(capped.length <= 65, 'filtered pages must terminate within their price cap')
+  } while (cursor)
+  assert.equal(capped.length, 65); assert.equal(capped.every(item => item.price_inr === 50), true)
 })
 
 await step('remove only photos, bootstrap rows, roster entries, student codes and accounts created by this run', async () => {
