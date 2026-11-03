@@ -8,6 +8,8 @@ import { loadProfileDashboard, saveProfile } from '../src/lib/profileData.ts'
 import { cleanupListingPhotos, deleteOwnedListing, updateOwnedListingStatus } from '../src/lib/listingActions.ts'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
+import { spawnSync } from 'node:child_process'
 import { observeTextComposer, sendChatText } from '../src/lib/chatText.ts'
 import { makeOfferOnce, observeOfferComposer, respondOfferOnce } from '../src/lib/chatOffers.ts'
 import { observeAttachment, sendChatImage, uploadChatAttachment } from '../src/lib/chatAttachments.ts'
@@ -797,6 +799,53 @@ await step('keyset discovery reaches later pages across inserts/deletions, tied 
     assert.ok(capped.length <= 65, 'filtered pages must terminate within their price cap')
   } while (cursor)
   assert.equal(capped.length, 65); assert.equal(capped.every(item => item.price_inr === 50), true)
+})
+
+await step('trusted read-only storage audit preserves references and reports unlinked metadata without deleting files', async () => {
+  const owner = await user('storage-audit'), visitor = await user('storage-audit-buyer')
+  const original = `${owner.id}/audit-${run}.jpg`, thumbnail = thumbPath(original)
+  const missing = `${owner.id}/missing-${run}.jpg`, unlinked = `${owner.id}/unlinked-${run}.jpg`
+  for (const path of [original, thumbnail, unlinked]) {
+    ok(await owner.c.storage.from('listing-photos').upload(path, jpeg, { contentType: 'image/jpeg' }))
+    uploadedObjects.push(['listing-photos', path])
+  }
+  const item = ok(await owner.c.from('listings').insert({ seller_id: owner.id, title: 'Storage audit fixture', listing_type: 'sale', category: 'misc', condition: 'good', price_inr: 10, photos: [original, missing] }).select('id,photos').single())
+  const conversation = ok(await visitor.c.rpc('start_conversation', { p_listing: item.id }))
+  const attachment = `${conversation}/audit-${run}.png`
+  ok(await visitor.c.storage.from('chat-attachments').upload(attachment, png, { contentType: 'image/png' }))
+  uploadedObjects.push(['chat-attachments', attachment])
+  const message = ok(await visitor.c.from('messages').insert({ conversation_id: conversation, sender_id: visitor.id, image_path: attachment }).select('id,image_path').single())
+  // Only the disposable stack selected by readLocalStack() is used. No hosted
+  // connection, password or report contents are passed to logs or command args.
+  const sql = await readFile(new URL('../../supabase/ops/storage-audit.sql', import.meta.url), 'utf8')
+  const audit = (zeroAge = false) => {
+    const result = spawnSync('docker', ['exec', '-i', 'supabase_db_iiitdblackmarket', 'psql', '-U', 'postgres', '-d', 'postgres', '-X', '-qAt', '-v', 'ON_ERROR_STOP=1'], {
+      input: (zeroAge ? "set iiitd.audit_min_age='0 seconds';\n" : '') + sql,
+      encoding: 'utf8', timeout: 30000, maxBuffer: 2 * 1024 * 1024,
+    })
+    if (result.error || result.status !== 0) throw new Error('Disposable database storage audit execution failed (output suppressed)')
+    try { return JSON.parse(result.stdout.trim()) }
+    catch { throw new Error('Disposable database storage audit returned an invalid report (output suppressed)') }
+  }
+  const normal = audit(), immediate = audit(true)
+  for (const report of [normal, immediate]) {
+    assert.equal(report.transaction_read_only, 'on'); assert.equal(report.transaction_isolation, 'repeatable read')
+    assert.equal(report.buckets.length, 2)
+    assert.equal(report.buckets.every(b => b.bucket_exists && b.public === false), true)
+    for (const path of [original, thumbnail, attachment]) assert.equal(report.review_candidate_sample.some(o => o.name === path), false, 'referenced objects stay protected')
+    assert.ok(report.missing_reference_sample.some(r => r.name === missing && r.required))
+    assert.ok(report.missing_reference_sample.some(r => r.name === thumbPath(missing) && !r.required))
+  }
+  assert.equal(normal.minimum_age_seconds, 86400)
+  assert.equal(normal.review_candidate_sample.some(o => o.name === unlinked), false, 'new unlinked upload is held')
+  assert.equal(immediate.minimum_age_seconds, 0)
+  assert.ok(immediate.review_candidate_sample.some(o => o.name === unlinked), 'zero-age test exposes the unlinked metadata candidate')
+  assert.deepEqual(ok(await owner.c.from('listings').select('id,photos').eq('id', item.id).single()), item)
+  assert.deepEqual(ok(await visitor.c.from('messages').select('id,image_path').eq('id', message.id).single()), message)
+  for (const path of [original, thumbnail, unlinked]) {
+    assert.deepEqual(Buffer.from(await ok(await owner.c.storage.from('listing-photos').download(path)).arrayBuffer()), jpeg)
+  }
+  assert.deepEqual(Buffer.from(await ok(await visitor.c.storage.from('chat-attachments').download(attachment)).arrayBuffer()), png)
 })
 
 await step('remove only photos, bootstrap rows, roster entries, student codes and accounts created by this run', async () => {
