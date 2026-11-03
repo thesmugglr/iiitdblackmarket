@@ -5,6 +5,7 @@ import { readLocalStack } from './local-stack.mjs'
 import { thumbPath } from '../src/lib/image.ts'
 import { addStudentRoster, changeMemberStatus, removeReportedListing, updateReportStatus } from '../src/lib/adminActions.ts'
 import { loadProfileDashboard, saveProfile } from '../src/lib/profileData.ts'
+import { cleanupListingPhotos, deleteOwnedListing, updateOwnedListingStatus } from '../src/lib/listingActions.ts'
 import assert from 'node:assert/strict'
 
 const env = readLocalStack()
@@ -338,6 +339,40 @@ await step('admin helpers confirm roster approvals and moderation; rejected remo
   await assert.rejects(updateReportStatus(outsider.c, target.id, 'dismissed'))
   await updateReportStatus(adm.c, target.id, 'dismissed')
   assert.equal(ok(await adm.c.from('reports').select('status').eq('id', target.id).single()).status, 'dismissed')
+})
+
+await step('owner listing helpers confirm status/deletion; denied writes preserve photos and actual deleted-row photos are cleaned', async () => {
+  const member = await user('deletion')
+  const original = `${member.id}/old-${run}.jpg`, current = `${member.id}/current-${run}.jpg`
+  for (const path of [original, current, thumbPath(current)]) {
+    ok(await member.c.storage.from('listing-photos').upload(path, jpeg, { contentType: 'image/jpeg' }))
+    uploadedObjects.push(['listing-photos', path])
+  }
+  const item = ok(await member.c.from('listings').insert({ seller_id: member.id, title: 'Deletion fixture', listing_type: 'sale', category: 'hostel', condition: 'good', price_inr: 50, photos: [original] }).select('id').single())
+  await updateOwnedListingStatus(member.c, item.id, member.id, 'reserved')
+  assert.equal(ok(await member.c.from('listings').select('status').eq('id', item.id).single()).status, 'reserved')
+  await assert.rejects(updateOwnedListingStatus(outsider.c, item.id, member.id, 'sold'))
+  await assert.rejects(deleteOwnedListing(outsider.c, item.id, member.id))
+  ok(await member.c.from('listings').update({ photos: [current] }).eq('id', item.id))
+  await changeMemberStatus(adm.c, member.id, 'suspended')
+  await assert.rejects(deleteOwnedListing(member.c, item.id, member.id))
+  assert.equal(ok(await admin.from('listings').select('id').eq('id', item.id)).length, 1)
+  assert.equal(ok(await admin.storage.from('listing-photos').createSignedUrls([original, current, thumbPath(current)], 60)).filter(s => s.signedUrl).length, 3)
+  await changeMemberStatus(adm.c, member.id, 'approved')
+  ok(await adm.c.from('listings').update({ status: 'removed' }).eq('id', item.id))
+  await assert.rejects(updateOwnedListingStatus(member.c, item.id, member.id, 'active'))
+  const photos = await deleteOwnedListing(member.c, item.id, member.id)
+  assert.deepEqual(photos, [current], 'cleanup must use the actual deleted row, not an old detail snapshot')
+  await changeMemberStatus(adm.c, member.id, 'suspended')
+  await assert.rejects(cleanupListingPhotos(member.c, member.id, photos), /Retry photo cleanup/)
+  assert.ok(ok(await admin.storage.from('listing-photos').createSignedUrls([current], 60))[0].signedUrl)
+  await changeMemberStatus(adm.c, member.id, 'approved')
+  await cleanupListingPhotos(member.c, member.id, photos)
+  await cleanupListingPhotos(member.c, member.id, photos) // retry remains safe when originals/thumbnails are already absent
+  assert.equal(ok(await admin.from('listings').select('id').eq('id', item.id)).length, 0)
+  const signed = ok(await admin.storage.from('listing-photos').createSignedUrls([original, current, thumbPath(current)], 60))
+  assert.ok(signed[0].signedUrl, 'old snapshot photo was not deleted by this cleanup')
+  assert.ok(!signed[1].signedUrl && !signed[2].signedUrl, 'current original and thumbnail were removed')
 })
 
 await step('remove only photos, bootstrap rows, roster entries, student codes and accounts created by this run', async () => {
