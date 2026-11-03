@@ -7,6 +7,7 @@ import { inr } from '../lib/constants'
 import { preparePhoto } from '../lib/image'
 import { useSignedUrls } from '../lib/useSignedUrls'
 import { emptyConversation, observeConversation } from '../lib/conversationState'
+import { emptyTextComposer, observeTextComposer, sendChatText } from '../lib/chatText'
 import type { Conversation, Message, Offer } from '../lib/types'
 
 function Bubble({ m, mine, onReport }: { m: Message; mine: boolean; onReport: () => void }) {
@@ -26,19 +27,33 @@ function Bubble({ m, mine, onReport }: { m: Message; mine: boolean; onReport: ()
 
 export default function Chat() {
   const { id } = useParams()
+  const { profile } = useAuth()
   // A new route must never render the preceding conversation or its draft.
-  return <ConversationChat key={id} id={id ?? ''} />
+  return <ConversationChat key={`${profile?.id}:${id}`} id={id ?? ''} />
 }
 
 function ConversationChat({ id }: { id: string }) {
   const { profile } = useAuth()
+  const memberId = profile?.id
   const [snapshot, setSnapshot] = useState(emptyConversation)
   const [attempt, setAttempt] = useState(0)
   const { conversation: conv, messages: msgs, offers, loading, error: loadError } = snapshot
-  const [text, setText] = useState('')
+  const [{ text, sending, error: sendError }, setComposer] = useState(emptyTextComposer)
+  const composer = useRef<ReturnType<typeof observeTextComposer> | null>(null)
   const [err, setErr] = useState('')
   const [offerAmt, setOfferAmt] = useState('')
   const bottom = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!memberId) return
+    const current = observeTextComposer({
+      newId: () => crypto.randomUUID(),
+      write: request => sendChatText(supabase, id, memberId, request),
+      publish: setComposer,
+    })
+    composer.current = current
+    return () => { current.dispose(); composer.current = null }
+  }, [id, memberId])
 
   useEffect(() => {
     return observeConversation(id, {
@@ -85,13 +100,10 @@ function ConversationChat({ id }: { id: string }) {
   const otherName = isBuyer ? conv.seller?.display_name : conv.buyer?.display_name
   const pending = offers.find((o) => o.status === 'pending')
 
-  const send = async (e: FormEvent) => {
+  const send = (e: FormEvent) => {
     e.preventDefault()
-    if (!text.trim()) return
-    const body = text.trim()
-    setText('')
-    const { error } = await supabase.from('messages').insert({ conversation_id: conv.id, sender_id: profile.id, body })
-    if (error) setErr(error.message)
+    setErr('')
+    void composer.current?.send()
   }
   const attach = async (file?: File) => {
     if (!file) return
@@ -156,11 +168,12 @@ function ConversationChat({ id }: { id: string }) {
         </div>
       )}
       {err && <p className="error small">{err}</p>}
+      {sendError && <p className="error small" role="alert">{sendError}</p>}
       {loadError && <p className="error small">{loadError} {retry}</p>}
-      <form className="composer" onSubmit={send}>
+      <form className="composer" onSubmit={send} aria-busy={sending}>
         <label className="attach" title="Attach photo"><Clip /><input type="file" accept="image/*" hidden onChange={(e) => { void attach(e.target.files?.[0]); e.target.value = '' }} /></label>
-        <input value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} placeholder="Type a message" />
-        <button className="primary">Send</button>
+        <input value={text} onChange={(e) => composer.current?.edit(e.target.value)} maxLength={2000} placeholder="Type a message" />
+        <button className="primary" disabled={sending || !text.trim()}>{sending ? 'Sending…' : 'Send'}</button>
       </form>
     </div>
   )
