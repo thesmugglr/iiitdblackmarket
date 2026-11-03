@@ -61,6 +61,8 @@ Admin reads the complete member directory and open-report queue through 200-row 
 
 ## 3. Local configuration
 
+Large roster submissions validate all addresses before writing, then confirm 200-entry batches below the configured 1,000-row API cap. Existing pending-member approvals start after all batches are confirmed and use conditional `status = pending` updates under the existing admin policy/trigger. This preserves a suspension applied since the directory was loaded; already-approved rows are confirmed instead of rewritten. Manual status controls retain their existing RPC. On partial or uncertain failure, earlier batches can remain saved, the input is retained, and retry repeats safe upserts; no rollback deletes are attempted. Changing account/leaving Admin stops subsequent phases, while an already-dispatched request can still commit. Verify enrollment before submitting addresses; a domain alone is insufficient. Keep all roster contents private.
+
 Use Node.js 24. From the repository:
 
 ```sh
