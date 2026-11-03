@@ -363,6 +363,10 @@ await step('owner listing helpers confirm status/deletion; denied writes preserv
   await assert.rejects(updateOwnedListingStatus(member.c, item.id, member.id, 'active'))
   const photos = await deleteOwnedListing(member.c, item.id, member.id)
   assert.deepEqual(photos, [current], 'cleanup must use the actual deleted row, not an old detail snapshot')
+  await changeMemberStatus(adm.c, member.id, 'suspended')
+  await assert.rejects(cleanupListingPhotos(member.c, member.id, photos), /Retry photo cleanup/)
+  assert.ok(ok(await admin.storage.from('listing-photos').createSignedUrls([current], 60))[0].signedUrl)
+  await changeMemberStatus(adm.c, member.id, 'approved')
   await cleanupListingPhotos(member.c, member.id, photos)
   await cleanupListingPhotos(member.c, member.id, photos) // retry remains safe when originals/thumbnails are already absent
   assert.equal(ok(await admin.from('listings').select('id').eq('id', item.id)).length, 0)
