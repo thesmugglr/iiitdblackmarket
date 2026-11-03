@@ -22,7 +22,7 @@ function api(...responses) {
     from(table) {
       const call = { table }, b = {}
       for (const method of ['update', 'upsert', 'eq', 'select']) b[method] = (...args) => { call[method] = args; return b }
-      b.single = () => next(call)
+      b.single = b.maybeSingle = () => next(call)
       b.then = (yes, no) => next(call).then(yes, no)
       return b
     },
@@ -84,8 +84,7 @@ test('member RPC failure or missing confirmation cannot report approval', async 
 test('roster deduplicates addresses and retains partial member approval results', async () => {
   const a = 'a@iiitd.ac.in', b = 'b@iiitd.ac.in', c = 'c@iiitd.ac.in'
   const client = api(success([{ email: a }, { email: b }, { email: c }]), failure,
-    success(null), success({ id: 'b', status: 'approved' }),
-    success(null), success({ id: 'c', status: 'pending' }))
+    success({ id: 'b', status: 'approved' }), success({ id: 'c', status: 'pending' }))
   const result = await addStudentRoster(client, ` A@iiitd.ac.in;${a}\n${b},${c}`, [
     { id: 'a', email: a, status: 'pending' }, { id: 'b', email: b, status: 'pending' },
     { id: 'c', email: c, status: 'pending' }, { id: 'other', email: 'other@iiitd.ac.in', status: 'pending' },
@@ -93,7 +92,8 @@ test('roster deduplicates addresses and retains partial member approval results'
   ])
   assert.deepEqual(result, { added: 3, approved: 1, failed: 2 })
   assert.deepEqual(client.calls[0].upsert, [[{ email: a }, { email: b }, { email: c }]])
-  assert.deepEqual(client.calls.filter(c => c.rpc).map(c => c.args.p_user), ['a', 'b', 'c'])
+  assert.equal(client.calls.filter(c => c.table === 'profiles').length, 3)
+  assert.equal(client.calls.some(c => c.rpc), false)
 })
 
 test('roster failure and incomplete returning rows do not start approvals', async () => {
