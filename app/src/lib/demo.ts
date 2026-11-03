@@ -53,12 +53,13 @@ function builder(table: string) {
   const b: Record<string, unknown> = {}
   const chain = () => b
   for (const m of ['select', 'eq', 'neq', 'in', 'or', 'lte', 'is', 'gt', 'order', 'limit', 'insert', 'update', 'upsert', 'delete']) b[m] = chain
-  // Only the administrator read contract is modeled here. Other preview
-  // queries/actions remain visual stand-ins, not a Supabase emulator.
+  // Route reads must select the requested fixture rather than returning the
+  // first row. Only equality plus the administrator ordering/continuation
+  // contract is modeled; other queries/actions remain visual stand-ins.
+  b.eq = (key: string, value: unknown) => { rows = rows.filter(row => row[key] === value); return b }
   const orders: { key: string; ascending: boolean }[] = []
   let limit = Infinity
   if (table === 'profiles' || table === 'reports') {
-    b.eq = (key: string, value: unknown) => { rows = rows.filter(row => row[key] === value); return b }
     b.order = (key: string, options: { ascending?: boolean } = {}) => { orders.push({ key, ascending: options.ascending !== false }); return b }
     b.limit = (value: number) => { limit = value; return b }
     b.or = (expression: string) => {
