@@ -59,9 +59,9 @@ Sign back in, open Admin, and add only verified current-student emails to the ro
 
 Admin reads the complete member directory and open-report queue through 200-row keyset requests using the existing `admin_profiles` RPC and reports policy. The API row cap stays unchanged. Directory order is newest first, reports oldest first; timestamp/ID ties preserve continuation. A short page alone is insufficient: an empty continuation and confirmed current approved-admin profile complete the load. Errors retain the existing lists with actions disabled and Retry available. Each account/attempt owns its requests. Rows can change between pages; retry/reload obtains a fresh view rather than a transactional snapshot. Member emails and report data stay private. PostgREST supports [table-valued RPC filters/order/limits](https://docs.postgrest.org/en/v16/references/api/functions.html) and [logical filters](https://docs.postgrest.org/en/stable/references/api/tables_views.html); no new public function, grants or migration are needed.
 
-## 3. Local configuration
-
 Large roster submissions validate all addresses before writing, then confirm 200-entry batches below the configured 1,000-row API cap. Existing pending-member approvals start after all batches are confirmed and use conditional `status = pending` updates under the existing admin policy/trigger. This preserves a suspension applied since the directory was loaded; already-approved rows are confirmed instead of rewritten. Manual status controls retain their existing RPC. On partial or uncertain failure, earlier batches can remain saved, the input is retained, and retry repeats safe upserts; no rollback deletes are attempted. Changing account/leaving Admin stops subsequent phases, while an already-dispatched request can still commit. Verify enrollment before submitting addresses; a domain alone is insufficient. Keep all roster contents private.
+
+## 3. Local configuration
 
 Use Node.js 24. From the repository:
 
