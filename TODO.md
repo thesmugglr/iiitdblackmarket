@@ -6,7 +6,7 @@ Statuses: `Backlog`, `Ready`, `In progress`, `Blocked`, `Review`, `Done`.
 
 Claim a task by adding your GitHub handle to Owner and linking your branch or pull request. Coordinate claims in GitHub before starting parallel work; local edits alone do not reserve a task. Split large tasks into smaller IDs as implementation becomes concrete.
 
-Current engineering review: [MOD-03 / PR #35](https://github.com/garvrao80/iiitdblackmarket/pull/35).
+Current engineering review: [MOD-03 / PR #35](https://github.com/garvrao80/iiitdblackmarket/pull/35). Final service coverage includes 1,005 generated member accounts plus 1,050 reports, both old API caps and complete ordered results, with run-scoped cleanup. CI pending.
 
 | ID | Task | Status | Owner | Depends on | Branch / PR / notes |
 | --- | --- | --- | --- | --- | --- |
