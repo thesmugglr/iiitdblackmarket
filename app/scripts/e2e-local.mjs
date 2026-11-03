@@ -16,6 +16,8 @@ import { observeAttachment, sendChatImage, uploadChatAttachment } from '../src/l
 import { loadInbox } from '../src/lib/inboxState.ts'
 import { observeListingSave, writeListingDraft } from '../src/lib/listingSave.ts'
 import { emptyBrowseFilters, loadBrowseListings, loadBrowseOverview, loadBrowsePage } from '../src/lib/browseState.ts'
+import { createLinkCache } from '../src/lib/signedUrlCache.ts'
+import { requestSignedLinks } from '../src/lib/storageLinks.ts'
 
 const env = readLocalStack()
 const URL_ = env.API_URL, ANON = env.ANON_KEY
@@ -799,6 +801,44 @@ await step('keyset discovery reaches later pages across inserts/deletions, tied 
     assert.ok(capped.length <= 65, 'filtered pages must terminate within their price cap')
   } while (cursor)
   assert.equal(capped.length, 65); assert.equal(capped.every(item => item.price_inr === 50), true)
+})
+
+await step('signed-photo cache discards a delayed real signing reply across account access changes', async () => {
+  const owner = await user('cache-owner'), next = await user('cache-next', { approve: false })
+  const path = `${owner.id}/cache-${run}.jpg`
+  ok(await owner.c.storage.from('listing-photos').upload(path, jpeg, { contentType: 'image/jpeg' }))
+  uploadedObjects.push(['listing-photos', path])
+  ok(await owner.c.from('listings').insert({ seller_id: owner.id, title: 'Photo cache fixture', listing_type: 'sale', category: 'misc', condition: 'good', price_inr: 10, photos: [path] }))
+  const signedBefore = await requestSignedLinks(owner.c, 'listing-photos', [path], 86400)
+  assert.ok(signedBefore[0]?.url)
+  let release, calls = 0
+  const hold = new Promise(resolve => { release = resolve })
+  const stored = new Map()
+  const cache = createLinkCache({ scope: owner.id, lifetimeMs: 86400000, renewBeforeMs: 3600000, missingMs: 600000,
+    store: { getItem: key => stored.get(key) ?? null, setItem: (key, value) => stored.set(key, value), removeItem: key => stored.delete(key) },
+    sign: async paths => { if (++calls === 1) { await hold; return signedBefore } return requestSignedLinks(next.c, 'listing-photos', paths, 86400) },
+  })
+  try {
+    const old = cache.links([path]); await Promise.resolve()
+    cache.setScope(null)
+    assert.deepEqual(await old, ['']); assert.deepEqual(await cache.links([path]), ['']); assert.equal(calls, 1)
+    const pendingProfile = ok(await next.c.rpc('my_profile').single())
+    assert.equal(pendingProfile.status, 'pending')
+    ok(await admin.from('profiles').update({ status: 'approved' }).eq('id', next.id))
+    const approved = ok(await next.c.rpc('my_profile').single())
+    assert.equal(approved.status, 'approved'); cache.setScope(approved.id)
+    const current = await cache.links([path])
+    assert.ok(current[0]); assert.equal(calls, 2)
+    release(); await Promise.resolve(); await Promise.resolve()
+    assert.equal(JSON.parse([...stored.values()][0]).scope, next.id, 'late prior-account result must not change cache ownership')
+    assert.ok((await cache.links([path]))[0]); assert.equal(calls, 2, 'current account reuses its confirmed link')
+    const downloaded = await fetch(current[0])
+    assert.equal(downloaded.status, 200); assert.deepEqual(Buffer.from(await downloaded.arrayBuffer()), jpeg)
+    ok(await admin.from('profiles').update({ status: 'suspended' }).eq('id', next.id))
+    const suspended = ok(await next.c.rpc('my_profile').single())
+    assert.equal(suspended.status, 'suspended'); cache.setScope(null)
+    assert.deepEqual(await cache.links([path]), ['']); assert.equal(stored.size, 0); assert.equal(calls, 2)
+  } finally { release(); cache.clear() }
 })
 
 await step('trusted read-only storage audit preserves references and reports unlinked metadata without deleting files', async () => {

@@ -1,34 +1,6 @@
 import { useEffect, useState } from 'react'
 import { thumbPath } from './image'
-import { createLinkCache } from './signedUrlCache'
-import { supabase } from './supabase'
-
-const LISTING_PHOTOS = 'listing-photos'
-const HOUR = 3600
-const DAY = 24 * HOUR
-
-async function signPaths(bucket: string, paths: string[], seconds: number) {
-  const { data } = await supabase.storage.from(bucket).createSignedUrls(paths, seconds)
-  return (data ?? []).map((d) => ({ path: d.path ?? '', url: d.signedUrl ?? '' }))
-}
-
-function browserStore() {
-  try { return typeof window === 'undefined' ? undefined : window.localStorage } catch { return undefined }
-}
-
-// Listing photos can be read by every approved student, so their links are shared between screens and kept for the
-// day: the browser then reuses the picture it already has instead of downloading it again (free-plan bandwidth is
-// small). Chat photos belong to one conversation, so those links are signed fresh for an hour and never kept.
-const photoLinks = createLinkCache({
-  sign: (paths) => signPaths(LISTING_PHOTOS, paths, DAY),
-  lifetimeMs: DAY * 1000,
-  renewBeforeMs: HOUR * 1000,
-  missingMs: 10 * 60 * 1000,
-  store: browserStore(),
-})
-
-/** Call on sign-out so the next person on this browser starts with no remembered links. */
-export function forgetPhotoLinks() { photoLinks.clear() }
+import { HOUR, LISTING_PHOTOS, photoLinks, signPaths } from './photoLinks'
 
 /** Resolve private-bucket object paths to short-lived signed URLs. */
 export function useSignedUrls(bucket: string, paths: string[]): string[] {
