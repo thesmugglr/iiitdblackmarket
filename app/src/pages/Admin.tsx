@@ -3,13 +3,15 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Profile } from '../lib/types'
 import { addStudentRoster, changeMemberStatus, removeReportedListing, updateReportStatus } from '../lib/adminActions'
-
-interface Report {
-  id: string; reason: string; status: string; listing_id: string | null; message_id: string | null
-  reporter: { display_name: string } | null
-}
+import { loadAdminData, type AdminReport as Report } from '../lib/adminData'
+import { useAuth } from '../lib/auth'
 
 export default function Admin() {
+  const { profile } = useAuth()
+  return <AdminPage key={profile?.id} account={profile?.id ?? ''} />
+}
+
+function AdminPage({ account }: { account: string }) {
   const [users, setUsers] = useState<Profile[]>([])
   const [reports, setReports] = useState<Report[]>([])
   const [roster, setRoster] = useState('')
@@ -26,20 +28,16 @@ export default function Admin() {
     setLoading(true)
     setLoadError('')
     try {
-      const [u, r] = await Promise.all([
-        supabase.rpc('admin_profiles'),
-        supabase.from('reports').select('*, reporter:profiles!reports_reporter_id_fkey(display_name)').eq('status', 'open').order('created_at'),
-      ])
+      const data = await loadAdminData(supabase, account, () => active.current && request === loadRequest.current)
       if (!active.current || request !== loadRequest.current) return
-      if (u.error || r.error || !u.data || !r.data) throw new Error('load failed')
-      setUsers(u.data as Profile[])
-      setReports(r.data as unknown as Report[])
+      setUsers(data.users)
+      setReports(data.reports)
     } catch {
       if (active.current && request === loadRequest.current) setLoadError('Could not load administrator data. Refresh and try again.')
     } finally {
       if (active.current && request === loadRequest.current) setLoading(false)
     }
-  }, [])
+  }, [account])
   useEffect(() => {
     active.current = true
     void load()
