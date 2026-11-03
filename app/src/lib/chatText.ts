@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { writeChatMessage } from './chatMessages.ts'
 
 export interface TextRequest { id: string; body: string }
 export interface TextComposer { text: string; sending: boolean; error: string }
@@ -12,15 +13,7 @@ export async function sendChatText(
 ) {
   if (!request.body.trim() || request.body.length > 2000) throw new Error('Invalid message text')
   const row = { id: request.id, conversation_id: conversation, sender_id: sender, body: request.body }
-  // A response may be lost after the insert commits. Reusing this client ID
-  // with DO NOTHING makes a same-draft retry safe without an UPDATE policy.
-  const result = await api.from('messages').upsert(row, { onConflict: 'id', ignoreDuplicates: true })
-  if (result.error) throw new Error('Message write failed')
-  const confirmed = await api.from('messages').select('id,conversation_id,sender_id,body,image_path').eq('id', request.id).single()
-  const message = confirmed.data
-  if (confirmed.error || message?.id !== request.id || message?.conversation_id !== conversation || message?.sender_id !== sender || message?.body !== request.body || message?.image_path !== null) {
-    throw new Error('Message could not be confirmed')
-  }
+  return writeChatMessage(api, row)
 }
 
 interface TextSource {

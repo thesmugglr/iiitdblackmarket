@@ -9,6 +9,7 @@ import { useSignedUrls } from '../lib/useSignedUrls'
 import { emptyConversation, observeConversation } from '../lib/conversationState'
 import { emptyTextComposer, observeTextComposer, sendChatText } from '../lib/chatText'
 import { emptyOfferComposer, makeOfferOnce, observeOfferComposer, respondOfferOnce } from '../lib/chatOffers'
+import { emptyAttachment, observeAttachment, sendChatImage, uploadChatAttachment } from '../lib/chatAttachments'
 import type { Conversation, Message, Offer } from '../lib/types'
 
 function Bubble({ m, mine, onReport }: { m: Message; mine: boolean; onReport: () => void }) {
@@ -44,6 +45,8 @@ function ConversationChat({ id }: { id: string }) {
   const [err, setErr] = useState('')
   const [{ amount: offerAmt, busy: offerBusy, error: offerError }, setOfferComposer] = useState(emptyOfferComposer)
   const offerComposer = useRef<ReturnType<typeof observeOfferComposer> | null>(null)
+  const [photoState, setPhotoState] = useState(emptyAttachment)
+  const attachment = useRef<ReturnType<typeof observeAttachment> | null>(null)
   const bottom = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -69,6 +72,18 @@ function ConversationChat({ id }: { id: string }) {
     return () => { current.dispose(); offerComposer.current = null }
   }, [id, memberId])
   useEffect(() => { offerComposer.current?.acknowledge(offers) }, [offers])
+
+  useEffect(() => {
+    if (!memberId) return
+    const current = observeAttachment({
+      conversation: id, newId: () => crypto.randomUUID(), prepare: preparePhoto,
+      upload: request => uploadChatAttachment(supabase, request),
+      link: request => sendChatImage(supabase, id, memberId, request),
+      confirmed: () => setAttempt(n => n + 1), publish: setPhotoState,
+    })
+    attachment.current = current
+    return () => { current.dispose(); attachment.current = null }
+  }, [id, memberId])
 
   useEffect(() => {
     return observeConversation(id, {
@@ -120,19 +135,10 @@ function ConversationChat({ id }: { id: string }) {
     setErr('')
     void composer.current?.send()
   }
-  const attach = async (file?: File) => {
+  const attach = (file?: File) => {
     if (!file) return
     setErr('')
-    try {
-      const { blob, ext, type } = await preparePhoto(file)
-      const path = `${conv.id}/${crypto.randomUUID()}.${ext}`
-      const up = await supabase.storage.from('chat-attachments').upload(path, blob, { contentType: type })
-      if (up.error) return setErr(up.error.message)
-      const { error } = await supabase.from('messages').insert({ conversation_id: conv.id, sender_id: profile.id, image_path: path })
-      if (error) setErr(error.message)
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Could not send that photo.')
-    }
+    void attachment.current?.choose(file)
   }
   const makeOffer = () => {
     setErr('')
@@ -184,9 +190,11 @@ function ConversationChat({ id }: { id: string }) {
       {err && <p className="error small">{err}</p>}
       {sendError && <p className="error small" role="alert">{sendError}</p>}
       {offerError && <p className="error small" role="alert">{offerError}</p>}
+      {photoState.busy && <p className="muted small" role="status">Sending photo…</p>}
+      {photoState.error && <p className="error small" role="alert">{photoState.name}: {photoState.error} <button disabled={photoState.busy} onClick={() => void attachment.current?.retry()}>Retry photo</button></p>}
       {loadError && <p className="error small">{loadError} {retry}</p>}
-      <form className="composer" onSubmit={send} aria-busy={sending}>
-        <label className="attach" title="Attach photo"><Clip /><input type="file" accept="image/*" hidden onChange={(e) => { void attach(e.target.files?.[0]); e.target.value = '' }} /></label>
+      <form className="composer" onSubmit={send} aria-busy={sending || photoState.busy}>
+        <label className="attach" title="Attach photo"><Clip /><input type="file" accept="image/*" hidden disabled={photoState.busy || photoState.locked} onChange={(e) => { attach(e.target.files?.[0]); e.target.value = '' }} /></label>
         <input value={text} onChange={(e) => composer.current?.edit(e.target.value)} maxLength={2000} placeholder="Type a message" />
         <button className="primary" disabled={sending || !text.trim()}>{sending ? 'Sending…' : 'Send'}</button>
       </form>
