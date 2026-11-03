@@ -1,15 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { supabase } from './supabase'
 import type { Profile } from './types'
 import { observeAuth, type AuthSnapshot } from './authState'
 import { forgetPhotoLinks, setPhotoLinkAccount } from './photoLinks'
-
-interface AuthState extends AuthSnapshot {
-  refresh: () => Promise<void>
-  signOut: () => Promise<void>
-}
-const Ctx = createContext<AuthState>(null!)
-export const useAuth = () => useContext(Ctx)
+import { AuthContext } from './authContext'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [snapshot, setSnapshot] = useState<AuthSnapshot>({ session: null, profile: null, loading: true })
@@ -43,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <Ctx.Provider
+    <AuthContext.Provider
       value={{
         ...snapshot,
         refresh,
@@ -54,6 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </Ctx.Provider>
+    </AuthContext.Provider>
   )
 }
