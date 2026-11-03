@@ -33,4 +33,4 @@ Google Play developer account (US$25 once), Apple Developer Program (US$99 a yea
 
 ## Open items
 
-Google Cloud billing was not re-checked in the console. Storage and bandwidth use are not monitored yet: look at the organization's Usage page in the Supabase dashboard from time to time, and reduce photo sizes further or purge old photos if either quota gets close.
+Google Cloud billing was not re-checked in the console. Storage and bandwidth use are not monitored yet. [The storage operations runbook](storage-operations.md) now supplies a trusted-admin, read-only inventory of both app buckets, known/unknown metadata sizes, missing references and old unlinked review candidates. It preserves all listing/message references, including expired/removed listings; it does not delete files or establish safe retention. The organization Usage page remains necessary for the project's current period, quotas, egress and billing status. Actual hosted totals, automatic monitoring/alerts, real-photo size measurements and any trusted cleanup remain pending. Do not purge referenced expired-listing photos: renewal can use them.
