@@ -12,6 +12,7 @@ import { observeTextComposer, sendChatText } from '../src/lib/chatText.ts'
 import { makeOfferOnce, observeOfferComposer, respondOfferOnce } from '../src/lib/chatOffers.ts'
 import { observeAttachment, sendChatImage, uploadChatAttachment } from '../src/lib/chatAttachments.ts'
 import { loadInbox } from '../src/lib/inboxState.ts'
+import { observeListingSave, writeListingDraft } from '../src/lib/listingSave.ts'
 
 const env = readLocalStack()
 const URL_ = env.API_URL, ANON = env.ANON_KEY
@@ -602,6 +603,93 @@ await step('personal Inbox helper scopes buyer/seller/admin conversations and ac
   assert.deepEqual((await loadInbox(inboxAdmin.c, inboxAdmin.id)).unread, { [asSeller]: 1 })
   ok(await inboxAdmin.c.rpc('mark_read', { p_conversation: asSeller }))
   assert.deepEqual((await loadInbox(inboxAdmin.c, inboxAdmin.id)).unread, {})
+})
+
+await step('editor creation retry retains one listing and protects linked photos after a real lost reply', async () => {
+  const member = await user('editor-create'), id = randomUUID()
+  const first = `${member.id}/editor-first-${run}.jpg`, second = `${member.id}/editor-second-${run}.jpg`, unused = `${member.id}/editor-unused-${run}.jpg`
+  for (const path of [first, second, unused]) {
+    ok(await member.c.storage.from('listing-photos').upload(path, jpeg, { contentType: 'image/jpeg' }))
+    uploadedObjects.push(['listing-photos', path])
+  }
+  const row = { title: 'Editor create fixture', description: '', listing_type: 'sale', category: 'misc', condition: 'good', negotiable: false, price_inr: 100, pickup_area: null, rental_period: null, deposit_inr: null, photos: [first] }
+  const states = [], requests = [], saved = []
+  let lose = true
+  const flaky = { from(table) {
+    const real = member.c.from(table)
+    return { select: (...args) => real.select(...args), update: (...args) => real.update(...args), upsert: async (...args) => {
+      const result = await real.upsert(...args)
+      if (!result.error && lose) { lose = false; throw new Error('fixture lost listing creation reply') }
+      return result
+    } }
+  } }
+  const editor = observeListingSave({ newId: () => id, write: request => { requests.push(request); return writeListingDraft(flaky, member.id, request) },
+    cleanup: async () => {}, saved: value => saved.push(value), publish: value => states.push(value),
+  })
+  await editor.save(row)
+  assert.ok(states.at(-1).error); assert.deepEqual(saved, [])
+  const abandoned = [first, unused].filter(editor.canClean)
+  assert.deepEqual(abandoned, [unused])
+  await cleanupListingPhotos(member.c, member.id, abandoned)
+  assert.ok(ok(await member.c.storage.from('listing-photos').createSignedUrl(first, 60)).signedUrl, 'committed listing photo survives unmount cleanup candidates')
+  await editor.save({ ...row, title: 'Newer editor draft', photos: [first, second] })
+  assert.equal(states.at(-1).error, ''); assert.deepEqual(saved, [id])
+  assert.deepEqual(requests.map(r => [r.id, r.create]), [[id, true], [id, true], [id, false]])
+  const listing = ok(await member.c.from('listings').select('id,title,photos').eq('seller_id', member.id))
+  assert.deepEqual(listing, [{ id, title: 'Newer editor draft', photos: [first, second] }])
+  await assert.rejects(writeListingDraft(member.c, member.id, { id, create: true, row: { ...row, title: 'Collision payload' } }))
+  assert.equal(ok(await member.c.from('listings').select('title').eq('id', id).single()).title, 'Newer editor draft')
+  editor.dispose(); assert.equal(editor.canClean(first), false); assert.equal(editor.canClean(second), false)
+})
+
+await step('editor updates reject unauthorized/removed writes and retry partial cleanup without deleting submitted photos', async () => {
+  const member = await user('editor-update'), id = randomUUID()
+  const old = `${member.id}/editor-old-${run}.jpg`, current = `${member.id}/editor-current-${run}.jpg`
+  for (const path of [old, thumbPath(old), current, thumbPath(current)]) {
+    ok(await member.c.storage.from('listing-photos').upload(path, jpeg, { contentType: 'image/jpeg' }))
+    uploadedObjects.push(['listing-photos', path])
+  }
+  const row = { title: 'Editor update fixture', description: '', listing_type: 'sale', category: 'misc', condition: 'good', negotiable: false, price_inr: 100, pickup_area: null, rental_period: null, deposit_inr: null, photos: [old] }
+  await writeListingDraft(member.c, member.id, { id, create: true, row })
+  const next = { ...row, title: 'Confirmed editor update', photos: [current] }
+  await assert.rejects(writeListingDraft(outsider.c, member.id, { id, create: false, row: next }))
+  let lose = true, suspendCleanup = true
+  const flaky = { from(table) { return { update: (...args) => {
+    let query = member.c.from(table).update(...args)
+    const chain = {}
+    for (const method of ['eq', 'neq', 'select']) chain[method] = (...args) => { query = query[method](...args); return chain }
+    chain.single = async () => {
+      const result = await query.single()
+      if (!result.error && lose) { lose = false; throw new Error('fixture lost listing update reply') }
+      return result
+    }
+    return chain
+  } } } }
+  const states = [], saved = []
+  let cleanups = 0
+  const editor = observeListingSave({ id, newId: randomUUID, write: request => writeListingDraft(flaky, member.id, request),
+    cleanup: async (draft, canClean) => {
+      cleanups++
+      if (suspendCleanup) { suspendCleanup = false; await changeMemberStatus(adm.c, member.id, 'suspended') }
+      await cleanupListingPhotos(member.c, member.id, [old, current].filter(p => !draft.photos.includes(p) && canClean(p)))
+    }, saved: value => saved.push(value), publish: value => states.push(value),
+  })
+  await editor.save(next)
+  assert.ok(states.at(-1).error); assert.equal(cleanups, 0); assert.deepEqual(saved, [])
+  assert.equal(editor.canClean(current), false)
+  try {
+    await editor.save(next)
+    assert.match(states.at(-1).error, /listing was saved/); assert.deepEqual(saved, [])
+  } finally { await changeMemberStatus(adm.c, member.id, 'approved') }
+  await editor.save(next)
+  assert.deepEqual(saved, [id]); assert.equal(cleanups, 2)
+  const signed = ok(await admin.storage.from('listing-photos').createSignedUrls([old, thumbPath(old), current, thumbPath(current)], 60))
+  assert.equal(!!signed[0].signedUrl || !!signed[1].signedUrl, false)
+  assert.ok(signed[2].signedUrl && signed[3].signedUrl, 'submitted originals and thumbnails remain linked')
+  ok(await adm.c.from('listings').update({ status: 'removed' }).eq('id', id))
+  await assert.rejects(writeListingDraft(member.c, member.id, { id, create: false, row: { ...next, title: 'Cannot restore removed listing' } }))
+  assert.equal(ok(await adm.c.from('listings').select('status,title').eq('id', id).single()).status, 'removed')
+  editor.dispose()
 })
 
 await step('remove only photos, bootstrap rows, roster entries, student codes and accounts created by this run', async () => {
