@@ -110,4 +110,8 @@ Choose a static host, then use repository root `app`, build command `npm ci && n
 
 The host must rewrite browser routes such as `/listing/<id>` and `/inbox/<id>` to `/index.html`. `app/public/_redirects` provides that rule for hosts that support this file (including Netlify/Cloudflare Pages); configure an equivalent rewrite elsewhere. It does not protect private data: database/storage policies do that. References: [Netlify SPA rewrites](https://docs.netlify.com/manage/routing/redirects/rewrites-proxies/), [Cloudflare Pages redirects](https://developers.cloudflare.com/pages/configuration/redirects/).
 
-After obtaining the deployment's HTTPS origin, register it with Supabase and Google as required above, run live QA on that origin, and record the URL/commit tested. No host has been selected, no cloud setup has been applied, and nothing has been deployed by this preparation work.
+After obtaining the deployment's HTTPS origin, register it with Supabase and Google as required above, run live QA on that origin, and record the URL/commit tested. The owner has since selected Supabase and GitHub Pages; see [launch.md](launch.md) and [live-qa.md](live-qa.md) for attributed setup reports, independently checked public delivery and outstanding authenticated QA. This preparation work performs no deployment.
+
+## 6. Storage operations
+
+Use [storage-operations.md](storage-operations.md) for the trusted-admin, read-only usage/reference report. It runs as a standalone SQL batch, requires full RLS visibility, emits private path samples, and preserves every listing/chat reference. It introduces no migration, public RPC or cleanup job. Organization Usage/billing/egress checks and any future trusted cleanup remain separate; metadata totals are not billing figures.
