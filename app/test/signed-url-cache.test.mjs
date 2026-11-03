@@ -11,7 +11,7 @@ function memoryStore(initial = {}) {
 }
 
 // A signer that only knows some objects, and records every request it receives.
-function fixture({ store, clock = { now: 1_000_000 }, exists = ['a.jpg', 'b.jpg', 'a_t.jpg'], failOnce = false } = {}) {
+function fixture({ store, clock = { now: 1_000_000 }, exists = ['a.jpg', 'b.jpg', 'a_t.jpg'], failOnce = false, scope } = {}) {
   const calls = []
   let failed = !failOnce
   const cache = createLinkCache({
@@ -24,7 +24,7 @@ function fixture({ store, clock = { now: 1_000_000 }, exists = ['a.jpg', 'b.jpg'
     lifetimeMs: 24 * HOUR,
     renewBeforeMs: HOUR,
     missingMs: 10 * MINUTE,
-    store,
+    store, scope,
     now: () => clock.now,
   })
   return { cache, calls, clock }
@@ -95,7 +95,7 @@ test('only real links are written to the store: nothing for missing objects', as
   const { cache } = fixture({ store })
   await cache.links(['a.jpg', 'ghost.jpg'])
   const saved = JSON.parse([...store.data.values()][0])
-  assert.deepEqual(saved.map((row) => row[0]), ['a.jpg'])
+  assert.deepEqual(saved.rows.map((row) => row[0]), ['a.jpg'])
 })
 
 test('unreadable or broken storage never breaks image loading', async () => {
@@ -103,4 +103,123 @@ test('unreadable or broken storage never breaks image loading', async () => {
   const { cache } = fixture({ store: broken })
   assert.match((await cache.links(['a.jpg']))[0], /a\.jpg/)
   assert.doesNotThrow(() => cache.clear())
+})
+
+function deferredCache(scope = 'account-a') {
+  const store = memoryStore(), calls = []
+  const cache = createLinkCache({ scope, store, lifetimeMs: HOUR, renewBeforeMs: MINUTE, missingMs: MINUTE,
+    sign: paths => new Promise((resolve, reject) => calls.push({ paths, resolve, reject })),
+  })
+  return { cache, store, calls }
+}
+
+test('clear cancels queued signing before any request and settles every waiter', { timeout: 2000 }, async () => {
+  const { cache, store, calls } = deferredCache()
+  const a = cache.links(['a.jpg', 'b.jpg']), b = cache.links(['a.jpg'])
+  cache.clear()
+  assert.deepEqual(await a, ['', '']); assert.deepEqual(await b, [''])
+  await Promise.resolve()
+  assert.equal(calls.length, 0); assert.equal(store.data.size, 0)
+})
+
+test('clear settles an in-flight request even if the signer never replies', { timeout: 2000 }, async () => {
+  const { cache, calls } = deferredCache()
+  const pending = cache.links(['a.jpg'])
+  await Promise.resolve(); assert.equal(calls.length, 1)
+  cache.clear()
+  assert.deepEqual(await pending, [''])
+})
+
+for (const oldFirst of [true, false]) test(`old signing cannot refill or settle a new same-path request (${oldFirst ? 'old' : 'new'} reply first)`, { timeout: 2000 }, async () => {
+  const { cache, store, calls } = deferredCache()
+  const old = cache.links(['a.jpg'])
+  await Promise.resolve()
+  cache.setScope(null); cache.setScope('account-b')
+  const next = cache.links(['a.jpg'])
+  await Promise.resolve()
+  assert.equal(calls.length, 2); assert.deepEqual(await old, [''])
+  let settled = false; void next.then(() => { settled = true })
+  const finishOld = () => calls[0].resolve([{ path: 'a.jpg', url: 'https://example.invalid/old-account' }])
+  if (oldFirst) {
+    finishOld(); await Promise.resolve(); await Promise.resolve()
+    assert.equal(settled, false); assert.equal(store.data.size, 0)
+  }
+  calls[1].resolve([{ path: 'a.jpg', url: 'https://example.invalid/new-account' }])
+  assert.deepEqual(await next, ['https://example.invalid/new-account'])
+  if (!oldFirst) { finishOld(); await Promise.resolve() }
+  assert.deepEqual(await cache.links(['a.jpg']), ['https://example.invalid/new-account'])
+  const saved = JSON.parse([...store.data.values()][0])
+  assert.equal(saved.scope, 'account-b'); assert.equal(JSON.stringify(saved).includes('old-account'), false)
+})
+
+test('old rejected signing cannot erase a newer successful result', { timeout: 2000 }, async () => {
+  const { cache, calls } = deferredCache()
+  const old = cache.links(['a.jpg']); await Promise.resolve()
+  cache.clear()
+  const next = cache.links(['a.jpg']); await Promise.resolve()
+  calls[1].resolve([{ path: 'a.jpg', url: 'new' }]); await next
+  calls[0].reject(new Error('old failure')); await Promise.resolve()
+  assert.deepEqual(await old, ['']); assert.deepEqual(await cache.links(['a.jpg']), ['new'])
+})
+
+test('disabled cache cannot sign or disclose persisted links before approval', async () => {
+  const store = memoryStore()
+  await fixture({ store, scope: 'account-a' }).cache.links(['a.jpg'])
+  const disabled = fixture({ store, scope: null })
+  assert.deepEqual(await disabled.cache.links(['a.jpg']), ['']); assert.equal(disabled.calls.length, 0)
+})
+
+test('same approved account can restore persisted links after reload', async () => {
+  const store = memoryStore()
+  const original = await fixture({ store, scope: 'account-a' }).cache.links(['a.jpg'])
+  const reloaded = fixture({ store, scope: null })
+  reloaded.cache.setScope('account-a')
+  assert.deepEqual(await reloaded.cache.links(['a.jpg']), original); assert.equal(reloaded.calls.length, 0)
+})
+
+test('a different approved account cannot restore the previous account links', async () => {
+  const store = memoryStore()
+  await fixture({ store, scope: 'account-a' }).cache.links(['a.jpg'])
+  const reloaded = fixture({ store, scope: null })
+  reloaded.cache.setScope('account-b')
+  assert.equal(store.data.size, 0)
+  await reloaded.cache.links(['a.jpg'])
+  assert.equal(reloaded.calls.length, 1)
+  assert.equal(JSON.parse([...store.data.values()][0]).scope, 'account-b')
+})
+
+test('loss of approval wipes persistence and blocks new signing until approval returns', async () => {
+  const store = memoryStore(), f = fixture({ store, scope: 'account-a' })
+  await f.cache.links(['a.jpg']); f.cache.setScope(null)
+  assert.equal(store.data.size, 0); assert.deepEqual(await f.cache.links(['a.jpg']), ['']); assert.equal(f.calls.length, 1)
+  f.cache.setScope('account-a'); await f.cache.links(['a.jpg'])
+  assert.equal(f.calls.length, 2)
+})
+
+test('same-account token refresh preserves an in-flight signing batch', { timeout: 2000 }, async () => {
+  const { cache, calls } = deferredCache()
+  const pending = cache.links(['a.jpg']); await Promise.resolve()
+  cache.setScope('account-a')
+  const shared = cache.links(['a.jpg'])
+  calls[0].resolve([{ path: 'a.jpg', url: 'same' }])
+  assert.deepEqual(await pending, ['same']); assert.deepEqual(await shared, ['same']); assert.equal(calls.length, 1)
+})
+
+test('old queued microtasks cannot consume a new account signing batch', { timeout: 2000 }, async () => {
+  const { cache, calls } = deferredCache()
+  const old = cache.links(['old.jpg'])
+  cache.setScope('account-b')
+  const next = cache.links(['new.jpg'])
+  await Promise.resolve()
+  assert.equal(calls.length, 1); assert.deepEqual(calls[0].paths, ['new.jpg'])
+  calls[0].resolve([{ path: 'new.jpg', url: 'new' }])
+  assert.deepEqual(await old, ['']); assert.deepEqual(await next, ['new'])
+})
+
+test('legacy unscoped persistence is discarded without restoring its URLs', async () => {
+  const store = memoryStore({ 'iiitd.photo-links.v1': JSON.stringify([['a.jpg', 'legacy-secret-link', Date.now() + HOUR]]) })
+  const f = fixture({ store, scope: null })
+  assert.equal(store.data.size, 0)
+  f.cache.setScope('account-a'); await f.cache.links(['a.jpg'])
+  assert.equal(f.calls.length, 1); assert.equal(JSON.stringify([...store.data]).includes('legacy-secret-link'), false)
 })

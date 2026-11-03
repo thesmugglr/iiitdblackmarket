@@ -12,6 +12,7 @@ interface AuthSource {
   subscribe: (callback: (session: Session | null) => void) => () => void
   loadProfile: () => Promise<Profile | null>
   publish: (snapshot: AuthSnapshot) => void
+  accessChanged?: (approvedAccount: string | null) => void
 }
 
 // Own one mounted provider's requests. An old request must never publish into a
@@ -24,6 +25,8 @@ export function observeAuth(source: AuthSource) {
   let scheduled: ReturnType<typeof setTimeout> | undefined
 
   const publish = (next: AuthSnapshot) => {
+    // Invalidate signed-image capabilities before exposing a new access state.
+    source.accessChanged?.(next.profile?.status === 'approved' && next.profile.id === next.session?.user.id ? next.profile.id : null)
     snapshot = next
     source.publish(next)
   }
@@ -78,6 +81,7 @@ export function observeAuth(source: AuthSource) {
       ++revision
       clearTimeout(scheduled)
       unsubscribe()
+      source.accessChanged?.(null)
     },
   }
 }

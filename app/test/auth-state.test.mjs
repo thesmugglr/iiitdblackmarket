@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { setImmediate as settle } from 'node:timers/promises'
 import { observeAuth } from '../src/lib/authState.ts'
+import { createLinkCache } from '../src/lib/signedUrlCache.ts'
 
 const session = (id, token = id) => ({ user: { id }, access_token: token })
 const profile = (id, status = 'approved') => ({ id, status, role: 'student' })
@@ -16,6 +17,7 @@ function fixture(t) {
   const snapshots = []
   const requests = []
   const waiting = []
+  const access = []
   let listener, unsubscribed = false
   const observer = observeAuth({
     getSession: () => bootstrap.promise,
@@ -26,11 +28,12 @@ function fixture(t) {
       else requests.push(request)
       return request.promise
     },
-    publish: value => snapshots.push(value),
+    accessChanged: account => access.push(account),
+    publish: value => { snapshots.push(value); assert.equal(access.at(-1), value.profile?.status === 'approved' ? value.profile.id : null) },
   })
   t.after(() => observer.dispose())
   return {
-    ...observer, bootstrap, snapshots,
+    ...observer, bootstrap, snapshots, access,
     event: value => listener(value),
     nextLoad: () => requests.length ? Promise.resolve(requests.shift()) : new Promise(resolve => waiting.push(resolve)),
     get current() { return snapshots.at(-1) },
@@ -56,6 +59,32 @@ test('switching accounts clears the old profile immediately and ignores its late
   await oldRefresh
   assert.equal(f.current.profile.id, 'b')
   assert.equal(f.current.profile.status, 'pending')
+})
+
+test('auth access callbacks disable and reset photo signing for account changes, sign-out and failed membership refresh', { timeout: 2000 }, async t => {
+  let listener, nextProfile = profile('a'), signerCalls = 0
+  const cache = createLinkCache({ scope: null, sign: async paths => { signerCalls++; return paths.map(path => ({ path, url: `${nextProfile?.id}-signed` })) }, lifetimeMs: 10000, renewBeforeMs: 100, missingMs: 10 })
+  const observer = observeAuth({ getSession: async () => null, subscribe: cb => { listener = cb; return () => {} }, loadProfile: async () => {
+    if (nextProfile instanceof Error) throw nextProfile
+    return nextProfile
+  }, accessChanged: account => cache.setScope(account), publish: () => {} })
+  t.after(observer.dispose)
+  assert.deepEqual(await cache.links(['a.jpg']), ['']); assert.equal(signerCalls, 0)
+  listener(session('a')); await settle(); await observer.refresh()
+  assert.deepEqual(await cache.links(['a.jpg']), ['a-signed'])
+  listener(session('a', 'refreshed'))
+  assert.deepEqual(await cache.links(['a.jpg']), ['a-signed']); assert.equal(signerCalls, 1)
+  nextProfile = profile('b', 'pending'); listener(session('b'))
+  assert.deepEqual(await cache.links(['a.jpg']), ['']); await observer.refresh()
+  assert.deepEqual(await cache.links(['a.jpg']), ['']); assert.equal(signerCalls, 1)
+  nextProfile = profile('b'); await observer.refresh()
+  assert.deepEqual(await cache.links(['a.jpg']), ['b-signed']); assert.equal(signerCalls, 2)
+  nextProfile = new Error('profile offline'); await observer.refresh()
+  assert.deepEqual(await cache.links(['a.jpg']), ['']); assert.equal(signerCalls, 2)
+  nextProfile = profile('b'); await observer.refresh(); await cache.links(['a.jpg'])
+  assert.equal(signerCalls, 3)
+  listener(null)
+  assert.deepEqual(await cache.links(['a.jpg']), ['']); assert.equal(signerCalls, 3)
 })
 
 test('sign-out stays signed out when an in-flight profile request completes', { timeout: 2000 }, async t => {
