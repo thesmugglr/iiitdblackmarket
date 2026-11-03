@@ -6,12 +6,15 @@ import { CATEGORIES, CONDITIONS, MAX_PHOTOS, PICKUP_AREAS, TYPES } from '../lib/
 import { preparePhoto, thumbPath } from '../lib/image'
 import { usePhotoThumbs } from '../lib/useSignedUrls'
 import { observeEditableListing } from '../lib/editableListing'
+import { observeListingSave, writeListingDraft } from '../lib/listingSave'
+import { cleanupListingPhotos } from '../lib/listingActions'
 import type { Listing } from '../lib/types'
 
 export default function Sell() {
   const { id } = useParams()
+  const { profile } = useAuth()
   // Create/edit routes must not inherit another listing's draft or photo paths.
-  return <ListingEditor key={id ? `edit:${id}` : 'create'} id={id} />
+  return profile ? <ListingEditor key={`${profile.id}:${id ? `edit:${id}` : 'create'}`} id={id} /> : null
 }
 
 function ListingEditor({ id }: { id?: string }) {
@@ -31,14 +34,32 @@ function ListingEditor({ id }: { id?: string }) {
   const [err, setErr] = useState('')
   const fresh = useRef(new Set<string>()) // photos uploaded in this session and not yet saved
   const dropped = useRef<string[]>([]) // saved photos the seller removed; deleted once the edit is saved
+  const saver = useRef<ReturnType<typeof observeListingSave> | null>(null)
   const urls = usePhotoThumbs(photos)
   const set = (k: string, v: string | boolean) => setF((p) => ({ ...p, [k]: v }))
 
-  // Pictures uploaded but never saved (the seller left the page) would otherwise sit in limited free storage for good.
-  useEffect(() => () => {
-    const abandoned = [...fresh.current]
-    if (abandoned.length) void supabase.storage.from('listing-photos').remove(abandoned.flatMap((p) => [p, thumbPath(p)]))
-  }, [])
+  useEffect(() => {
+    if (!profile) return
+    const freshPhotos = fresh.current
+    const current = observeListingSave({
+      id, newId: () => crypto.randomUUID(),
+      write: request => writeListingDraft(supabase, profile.id, request),
+      cleanup: async (row, canClean) => {
+        const removed = dropped.current.filter(p => !row.photos.includes(p) && canClean(p))
+        await cleanupListingPhotos(supabase, profile.id, removed)
+      },
+      saved: listingId => { freshPhotos.clear(); dropped.current = []; nav(`/listing/${listingId}`) },
+      publish: state => { setBusy(state.busy); setErr(state.error) },
+    })
+    saver.current = current
+    return () => {
+      current.dispose()
+      // Submitted photos may already be linked even when the reply was lost.
+      const abandoned = [...freshPhotos].filter(current.canClean)
+      if (abandoned.length) void supabase.storage.from('listing-photos').remove(abandoned.flatMap(p => [p, thumbPath(p)]))
+      saver.current = null
+    }
+  }, [id, profile?.id, nav]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!id) return
@@ -60,7 +81,8 @@ function ListingEditor({ id }: { id?: string }) {
   const uploadLock = useRef(false)
   const upload = async (files: File[]) => {
     // One batch at a time: overlapping selections would otherwise race on the photo list.
-    if (!files.length || !profile || !ready || uploadLock.current || busy) return
+    const current = saver.current
+    if (!files.length || !profile || !ready || uploadLock.current || !current?.isActive() || current.isBusy()) return
     setErr('')
     if (photos.length + files.length > MAX_PHOTOS) return setErr(`At most ${MAX_PHOTOS} photos in total. Remove one first, or pick fewer.`)
     if (files.some((f) => !f.type.startsWith('image/') && !/\.(heic|heif)$/i.test(f.name))) return setErr('Choose image files (JPG, PNG, WebP, HEIC).')
@@ -69,22 +91,25 @@ function ListingEditor({ id }: { id?: string }) {
     try {
       for (const file of files) {
         const { blob, thumb, ext, type } = await preparePhoto(file, { thumb: true })
+        if (!current.isActive()) return
         const path = `${profile.id}/${crypto.randomUUID()}.${ext}`
         // File names are random and never reused, so browsers may keep the pictures for a year.
         const { error } = await supabase.storage.from('listing-photos').upload(path, blob, { contentType: type, cacheControl: '31536000' })
         if (error) throw new Error(error.message)
+        if (!current.isActive()) return
         fresh.current.add(path)
         // The small copy used in grids is optional: if it does not upload, the full-size photo is shown instead.
         if (thumb) await supabase.storage.from('listing-photos').upload(thumbPath(path), thumb, { contentType: type, cacheControl: '31536000' })
+        if (!current.isActive()) return
         // Commit each success immediately so a later failure never hides photos that already uploaded.
         setPhotos((current) => [...current, path])
         setUploading((n) => n - 1)
       }
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Upload failed. Check your connection and try again.')
+      if (current.isActive()) setErr(e instanceof Error ? e.message : 'Upload failed. Check your connection and try again.')
     } finally {
       uploadLock.current = false
-      setUploading(0)
+      if (current.isActive()) setUploading(0)
     }
   }
   const onDrop = (e: DragEvent) => {
@@ -93,18 +118,17 @@ function ListingEditor({ id }: { id?: string }) {
     void upload(Array.from(e.dataTransfer.files))
   }
   const remove = (p: string) => {
+    if (!saver.current?.isActive() || saver.current.isBusy() || uploadLock.current) return
     setPhotos((list) => list.filter((x) => x !== p))
-    if (fresh.current.has(p)) { fresh.current.delete(p); void supabase.storage.from('listing-photos').remove([p, thumbPath(p)]) }
+    if (fresh.current.has(p) && saver.current.canClean(p)) { fresh.current.delete(p); void supabase.storage.from('listing-photos').remove([p, thumbPath(p)]) }
     else dropped.current.push(p)
   }
   const makeCover = (p: string) => setPhotos((list) => [p, ...list.filter((x) => x !== p)])
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!profile || !ready) return
+    if (!profile || !ready || saver.current?.isBusy()) return
     if (uploading || uploadLock.current) return setErr('Wait for your photos to finish uploading.')
-    setBusy(true)
-    setErr('')
     const giveaway = f.listing_type === 'giveaway'
     const row = {
       title: f.title.trim(), description: f.description.trim(), listing_type: f.listing_type,
@@ -114,14 +138,7 @@ function ListingEditor({ id }: { id?: string }) {
       deposit_inr: f.listing_type === 'rent' && f.deposit_inr ? Number(f.deposit_inr) : null,
       photos,
     }
-    const res = id
-      ? await supabase.from('listings').update(row).eq('id', id).select('id').single()
-      : await supabase.from('listings').insert({ ...row, seller_id: profile.id }).select('id').single()
-    setBusy(false)
-    if (res.error) return setErr(res.error.message)
-    fresh.current.clear()
-    if (dropped.current.length) void supabase.storage.from('listing-photos').remove(dropped.current.flatMap((p) => [p, thumbPath(p)]))
-    nav(`/listing/${res.data.id}`)
+    await saver.current?.save(row)
   }
 
   if (!ready) {
@@ -153,28 +170,28 @@ function ListingEditor({ id }: { id?: string }) {
         </ul>
       )}
 
-      <label>Title<input required minLength={3} maxLength={120} placeholder="e.g. Hero Sprint 21-speed cycle" value={f.title} onChange={(e) => set('title', e.target.value)} /></label>
-      <label>Description<textarea rows={4} maxLength={4000} placeholder="Age, brand, any defects, why you're selling" value={f.description} onChange={(e) => set('description', e.target.value)} /></label>
+      <label>Title<input disabled={busy} required minLength={3} maxLength={120} placeholder="e.g. Hero Sprint 21-speed cycle" value={f.title} onChange={(e) => set('title', e.target.value)} /></label>
+      <label>Description<textarea disabled={busy} rows={4} maxLength={4000} placeholder="Age, brand, any defects, why you're selling" value={f.description} onChange={(e) => set('description', e.target.value)} /></label>
       <div className="two">
-        <label>Type<select value={f.listing_type} onChange={(e) => set('listing_type', e.target.value)}>
+        <label>Type<select disabled={busy} value={f.listing_type} onChange={(e) => set('listing_type', e.target.value)}>
           {Object.entries(TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-        <label>Category<select value={f.category} onChange={(e) => set('category', e.target.value)}>
+        <label>Category<select disabled={busy} value={f.category} onChange={(e) => set('category', e.target.value)}>
           {Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-        <label>Condition<select value={f.condition} onChange={(e) => set('condition', e.target.value)}>
+        <label>Condition<select disabled={busy} value={f.condition} onChange={(e) => set('condition', e.target.value)}>
           {Object.entries(CONDITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-        <label>Pickup area<select value={f.pickup_area} onChange={(e) => set('pickup_area', e.target.value)}>
+        <label>Pickup area<select disabled={busy} value={f.pickup_area} onChange={(e) => set('pickup_area', e.target.value)}>
           {PICKUP_AREAS.map((a) => <option key={a}>{a}</option>)}</select></label>
       </div>
       {f.listing_type !== 'giveaway' && (
         <div className="two">
-          <label>{f.listing_type === 'rent' ? 'Rent (₹)' : 'Price (₹)'}<input required type="number" min="0" inputMode="numeric" value={f.price_inr} onChange={(e) => set('price_inr', e.target.value)} /></label>
-          <label className="check"><input type="checkbox" checked={f.negotiable} onChange={(e) => set('negotiable', e.target.checked)} /> Negotiable</label>
+          <label>{f.listing_type === 'rent' ? 'Rent (₹)' : 'Price (₹)'}<input disabled={busy} required type="number" min="0" inputMode="numeric" value={f.price_inr} onChange={(e) => set('price_inr', e.target.value)} /></label>
+          <label className="check"><input disabled={busy} type="checkbox" checked={f.negotiable} onChange={(e) => set('negotiable', e.target.checked)} /> Negotiable</label>
         </div>
       )}
       {f.listing_type === 'rent' && (
         <div className="two">
-          <label>Rental period<input placeholder="e.g. per week, one semester" value={f.rental_period} onChange={(e) => set('rental_period', e.target.value)} /></label>
-          <label>Deposit (₹)<input type="number" min="0" inputMode="numeric" value={f.deposit_inr} onChange={(e) => set('deposit_inr', e.target.value)} /></label>
+          <label>Rental period<input disabled={busy} placeholder="e.g. per week, one semester" value={f.rental_period} onChange={(e) => set('rental_period', e.target.value)} /></label>
+          <label>Deposit (₹)<input disabled={busy} type="number" min="0" inputMode="numeric" value={f.deposit_inr} onChange={(e) => set('deposit_inr', e.target.value)} /></label>
         </div>
       )}
       {err && <p className="error" role="alert">{err}</p>}
