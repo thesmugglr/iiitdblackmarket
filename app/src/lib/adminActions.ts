@@ -3,6 +3,9 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 type AdminApi = Pick<SupabaseClient, 'from' | 'rpc'>
 type ReportTarget = { id: string; listing_id: string | null }
 type PendingMember = { id: string; email: string; status: string }
+const requireCurrent = (current: () => boolean) => {
+  if (!current()) throw new Error('Administrator action stopped. Reload before retrying.')
+}
 
 export async function changeMemberStatus(api: AdminApi, id: string, status: string) {
   const result = await api.rpc('admin_set_status', { p_user: id, p_status: status })
@@ -35,21 +38,46 @@ export async function removeReportedListing(api: AdminApi, report: ReportTarget)
   }
 }
 
-export async function addStudentRoster(api: AdminApi, input: string, users: PendingMember[]) {
+async function approvePendingRosterMember(api: AdminApi, id: string, current: () => boolean) {
+  requireCurrent(current)
+  // Preserve a suspension applied since the directory snapshot was loaded.
+  // The existing admin policy/trigger still authorizes this conditional write.
+  const result = await api.from('profiles').update({ status: 'approved' }).eq('id', id).eq('status', 'pending').select('id,status').maybeSingle()
+  requireCurrent(current)
+  if (result.error) throw new Error('Could not confirm member approval.')
+  let member = result.data
+  if (!member) {
+    const confirmed = await api.from('profiles').select('id,status').eq('id', id).single()
+    requireCurrent(current)
+    if (confirmed.error) throw new Error('Could not confirm member approval.')
+    member = confirmed.data
+  }
+  if (member?.id !== id || member.status !== 'approved') throw new Error('Could not confirm member approval.')
+}
+
+export async function addStudentRoster(api: AdminApi, input: string, users: PendingMember[], current: () => boolean = () => true) {
+  requireCurrent(current)
   const emails = [...new Set(input.split(/[\s,;]+/).map(e => e.trim().toLowerCase()).filter(Boolean))]
   if (!emails.length || emails.some(e => !/^[^\s@]+@iiitd\.ac\.in$/.test(e))) {
     throw new Error('Enter only valid @iiitd.ac.in emails; no entries were added.')
   }
-  const result = await api.from('student_roster').upsert(emails.map(email => ({ email }))).select('email')
-  if (result.error || !emails.every(email => result.data?.some(row => row.email === email))) {
-    throw new Error('Could not confirm the roster update. Keep these emails and retry.')
+  try {
+    const result = await api.from('student_roster').upsert(emails.map(email => ({ email }))).select('email')
+    requireCurrent(current)
+    const returned = new Set((Array.isArray(result.data) ? result.data : []).map(row => row?.email))
+    if (result.error || !emails.every(email => returned.has(email))) throw new Error('Unconfirmed roster write')
+  } catch {
+    requireCurrent(current)
+    throw new Error('Could not confirm the roster update. The update may already have been saved. Keep these emails and retry.')
   }
-  // Approval is a separate RPC for each existing member. Preserve partial
-  // results instead of overwriting failures with a blanket success message.
+  // Keep the existing atomic roster upsert. Only confirmed writes may start
+  // existing-member approvals; uncertain replies remain safe to retry.
   let approved = 0, failed = 0
-  for (const user of users.filter(u => u.status === 'pending' && emails.includes(u.email.toLowerCase()))) {
-    try { await changeMemberStatus(api, user.id, 'approved'); approved++ }
-    catch { failed++ }
+  const listed = new Set(emails)
+  for (const user of users.filter(u => u.status === 'pending' && listed.has(u.email.toLowerCase()))) {
+    requireCurrent(current)
+    try { await approvePendingRosterMember(api, user.id, current); approved++ }
+    catch { requireCurrent(current); failed++ }
   }
   return { added: emails.length, approved, failed }
 }
