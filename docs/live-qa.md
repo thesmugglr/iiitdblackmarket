@@ -10,7 +10,7 @@ The signed-in session is not available in this chat's browser. A fresh attempt t
 
 ## Local engineering verification — 2026-11-03
 
-USER-03 is implemented on `fix/USER-03-profile-confirmation`, pending final-head integration/review. Profile saves require the exact returned account/name/batch; dashboard failures are retryable and obsolete attempts cannot publish. Personal deals explicitly filter buyer/seller membership even for admins. All 153 regressions/build/typecheck/lint/diff checks pass with existing warnings; two new service scenarios await disposable GitHub CI because Docker is unavailable locally. A fresh browser inventory still reports local browser use disabled in Work settings; no rendered or hosted verification is claimed, and nothing was deployed.
+USER-03 / [PR #24](https://github.com/garvrao80/iiitdblackmarket/pull/24) merged at `fb3f0e5`, exact reviewed head `bc4ba7c`. Profile saves require the exact returned account/name/batch; dashboard failures are retryable and obsolete attempts cannot publish. Personal deals explicitly filter buyer/seller membership even for admins. All 153 regressions/build/typecheck/lint/diff checks pass with existing warnings. Final-head Marketplace run 41587689216 and disposable Supabase run 41587689218 pass; all 28 service scenarios include the actual own-profile helper, unauthorized edit rejection, buyer/seller personal-deal queries (including administrators) and verified fixture cleanup. Docker is unavailable locally. A fresh browser inventory still reports local browser use disabled in Work settings; no rendered or hosted verification is claimed, and nothing was deployed.
 
 ## Local engineering verification — 2026-11-02
 
