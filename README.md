@@ -4,6 +4,10 @@ A campus marketplace for IIIT-Delhi students to buy, sell, rent, and give away n
 
 ## Current status
 
+Active engineering review: [QA-04 / PR #37](https://github.com/garvrao80/iiitdblackmarket/pull/37).
+
+QA-04 is implemented for review on `fix/QA-04-demo-admin` (2026-11-03). Browser control is available again; a fresh selected-project check still reaches Supabase sign-in and no Supabase connector is available. The fictional Admin preview now uses valid fixture identities/timestamps and read-only query/order/continuation support compatible with the production loader. Abhik's layout and production validation are unchanged. A clean browser load shows the report and all three members; an unconfirmed roster submission retains input and lists without console errors. All 488 regressions (three new adapter/loader cases), build/typecheck, lint and diff checks pass with seven existing lint warnings and the bundle-size warning. The production JS contains no demo-fixture matches; all 44 disposable service scenarios await final-head CI. The preview remains a limited visual stand-in: actions are not saved, and it does not verify access policies, complete query behavior or hosted flows. Task-board/setup records now separate implemented source from pending launch/access work; the stopped monitor remains off. No hosted mutation or deployment.
+
 MOD-04 ([PR #36](https://github.com/garvrao80/iiitdblackmarket/pull/36)) merged at `c86117e`, exact reviewed head `1a90e87` (2026-11-03). Bulk approvals now conditionally update only rows still pending, preserving a suspension applied after the directory snapshot; already-approved rows can be confirmed safely. Obsolete page/account work stops before subsequent approvals or confirmation reads. Whole-input validation and the existing atomic roster upsert remain; real service evidence shows its 1,005-row mutation reply is not truncated by the read cap. Uncertain responses and partial approval failures retain input for idempotent retry, and already-dispatched requests may commit. All 485 regressions (14 new cases), build/typecheck, lint, syntax and diff checks pass with seven existing lint warnings and the bundle-size warning. Both final-head GitHub checks and all 44 service scenarios/fixture cleanup pass (run 41636557682), including the large roster, stale suspension, already-approved retries, ordinary-member denial and cancellation. Docker unavailable locally; rendered/hosted QA unverified. Layout, enrollment verification, manual status controls, policies and schema remain; no hosted action, deployment or restarted schedule.
 
 MOD-03 ([PR #35](https://github.com/garvrao80/iiitdblackmarket/pull/35)) merged at `07bb999`, exact reviewed head `db3914c` (2026-11-03). Admin now loads the member directory and open-report queue through 200-row keyset requests until an empty continuation confirms completion, rather than silently stopping at the 1,000-row API cap. Member order remains newest first, reports oldest first, with timestamp microseconds and ID ties preserved. Only a complete successful attempt replaces the lists; page failures keep the existing Retry/disabled-action behavior. Current approved-admin identity is confirmed before/after loading, obsolete account/attempts stop further paging, and the existing private RPC/policies remain. All 471 regressions (25 new cases), build/typecheck, lint, syntax and diff checks pass with seven existing lint warnings plus the bundle-size warning. Both final-head GitHub checks and all 43 service scenarios/fixture cleanup pass (run 41633211925). The new scenario creates 1,005 generated member accounts and 1,050 reports, proves both real API caps, confirms complete ordered results and refuses non-admin/revoked completion. All fixtures were cleaned up. Docker unavailable locally; rendered/hosted QA unverified. Reads span changing data rather than a database snapshot. No layout, schema, policy, hosted change or deployment; scheduled automation remains off.
@@ -93,7 +97,7 @@ Proposed approach:
 - Use an approved student roster or admin approval for student eligibility until an official verification integration is available.
 - Enforce membership and ownership rules in backend/database access policies, including listings, photos, and private conversations.
 
-The student eligibility source and approval process still need to be decided. Do not label a user as a verified student based only on the email domain.
+The implemented eligibility sources are the current-student code list plus roster/admin approval; see [student-approval-review.md](docs/student-approval-review.md). Ongoing enrollment updates, graduate/withdrawal handling and approval ownership still need an operating process. Do not label a user as a verified student based only on the email domain.
 
 ## Proposed technical foundation
 
@@ -105,7 +109,7 @@ The application in `app/` uses these dependencies:
 
 References: [Google sign-in](https://supabase.com/docs/guides/auth/social-sign-in/auth-google), [real-time authorization](https://supabase.com/docs/guides/realtime/authorization), and [storage access control](https://supabase.com/docs/guides/storage/security/access-control).
 
-Hosting remains to be finalized. The canonical runnable app on main is `app/`, using Supabase for backend services. PR #1's alternative scaffold is superseded. The owner has assigned design/UI to Abhik; Codex design PR #4 is retired.
+The selected host is GitHub Pages with the existing Supabase project; launch verification remains separate. The canonical runnable app on main is `app/`, using Supabase for backend services. PR #1's alternative scaffold is superseded. The owner has assigned design/UI to Abhik; Codex design PR #4 is retired.
 
 ## Local setup and deployment
 
@@ -129,7 +133,7 @@ Needs Docker. From the repo root:
 1. `npx supabase start -x studio,mailpit,edge-runtime,vector,logflare,imgproxy,postgres-meta,supavisor` (the first run downloads images and applies all migrations).
 2. `npx supabase status -o env` prints the API URL and keys. Put the URL and the publishable (or anon) key in `app/.env.local`, plus `VITE_DEV_LOGIN=1` to show the local-only email/password form (Google sign-in needs real OAuth credentials).
 3. `cd app && npm run dev`. Create users through the form, then approve and promote the first admin in SQL.
-4. `cd app && npm run e2e:local` runs 40 end-to-end checks against that stack with separate accounts. `npx supabase stop` shuts it down.
+4. `cd app && npm run e2e:local` runs 44 end-to-end checks against that stack with separate accounts. `npx supabase stop` shuts it down.
 
 ### What is implemented
 - Sign-in with Google (domain hint in the client; `@iiitd.ac.in` enforced by a database trigger on sign-up). Marketplace access requires `approved` status (roster or admin approval).
