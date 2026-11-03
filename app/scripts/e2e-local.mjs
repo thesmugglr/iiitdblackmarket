@@ -10,6 +10,7 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { observeTextComposer, sendChatText } from '../src/lib/chatText.ts'
 import { makeOfferOnce, observeOfferComposer, respondOfferOnce } from '../src/lib/chatOffers.ts'
+import { observeAttachment, sendChatImage, uploadChatAttachment } from '../src/lib/chatAttachments.ts'
 
 const env = readLocalStack()
 const URL_ = env.API_URL, ANON = env.ANON_KEY
@@ -483,6 +484,93 @@ await step('concurrent opposite offer decisions produce one outcome and one resp
   const record = ok(await seller.c.from('listings').select('status,price_inr').eq('id', item.id).single())
   assert.deepEqual(record, status === 'accepted' ? { status: 'reserved', price_inr: 350 } : { status: 'active', price_inr: 500 })
   assert.equal(ok(await buyer.c.from('messages').select('id').eq('conversation_id', conversation)).length, 2)
+})
+
+await step('attachment retry confirms real lost upload/message replies with one file and one message', async () => {
+  const item = ok(await seller.c.from('listings').insert({ seller_id: seller.id, title: 'Attachment retry fixture', listing_type: 'sale', category: 'hostel', condition: 'good', price_inr: 50 }).select('id').single())
+  const conversation = ok(await buyer.c.rpc('start_conversation', { p_listing: item.id }))
+  const blob = new Blob([png], { type: 'image/png' }), attempts = [], states = []
+  let uploads = 0, prepares = 0, confirmed = 0, loseUpload = true, loseMessage = true
+  const flakyStorage = { storage: { from(bucket) {
+    const real = buyer.c.storage.from(bucket)
+    return { download: path => real.download(path), upload: async (...args) => {
+      uploads++
+      const result = await real.upload(...args)
+      if (!result.error) {
+        uploadedObjects.push([bucket, args[0]])
+        if (loseUpload) { loseUpload = false; throw new Error('fixture lost upload response') }
+      }
+      return result
+    } }
+  } } }
+  const flakyMessages = { from(table) {
+    const real = buyer.c.from(table)
+    return { select: (...args) => real.select(...args), upsert: async (...args) => {
+      const result = await real.upsert(...args)
+      if (!result.error && loseMessage) { loseMessage = false; throw new Error('fixture lost message response') }
+      return result
+    } }
+  } }
+  const composer = observeAttachment({ conversation, newId: randomUUID,
+    prepare: async () => { prepares++; return { blob, ext: 'png', type: 'image/png' } },
+    upload: request => uploadChatAttachment(flakyStorage, request),
+    link: request => { attempts.push(request); return sendChatImage(flakyMessages, conversation, buyer.id, request) },
+    confirmed: () => { confirmed++ }, publish: s => states.push(s),
+  })
+  await composer.choose(new File([png], 'attachment-fixture.png', { type: 'image/png' }))
+  assert.ok(states.at(-1).error); assert.equal(states.at(-1).locked, true)
+  await composer.retry()
+  assert.equal(states.at(-1).pending, false); assert.equal(states.at(-1).error, '')
+  assert.equal(prepares, 1); assert.equal(uploads, 1); assert.equal(confirmed, 1)
+  assert.equal(attempts.length, 2); assert.equal(attempts[0].id, attempts[1].id)
+  const request = attempts[0]
+  assert.deepEqual(ok(await seller.c.from('messages').select('id,body,image_path').eq('conversation_id', conversation)), [{ id: request.id, body: '', image_path: request.path }])
+  const objects = ok(await admin.storage.from('chat-attachments').list(conversation))
+  assert.deepEqual(objects.map(o => o.name), [`${request.id}.png`])
+  const signed = ok(await seller.c.storage.from('chat-attachments').createSignedUrl(request.path, 60))
+  const response = await fetch(signed.signedUrl)
+  assert.equal(response.status, 200); assert.deepEqual(Buffer.from(await response.arrayBuffer()), png)
+  await assert.rejects(sendChatImage(buyer.c, conversation, buyer.id, { id: request.id, path: `${conversation}/${request.id}.jpg` }))
+  assert.equal(ok(await seller.c.from('messages').select('image_path').eq('id', request.id).single()).image_path, request.path)
+  composer.dispose()
+})
+
+await step('attachment recovery rejects collisions and unauthorized links; restored membership retries the retained file', async () => {
+  const item = ok(await seller.c.from('listings').insert({ seller_id: seller.id, title: 'Attachment access fixture', listing_type: 'sale', category: 'hostel', condition: 'good', price_inr: 50 }).select('id').single())
+  const conversation = ok(await buyer.c.rpc('start_conversation', { p_listing: item.id }))
+  const blob = new Blob([png], { type: 'image/png' }), id = randomUUID()
+  const request = { conversation, id, path: `${conversation}/${id}.png`, blob, type: 'image/png' }
+  await uploadChatAttachment(buyer.c, request)
+  uploadedObjects.push(['chat-attachments', request.path])
+  // Duplicate uploads must read back the SAME bytes; a different same-sized image must not replace them.
+  await uploadChatAttachment(buyer.c, request)
+  const different = Buffer.from(png); different[different.length - 1] ^= 1
+  await assert.rejects(uploadChatAttachment(buyer.c, { ...request, blob: new Blob([different], { type: 'image/png' }) }))
+  assert.deepEqual(Buffer.from(await ok(await buyer.c.storage.from('chat-attachments').download(request.path)).arrayBuffer()), png)
+  await assert.rejects(uploadChatAttachment(outsider.c, request))
+  await assert.rejects(sendChatImage(outsider.c, conversation, buyer.id, request))
+  await assert.rejects(sendChatImage(outsider.c, conversation, outsider.id, request))
+  ok(await seller.c.from('blocks').insert({ blocker_id: seller.id, blocked_id: buyer.id }))
+  await assert.rejects(sendChatImage(buyer.c, conversation, buyer.id, request))
+  ok(await seller.c.from('blocks').delete().eq('blocker_id', seller.id).eq('blocked_id', buyer.id))
+  const states = []
+  let uploadCount = 0
+  const composer = observeAttachment({ conversation, newId: () => id,
+    prepare: async () => ({ blob, ext: 'png', type: 'image/png' }),
+    upload: async r => { uploadCount++; await uploadChatAttachment(buyer.c, r); await changeMemberStatus(adm.c, buyer.id, 'suspended') },
+    link: r => sendChatImage(buyer.c, conversation, buyer.id, r), confirmed: () => {}, publish: s => states.push(s),
+  })
+  try {
+    await composer.choose(new File([png], 'retained-fixture.png', { type: 'image/png' }))
+    assert.ok(states.at(-1).error); assert.equal(states.at(-1).pending, true)
+    assert.equal(ok(await seller.c.from('messages').select('id').eq('conversation_id', conversation)).length, 0)
+    await assert.rejects(uploadChatAttachment(buyer.c, request))
+  } finally { await changeMemberStatus(adm.c, buyer.id, 'approved') }
+  await composer.retry()
+  assert.equal(states.at(-1).pending, false); assert.equal(uploadCount, 1)
+  assert.deepEqual(ok(await seller.c.from('messages').select('id,image_path').eq('conversation_id', conversation)), [{ id, image_path: request.path }])
+  assert.equal(ok(await admin.storage.from('chat-attachments').list(conversation)).length, 1)
+  composer.dispose()
 })
 
 await step('remove only photos, bootstrap rows, roster entries, student codes and accounts created by this run', async () => {
