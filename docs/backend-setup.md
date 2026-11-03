@@ -57,6 +57,8 @@ where email = 'your-institute-email@iiitd.ac.in';
 
 Sign back in, open Admin, and add only verified current-student emails to the roster. Already-pending members can be approved there. Record who handles approval, suspension, graduates, and reports; do not commit the roster.
 
+Admin reads the complete member directory and open-report queue through 200-row keyset requests using the existing `admin_profiles` RPC and reports policy. The API row cap stays unchanged. Directory order is newest first, reports oldest first; timestamp/ID ties preserve continuation. A short page alone is insufficient: an empty continuation and confirmed current approved-admin profile complete the load. Errors retain the existing lists with actions disabled and Retry available. Each account/attempt owns its requests. Rows can change between pages; retry/reload obtains a fresh view rather than a transactional snapshot. Member emails and report data stay private. PostgREST supports [table-valued RPC filters/order/limits](https://docs.postgrest.org/en/v16/references/api/functions.html) and [logical filters](https://docs.postgrest.org/en/stable/references/api/tables_views.html); no new public function, grants or migration are needed.
+
 ## 3. Local configuration
 
 Use Node.js 24. From the repository:

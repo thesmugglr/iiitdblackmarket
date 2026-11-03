@@ -18,6 +18,7 @@ import { observeListingSave, writeListingDraft } from '../src/lib/listingSave.ts
 import { emptyBrowseFilters, loadBrowseListings, loadBrowseOverview, loadBrowsePage } from '../src/lib/browseState.ts'
 import { createLinkCache } from '../src/lib/signedUrlCache.ts'
 import { requestSignedLinks } from '../src/lib/storageLinks.ts'
+import { loadAdminData } from '../src/lib/adminData.ts'
 
 const env = readLocalStack()
 const URL_ = env.API_URL, ANON = env.ANON_KEY
@@ -801,6 +802,51 @@ await step('keyset discovery reaches later pages across inserts/deletions, tied 
     assert.ok(capped.length <= 65, 'filtered pages must terminate within their price cap')
   } while (cursor)
   assert.equal(capped.length, 65); assert.equal(capped.every(item => item.price_inr === 50), true)
+})
+
+await step('administrator loader reaches members/reports beyond the API cap and confirms admin access at completion', async () => {
+  const directoryAdmin = await user('directory-admin', { role: 'admin' }), reporter = await user('directory-reporter')
+  // Generated, non-login accounts in this disposable stack only. Await every
+  // batch before failing so all created IDs are tracked for verified cleanup.
+  const memberIds = []
+  for (let offset = 0; offset < 1005; offset += 50) {
+    const batch = await Promise.allSettled(Array.from({ length: Math.min(50, 1005 - offset) }, async (_, i) => {
+      const result = await admin.auth.admin.createUser({ email: `directory-${run}-${offset + i}@iiitd.ac.in`, email_confirm: true })
+      if (result.data?.user) { memberIds.push(result.data.user.id); createdUsers.push(result.data.user.id) }
+      if (result.error || !result.data?.user) throw new Error('Generated directory account creation failed')
+    }))
+    assert.equal(batch.filter(r => r.status === 'rejected').length, 0, 'generated directory account batch must finish successfully')
+  }
+  const item = ok(await reporter.c.from('listings').insert({ seller_id: reporter.id, title: 'Administrator paging fixture', listing_type: 'sale', category: 'misc', condition: 'good', price_inr: 10 }).select('id').single())
+  const rows = Array.from({ length: 1050 }, (_, i) => ({ id: randomUUID(), reporter_id: reporter.id, listing_id: item.id, reason: 'Fictional report pagination check',
+    created_at: i < 500 ? '2020-01-01T00:00:00.123456Z' : '2020-01-01T00:00:00.123457Z',
+  }))
+  ok(await reporter.c.from('reports').insert(rows))
+  const capped = ok(await directoryAdmin.c.from('reports').select('id').eq('reporter_id', reporter.id).order('created_at').order('id'))
+  assert.equal(capped.length, 1000, 'unpaged query demonstrates the configured API cap')
+  assert.equal(ok(await directoryAdmin.c.rpc('admin_profiles')).length, 1000, 'unpaged table-valued RPC is capped too')
+  const result = await loadAdminData(directoryAdmin.c, directoryAdmin.id)
+  const ids = new Set(rows.map(r => r.id))
+  const expected = [...rows].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id)).map(r => r.id)
+  assert.deepEqual(result.reports.filter(r => ids.has(r.id)).map(r => r.id), expected)
+  assert.equal(new Set(result.reports.map(r => r.id)).size, result.reports.length)
+  const totalUsers = await admin.from('profiles').select('id', { count: 'exact', head: true })
+  ok(totalUsers)
+  assert.ok(totalUsers.count > 1000); assert.equal(result.users.length, totalUsers.count)
+  const loadedUsers = new Set(result.users.map(r => r.id))
+  assert.equal(loadedUsers.size, result.users.length); assert.equal(memberIds.every(id => loadedUsers.has(id)), true)
+  await assert.rejects(loadAdminData(reporter.c, reporter.id), /access could not be confirmed/)
+  let confirmations = 0
+  const revoked = { from: table => directoryAdmin.c.from(table), rpc(name, ...args) {
+    if (name !== 'my_profile') return directoryAdmin.c.rpc(name, ...args)
+    return { maybeSingle: async () => {
+      if (++confirmations === 2) ok(await admin.from('profiles').update({ status: 'suspended' }).eq('id', directoryAdmin.id))
+      return directoryAdmin.c.rpc(name, ...args).maybeSingle()
+    } }
+  } }
+  try { await assert.rejects(loadAdminData(revoked, directoryAdmin.id), /access could not be confirmed/) }
+  finally { ok(await admin.from('profiles').update({ status: 'approved' }).eq('id', directoryAdmin.id)) }
+  assert.equal(confirmations, 2)
 })
 
 await step('signed-photo cache discards a delayed real signing reply across account access changes', async () => {
