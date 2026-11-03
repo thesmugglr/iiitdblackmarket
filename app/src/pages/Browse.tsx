@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useSavedItems } from '../lib/useSavedItems'
@@ -9,55 +9,37 @@ import ListingCard from '../components/ListingCard'
 import Drawer from '../components/Drawer'
 import Reveal from '../components/Reveal'
 import { HowItWorks, Trust, Cta } from '../components/Landing'
+import { emptyBrowse, loadBrowseListings, loadBrowseOverview, observeBrowse } from '../lib/browseState'
 import type { Listing } from '../lib/types'
 
 export default function Browse() {
   const { profile } = useAuth()
-  const [items, setItems] = useState<Listing[]>([])
-  const [state, setState] = useState<'loading' | 'ok' | 'error'>('loading')
+  return profile ? <AccountBrowse key={profile.id} member={profile.id} /> : null
+}
+
+function AccountBrowse({ member }: { member: string }) {
+  const [{ items, state, error, overview, overviewLoading, overviewError }, setSnapshot] = useState(emptyBrowse)
+  const observer = useRef<ReturnType<typeof observeBrowse> | null>(null)
   const [q, setQ] = useState('')
   const [category, setCategory] = useState('')
   const [type, setType] = useState('')
   const [condition, setCondition] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const [sort, setSort] = useState('new')
-  const [counts, setCounts] = useState<Record<string, number>>({})
-  const [latest, setLatest] = useState<Listing[]>([])
-  const { ids: saved, error: saveError, retry: retrySaved, toggle: toggleSaved, loading: savedLoading, pending: saving } = useSavedItems(profile?.id)
+  const { ids: saved, error: saveError, retry: retrySaved, toggle: toggleSaved, loading: savedLoading, pending: saving } = useSavedItems(member)
   const [drawer, setDrawer] = useState(false)
 
   useEffect(() => {
-    supabase.from('listings').select('*').in('status', ['active', 'reserved']).order('created_at', { ascending: false }).limit(200)
-      .then(({ data }) => {
-        const rows = (data ?? []) as Listing[]
-        const m: Record<string, number> = {}
-        for (const r of rows) m[r.category] = (m[r.category] ?? 0) + 1
-        setCounts(m)
-        setLatest(rows)
-      })
-  }, [])
+    const current = observeBrowse({
+      loadOverview: () => loadBrowseOverview(supabase), loadSearch: filters => loadBrowseListings(supabase, filters), publish: setSnapshot,
+      schedule: (callback, delay) => { const timer = setTimeout(callback, delay); return () => clearTimeout(timer) },
+    })
+    observer.current = current
+    return () => { current.dispose(); observer.current = null }
+  }, [member])
 
   useEffect(() => {
-    let live = true
-    setState('loading')
-    const t = setTimeout(async () => {
-      let query = supabase.from('listings').select('*').in('status', ['active', 'reserved'])
-      if (q.trim()) {
-        const s = q.trim().replace(/[%,()]/g, ' ')
-        query = query.or(`title.ilike.%${s}%,description.ilike.%${s}%`)
-      }
-      if (category) query = query.eq('category', category)
-      if (type) query = query.eq('listing_type', type)
-      if (condition) query = query.eq('condition', condition)
-      if (maxPrice) query = query.lte('price_inr', Number(maxPrice))
-      query = sort === 'new' ? query.order('created_at', { ascending: false }) : query.order('price_inr', { ascending: sort === 'low' })
-      const { data, error } = await query.limit(60)
-      if (!live) return
-      if (error) return setState('error')
-      setItems((data ?? []) as Listing[])
-      setState('ok')
-    }, 250)
-    return () => { live = false; clearTimeout(t) }
+    observer.current?.setFilters({ q, category, type, condition, maxPrice, sort })
   }, [q, category, type, condition, maxPrice, sort])
 
   const toggleSave = async (l: Listing) => {
@@ -69,16 +51,17 @@ export default function Browse() {
 
   return (
     <>
-      <Hero q={q} setQ={setQ} category={category} setCategory={setCategory} featured={latest} onSubmit={toResults} />
+      <Hero q={q} setQ={setQ} category={category} setCategory={setCategory} featured={overview?.latest ?? []} onSubmit={toResults} />
 
       <section className="block tight" aria-label="Categories">
         <div className="cat-row">
           {Object.entries(CATEGORIES).map(([k, v]) => (
             <button key={k} className={`cat ${category === k ? 'on' : ''}`} aria-pressed={category === k} onClick={() => { setCategory(category === k ? '' : k); toResults() }}>
-              <span>{v}</span><small>{counts[k] ?? 0} listed</small>
+              <span>{v}</span><small>{overview ? `${overview.counts[k] ?? 0} listed` : overviewLoading ? 'Loading…' : 'Unavailable'}</small>
             </button>
           ))}
         </div>
+        {overviewError && <p className="error small" role="alert">{overviewError} <button disabled={overviewLoading} onClick={() => void observer.current?.retryOverview()}>Retry category totals</button></p>}
       </section>
 
       <section className="block" id="results" aria-labelledby="fresh">
@@ -87,7 +70,7 @@ export default function Browse() {
           <h2 id="fresh" className="display sm">{category ? CATEGORIES[category] : 'Fresh on campus'}</h2>
           <button onClick={() => setDrawer(true)}>Filters{active > 0 && <span className="badge unread">{active}</span>}</button>
         </div>
-        {state === 'error' && <p className="error">Couldn't load listings. Check your connection and try again.</p>}
+        {state === 'error' && <p className="error" role="alert">{error} <button onClick={() => observer.current?.retrySearch()}>Try again</button></p>}
         {saveError && <p className="error" role="alert">{saveError} <button onClick={retrySaved} disabled={savedLoading || saving.size > 0}>Reload saved items</button></p>}
         {state === 'loading' && <div className="bento" aria-busy="true">{Array.from({ length: 6 }, (_, i) => <div key={i} className="skeleton" />)}</div>}
         {state === 'ok' && items.length === 0 && (
