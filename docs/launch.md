@@ -2,6 +2,8 @@
 
 Written overnight on 2026-10-31 by Claude (code, deployment tooling) with Codex doing the browser-only setup in Abhik's signed-in browser. This file separates what is **verified**, what **depends on an account owner's decision**, and what to do next. Keep it current; do not put secrets in it.
 
+**New rollout prerequisite (2026-11-03):** main after CHAT-05 / PR #27 uses `make_offer_once` and `respond_offer_once`. Verify the selected backend's migration history and apply `supabase/migrations/0008_offer_retries.sql` if missing **before deploying that source**. Legacy RPCs remain compatible with older clients. This review did not apply 0008 or publish a build; the selected project's dashboard still requires sign-in here. See [backend-setup.md](backend-setup.md) for the ordered migrations. The deployment/hosted results below are historical evidence, not confirmation that 0008 is live.
+
 ## How it fits together
 
 | Piece | Where | Notes |
