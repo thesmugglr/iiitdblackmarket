@@ -18,6 +18,7 @@ import { observeListingSave, writeListingDraft } from '../src/lib/listingSave.ts
 import { emptyBrowseFilters, loadBrowseListings, loadBrowseOverview, loadBrowsePage } from '../src/lib/browseState.ts'
 import { createLinkCache } from '../src/lib/signedUrlCache.ts'
 import { requestSignedLinks } from '../src/lib/storageLinks.ts'
+import { loadAdminData } from '../src/lib/adminData.ts'
 
 const env = readLocalStack()
 const URL_ = env.API_URL, ANON = env.ANON_KEY
@@ -801,6 +802,36 @@ await step('keyset discovery reaches later pages across inserts/deletions, tied 
     assert.ok(capped.length <= 65, 'filtered pages must terminate within their price cap')
   } while (cursor)
   assert.equal(capped.length, 65); assert.equal(capped.every(item => item.price_inr === 50), true)
+})
+
+await step('administrator loader reaches reports beyond the API cap and confirms admin access at completion', async () => {
+  const directoryAdmin = await user('directory-admin', { role: 'admin' }), reporter = await user('directory-reporter')
+  const item = ok(await reporter.c.from('listings').insert({ seller_id: reporter.id, title: 'Administrator paging fixture', listing_type: 'sale', category: 'misc', condition: 'good', price_inr: 10 }).select('id').single())
+  const rows = Array.from({ length: 1050 }, (_, i) => ({ id: randomUUID(), reporter_id: reporter.id, listing_id: item.id, reason: 'Fictional report pagination check',
+    created_at: i < 500 ? '2020-01-01T00:00:00.123456Z' : '2020-01-01T00:00:00.123457Z',
+  }))
+  ok(await reporter.c.from('reports').insert(rows))
+  const capped = ok(await directoryAdmin.c.from('reports').select('id').eq('reporter_id', reporter.id).order('created_at').order('id'))
+  assert.equal(capped.length, 1000, 'unpaged query demonstrates the configured API cap')
+  const result = await loadAdminData(directoryAdmin.c, directoryAdmin.id)
+  const ids = new Set(rows.map(r => r.id))
+  const expected = [...rows].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id)).map(r => r.id)
+  assert.deepEqual(result.reports.filter(r => ids.has(r.id)).map(r => r.id), expected)
+  assert.equal(new Set(result.reports.map(r => r.id)).size, result.reports.length)
+  const expectedUsers = ok(await admin.from('profiles').select('id').order('created_at', { ascending: false }).order('id', { ascending: false }))
+  assert.deepEqual(result.users.map(r => r.id), expectedUsers.map(r => r.id))
+  await assert.rejects(loadAdminData(reporter.c, reporter.id), /access could not be confirmed/)
+  let confirmations = 0
+  const revoked = { from: table => directoryAdmin.c.from(table), rpc(name, ...args) {
+    if (name !== 'my_profile') return directoryAdmin.c.rpc(name, ...args)
+    return { maybeSingle: async () => {
+      if (++confirmations === 2) ok(await admin.from('profiles').update({ status: 'suspended' }).eq('id', directoryAdmin.id))
+      return directoryAdmin.c.rpc(name, ...args).maybeSingle()
+    } }
+  } }
+  try { await assert.rejects(loadAdminData(revoked, directoryAdmin.id), /access could not be confirmed/) }
+  finally { ok(await admin.from('profiles').update({ status: 'approved' }).eq('id', directoryAdmin.id)) }
+  assert.equal(confirmations, 2)
 })
 
 await step('signed-photo cache discards a delayed real signing reply across account access changes', async () => {
