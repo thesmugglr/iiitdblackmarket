@@ -9,7 +9,7 @@ import ListingCard from '../components/ListingCard'
 import Drawer from '../components/Drawer'
 import Reveal from '../components/Reveal'
 import { HowItWorks, Trust, Cta } from '../components/Landing'
-import { emptyBrowse, loadBrowseListings, loadBrowseOverview, observeBrowse } from '../lib/browseState'
+import { emptyBrowse, loadBrowsePage, loadBrowseOverview, observeBrowse } from '../lib/browseState'
 import type { Listing } from '../lib/types'
 
 export default function Browse() {
@@ -18,7 +18,7 @@ export default function Browse() {
 }
 
 function AccountBrowse({ member }: { member: string }) {
-  const [{ items, state, error, overview, overviewLoading, overviewError }, setSnapshot] = useState(emptyBrowse)
+  const [{ items, state, error, hasMore, loadingMore, moreError, overview, overviewLoading, overviewError }, setSnapshot] = useState(emptyBrowse)
   const observer = useRef<ReturnType<typeof observeBrowse> | null>(null)
   const [q, setQ] = useState('')
   const [category, setCategory] = useState('')
@@ -31,7 +31,7 @@ function AccountBrowse({ member }: { member: string }) {
 
   useEffect(() => {
     const current = observeBrowse({
-      loadOverview: () => loadBrowseOverview(supabase), loadSearch: filters => loadBrowseListings(supabase, filters), publish: setSnapshot,
+      loadOverview: () => loadBrowseOverview(supabase), loadPage: (filters, after) => loadBrowsePage(supabase, filters, after), publish: setSnapshot,
       schedule: (callback, delay) => { const timer = setTimeout(callback, delay); return () => clearTimeout(timer) },
     })
     observer.current = current
@@ -77,10 +77,16 @@ function AccountBrowse({ member }: { member: string }) {
           <div className="empty"><strong>Nothing matches yet</strong><span>Loosen a filter, or be the first to list it.</span><button onClick={clear}>Clear filters</button></div>
         )}
         {state === 'ok' && items.length > 0 && (
-          <div className="bento">
+          <div className="bento" aria-busy={loadingMore}>
             {items.map((l, i) => <Reveal key={l.id} className={i === 0 ? 'big' : ''} delay={Math.min(i, 5) * 0.05}><ListingCard l={l} feature={i === 0} saved={saved.has(l.id)} onSave={toggleSave} /></Reveal>)}
           </div>
         )}
+        {moreError && <p className="error" role="alert">{moreError}</p>}
+        {state === 'ok' && <div className="row">
+          <span className="muted small" role="status">{items.length} listings loaded</span>
+          {hasMore && <button disabled={loadingMore} onClick={() => void observer.current?.loadMore()}>{loadingMore ? 'Loading…' : moreError ? 'Retry loading more' : 'Load more'}</button>}
+          <button onClick={() => { observer.current?.retrySearch(); void observer.current?.retryOverview(); toResults() }}>Refresh listings</button>
+        </div>}
       </section>
 
       <HowItWorks />
@@ -93,7 +99,7 @@ function AccountBrowse({ member }: { member: string }) {
           <label>Condition<select value={condition} onChange={(e) => setCondition(e.target.value)}><option value="">Any condition</option>{Object.entries(CONDITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
           <label>Max price (₹)<input type="number" min="0" placeholder="No limit" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} /></label>
           <label>Sort by<select value={sort} onChange={(e) => setSort(e.target.value)}><option value="new">Newest first</option><option value="low">Price, low to high</option><option value="high">Price, high to low</option></select></label>
-          <div className="row"><button className="primary" onClick={() => setDrawer(false)}>Show {state === 'ok' ? items.length : ''} results</button><button className="link" onClick={clear}>Reset all</button></div>
+          <div className="row"><button className="primary" onClick={() => setDrawer(false)}>Show {state === 'ok' ? `${items.length}${hasMore ? '+' : ''}` : ''} results</button><button className="link" onClick={clear}>Reset all</button></div>
         </div>
       </Drawer>
     </>
