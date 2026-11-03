@@ -7,6 +7,8 @@ import { addStudentRoster, changeMemberStatus, removeReportedListing, updateRepo
 import { loadProfileDashboard, saveProfile } from '../src/lib/profileData.ts'
 import { cleanupListingPhotos, deleteOwnedListing, updateOwnedListingStatus } from '../src/lib/listingActions.ts'
 import assert from 'node:assert/strict'
+import { randomUUID } from 'node:crypto'
+import { observeTextComposer, sendChatText } from '../src/lib/chatText.ts'
 
 const env = readLocalStack()
 const URL_ = env.API_URL, ANON = env.ANON_KEY
@@ -373,6 +375,53 @@ await step('owner listing helpers confirm status/deletion; denied writes preserv
   const signed = ok(await admin.storage.from('listing-photos').createSignedUrls([original, current, thumbPath(current)], 60))
   assert.ok(signed[0].signedUrl, 'old snapshot photo was not deleted by this cleanup')
   assert.ok(!signed[1].signedUrl && !signed[2].signedUrl, 'current original and thumbnail were removed')
+})
+
+await step('text composer confirms persisted sends, deduplicates a lost response retry and rejects unauthorized writers', async () => {
+  const item = ok(await seller.c.from('listings').insert({ seller_id: seller.id, title: 'Text send fixture', listing_type: 'sale', category: 'hostel', condition: 'good', price_inr: 50 }).select('id').single())
+  const conversation = ok(await buyer.c.rpc('start_conversation', { p_listing: item.id }))
+  let loseResponse = true
+  // Inject only a lost response after a REAL server insert commits. The retry
+  // goes through the actual upsert/read policies on the same generated UUID.
+  const flaky = { from(table) {
+    const query = buyer.c.from(table)
+    return {
+      upsert: async (...args) => {
+        const result = await query.upsert(...args)
+        if (!result.error && loseResponse) { loseResponse = false; throw new Error('fixture lost response') }
+        return result
+      },
+      select: (...args) => query.select(...args),
+    }
+  } }
+  const states = [], attempts = []
+  const composer = observeTextComposer({ newId: randomUUID, publish: s => states.push(s), write: async request => {
+    attempts.push({ ...request })
+    await sendChatText(flaky, conversation, buyer.id, request)
+  } })
+  composer.edit(' Confirmed fixture text ')
+  await composer.send()
+  assert.equal(states.at(-1).text, ' Confirmed fixture text ')
+  assert.ok(states.at(-1).error)
+  await composer.send()
+  assert.equal(states.at(-1).text, '')
+  assert.equal(states.at(-1).error, '')
+  assert.equal(attempts.length, 2)
+  assert.equal(attempts[0].id, attempts[1].id)
+  const rows = ok(await seller.c.from('messages').select('id,body').eq('conversation_id', conversation))
+  assert.deepEqual(rows, [{ id: attempts[0].id, body: 'Confirmed fixture text' }])
+  await assert.rejects(sendChatText(buyer.c, conversation, buyer.id, { id: attempts[0].id, body: 'Changed payload' }))
+  assert.equal(ok(await seller.c.from('messages').select('body').eq('id', attempts[0].id).single()).body, 'Confirmed fixture text')
+  await assert.rejects(sendChatText(outsider.c, conversation, buyer.id, { id: randomUUID(), body: 'Forged sender' }))
+  await assert.rejects(sendChatText(outsider.c, conversation, outsider.id, { id: randomUUID(), body: 'Not a participant' }))
+  ok(await seller.c.from('blocks').insert({ blocker_id: seller.id, blocked_id: buyer.id }))
+  await assert.rejects(sendChatText(buyer.c, conversation, buyer.id, { id: randomUUID(), body: 'Blocked' }))
+  ok(await seller.c.from('blocks').delete().eq('blocker_id', seller.id).eq('blocked_id', buyer.id))
+  await changeMemberStatus(adm.c, buyer.id, 'suspended')
+  await assert.rejects(sendChatText(buyer.c, conversation, buyer.id, { id: randomUUID(), body: 'Suspended' }))
+  await changeMemberStatus(adm.c, buyer.id, 'approved')
+  composer.dispose()
+  assert.equal(ok(await seller.c.from('messages').select('id').eq('conversation_id', conversation)).length, 1)
 })
 
 await step('remove only photos, bootstrap rows, roster entries, student codes and accounts created by this run', async () => {
