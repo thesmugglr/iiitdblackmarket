@@ -34,13 +34,13 @@ function fixture({ members = [], effect = () => {}, reply = result => result } =
   return { api, calls, roster, profiles }
 }
 
-test('1,005 deduplicated addresses use six bounded confirmations before any pending-member approvals', async () => {
+test('1,005 deduplicated addresses retain one atomic write before pending-member approvals', async () => {
   const users = [member(0), member(1004)], f = fixture({ members: users })
   const result = await addStudentRoster(f.api, `${addresses.join('\n')} ${email(0).toUpperCase()}`, users)
   assert.deepEqual(result, { added: 1005, approved: 2, failed: 0 })
   assert.equal(f.roster.size, 1005)
-  assert.deepEqual(f.calls.filter(c => c.upsert).map(c => c.upsert.length), [200, 200, 200, 200, 200, 5])
-  assert.equal(f.calls.findIndex(c => c.table === 'profiles'), 6)
+  assert.deepEqual(f.calls.filter(c => c.upsert).map(c => c.upsert.length), [1005])
+  assert.equal(f.calls.findIndex(c => c.table === 'profiles'), 1)
   for (const call of f.calls.filter(c => c.update)) assert.deepEqual(call.filters, [['id', call.filters[0][1]], ['status', 'pending']])
 })
 
@@ -50,24 +50,24 @@ test('an invalid final address prevents every write, even for a large valid pref
   assert.equal(f.calls.length, 0)
 })
 
-for (const transport of [false, true]) test(`uncertain second batch retains earlier writes and safely retries without premature approval (${transport ? 'exception' : 'error reply'})`, async () => {
-  let fail = true, writes = 0
+for (const transport of [false, true]) test(`uncertain write safely retries without premature approval (${transport ? 'exception' : 'error reply'})`, async () => {
+  let fail = true
   const users = [member(0)], f = fixture({ members: users, reply(result, call) {
-    if (call.upsert && fail && ++writes === 2) { if (transport) throw new Error('lost reply'); return { data: null, error: { message: 'lost reply' } } }
+    if (call.upsert && fail) { if (transport) throw new Error('lost reply'); return { data: null, error: { message: 'lost reply' } } }
     return result
   } })
-  await assert.rejects(addStudentRoster(f.api, addresses.join(' '), users), /200 entries confirmed.*may have been saved/)
-  assert.equal(f.roster.size, 400); assert.equal(f.profiles.get('0').status, 'pending')
+  await assert.rejects(addStudentRoster(f.api, addresses.join(' '), users), /update may already have been saved/)
+  assert.equal(f.roster.size, 1005); assert.equal(f.profiles.get('0').status, 'pending')
   assert.equal(f.calls.some(c => c.table === 'profiles'), false)
   fail = false
   assert.deepEqual(await addStudentRoster(f.api, addresses.join(' '), users), { added: 1005, approved: 1, failed: 0 })
   assert.equal(f.roster.size, 1005)
 })
 
-test('an incomplete confirmation cannot start approvals or later batches', async () => {
+test('an incomplete confirmation cannot start approvals', async () => {
   const users = [member(0)], f = fixture({ members: users, reply: (result, call) => call.upsert ? { data: result.data.slice(0, 199), error: null } : result })
-  await assert.rejects(addStudentRoster(f.api, addresses.join(' '), users), /0 entries confirmed/)
-  assert.equal(f.calls.length, 1); assert.equal(f.roster.size, 200); assert.equal(f.profiles.get('0').status, 'pending')
+  await assert.rejects(addStudentRoster(f.api, addresses.join(' '), users), /Could not confirm/)
+  assert.equal(f.calls.length, 1); assert.equal(f.roster.size, 1005); assert.equal(f.profiles.get('0').status, 'pending')
 })
 
 test('obsolete action cannot start a roster write', async () => {
@@ -76,11 +76,11 @@ test('obsolete action cannot start a roster write', async () => {
   assert.equal(f.calls.length, 0)
 })
 
-for (const stopAt of [1, 6]) test(`page/account disposal after batch ${stopAt} stops subsequent writes and approvals`, async () => {
-  let live = true, writes = 0
-  const users = [member(0)], f = fixture({ members: users, effect(call) { if (call.upsert && ++writes === stopAt) live = false } })
+test('page/account disposal after the roster response stops subsequent approvals', async () => {
+  let live = true
+  const users = [member(0)], f = fixture({ members: users, effect(call) { if (call.upsert) live = false } })
   await assert.rejects(addStudentRoster(f.api, addresses.join(' '), users, () => live), /action stopped/)
-  assert.equal(f.calls.length, stopAt); assert.equal(f.profiles.get('0').status, 'pending')
+  assert.equal(f.calls.length, 1); assert.equal(f.profiles.get('0').status, 'pending')
 })
 
 test('disposal after an approval was dispatched cannot start another approval', async () => {
