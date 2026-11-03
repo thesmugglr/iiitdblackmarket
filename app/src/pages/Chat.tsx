@@ -8,6 +8,7 @@ import { preparePhoto } from '../lib/image'
 import { useSignedUrls } from '../lib/useSignedUrls'
 import { emptyConversation, observeConversation } from '../lib/conversationState'
 import { emptyTextComposer, observeTextComposer, sendChatText } from '../lib/chatText'
+import { emptyOfferComposer, makeOfferOnce, observeOfferComposer, respondOfferOnce } from '../lib/chatOffers'
 import type { Conversation, Message, Offer } from '../lib/types'
 
 function Bubble({ m, mine, onReport }: { m: Message; mine: boolean; onReport: () => void }) {
@@ -41,7 +42,8 @@ function ConversationChat({ id }: { id: string }) {
   const [{ text, sending, error: sendError }, setComposer] = useState(emptyTextComposer)
   const composer = useRef<ReturnType<typeof observeTextComposer> | null>(null)
   const [err, setErr] = useState('')
-  const [offerAmt, setOfferAmt] = useState('')
+  const [{ amount: offerAmt, busy: offerBusy, error: offerError }, setOfferComposer] = useState(emptyOfferComposer)
+  const offerComposer = useRef<ReturnType<typeof observeOfferComposer> | null>(null)
   const bottom = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -54,6 +56,19 @@ function ConversationChat({ id }: { id: string }) {
     composer.current = current
     return () => { current.dispose(); composer.current = null }
   }, [id, memberId])
+
+  useEffect(() => {
+    if (!memberId) return
+    const current = observeOfferComposer({
+      conversation: id, member: memberId, newId: () => crypto.randomUUID(),
+      make: request => makeOfferOnce(supabase, id, memberId, request),
+      respond: (offerId, accept) => respondOfferOnce(supabase, id, offerId, accept),
+      confirmed: () => setAttempt(n => n + 1), publish: setOfferComposer,
+    })
+    offerComposer.current = current
+    return () => { current.dispose(); offerComposer.current = null }
+  }, [id, memberId])
+  useEffect(() => { offerComposer.current?.acknowledge(offers) }, [offers])
 
   useEffect(() => {
     return observeConversation(id, {
@@ -119,14 +134,13 @@ function ConversationChat({ id }: { id: string }) {
       setErr(e instanceof Error ? e.message : 'Could not send that photo.')
     }
   }
-  const makeOffer = async () => {
-    const { error } = await supabase.rpc('make_offer', { p_conversation: conv.id, p_amount: Number(offerAmt) })
-    setErr(error?.message ?? '')
-    if (!error) setOfferAmt('')
+  const makeOffer = () => {
+    setErr('')
+    void offerComposer.current?.make()
   }
-  const respond = async (o: Offer, accept: boolean) => {
-    const { error } = await supabase.rpc('respond_offer', { p_offer: o.id, p_accept: accept })
-    setErr(error?.message ?? '')
+  const respond = (o: Offer, accept: boolean) => {
+    setErr('')
+    void offerComposer.current?.respond(o.id, accept)
   }
   const block = async () => {
     if (!confirm(`Block ${otherName}? They will no longer be able to message you.`)) return
@@ -157,18 +171,19 @@ function ConversationChat({ id }: { id: string }) {
       {pending && (
         <div className="offer-bar">
           Offer: <strong>{inr(pending.amount_inr)}</strong>
-          {!isBuyer && (<><button className="primary" onClick={() => respond(pending, true)}>Accept</button><button onClick={() => respond(pending, false)}>Decline</button></>)}
+          {!isBuyer && (<><button className="primary" disabled={offerBusy} onClick={() => respond(pending, true)}>Accept</button><button disabled={offerBusy} onClick={() => respond(pending, false)}>Decline</button></>)}
           {isBuyer && <span className="muted"> waiting for seller</span>}
         </div>
       )}
       {isBuyer && !pending && conv.listing?.status === 'active' && (
         <div className="offer-bar">
-          <input type="number" min="0" placeholder="Offer ₹" value={offerAmt} onChange={(e) => setOfferAmt(e.target.value)} />
-          <button onClick={makeOffer} disabled={!offerAmt}>Make offer</button>
+          <input type="number" min="0" step="1" placeholder="Offer ₹" value={offerAmt} onChange={(e) => offerComposer.current?.edit(e.target.value)} />
+          <button onClick={makeOffer} disabled={offerBusy || !offerAmt.trim()}>{offerBusy ? 'Sending…' : 'Make offer'}</button>
         </div>
       )}
       {err && <p className="error small">{err}</p>}
       {sendError && <p className="error small" role="alert">{sendError}</p>}
+      {offerError && <p className="error small" role="alert">{offerError}</p>}
       {loadError && <p className="error small">{loadError} {retry}</p>}
       <form className="composer" onSubmit={send} aria-busy={sending}>
         <label className="attach" title="Attach photo"><Clip /><input type="file" accept="image/*" hidden onChange={(e) => { void attach(e.target.files?.[0]); e.target.value = '' }} /></label>

@@ -9,6 +9,7 @@ import { cleanupListingPhotos, deleteOwnedListing, updateOwnedListingStatus } fr
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { observeTextComposer, sendChatText } from '../src/lib/chatText.ts'
+import { makeOfferOnce, observeOfferComposer, respondOfferOnce } from '../src/lib/chatOffers.ts'
 
 const env = readLocalStack()
 const URL_ = env.API_URL, ANON = env.ANON_KEY
@@ -422,6 +423,66 @@ await step('text composer confirms persisted sends, deduplicates a lost response
   await changeMemberStatus(adm.c, buyer.id, 'approved')
   composer.dispose()
   assert.equal(ok(await seller.c.from('messages').select('id').eq('conversation_id', conversation)).length, 1)
+})
+
+await step('new offer RPCs deduplicate concurrent/lost requests and repeated seller decisions without changing access rules', async () => {
+  const item = ok(await seller.c.from('listings').insert({ seller_id: seller.id, title: 'Offer retry fixture', listing_type: 'sale', category: 'hostel', condition: 'good', price_inr: 500 }).select('id').single())
+  const conversation = ok(await buyer.c.rpc('start_conversation', { p_listing: item.id }))
+  const anotherSession = async member => {
+    const client = createClient(URL_, ANON, { auth: { persistSession: false } })
+    clients.push(client)
+    ok(await client.auth.signInWithPassword({ email: member.email, password: 'localtest-pass' }))
+    return client
+  }
+  const secondBuyer = await anotherSession(buyer), secondSeller = await anotherSession(seller)
+  const first = { id: randomUUID(), amount: 300 }
+  await Promise.all([makeOfferOnce(buyer.c, conversation, buyer.id, first), makeOfferOnce(secondBuyer, conversation, buyer.id, first)])
+  const lost = { id: randomUUID(), amount: 400 }
+  let loseResponse = true
+  const flaky = { from: table => buyer.c.from(table), rpc: async (name, args) => {
+    const result = await buyer.c.rpc(name, args)
+    if (!result.error && loseResponse) { loseResponse = false; throw new Error('fixture lost offer response') }
+    return result
+  } }
+  const states = []
+  const composer = observeOfferComposer({ conversation, member: buyer.id, newId: () => lost.id,
+    make: request => makeOfferOnce(flaky, conversation, buyer.id, request), respond: async () => {}, confirmed: () => {}, publish: s => states.push(s),
+  })
+  composer.edit('400'); await composer.make()
+  assert.equal(states.at(-1).amount, '400'); assert.ok(states.at(-1).error)
+  await composer.make()
+  assert.equal(states.at(-1).amount, ''); assert.equal(states.at(-1).error, '')
+  assert.equal(ok(await buyer.c.from('offers').select('id').eq('conversation_id', conversation)).length, 2)
+  assert.equal(ok(await buyer.c.from('messages').select('id').eq('conversation_id', conversation)).length, 2)
+  await assert.rejects(makeOfferOnce(buyer.c, conversation, buyer.id, { ...first, amount: 301 }))
+  await assert.rejects(makeOfferOnce(outsider.c, conversation, outsider.id, { id: randomUUID(), amount: 200 }))
+  const anonymous = createClient(URL_, ANON, { auth: { persistSession: false } })
+  clients.push(anonymous)
+  assert.ok((await anonymous.rpc('make_offer_once', { p_conversation: conversation, p_amount: 200, p_request: randomUUID() })).error)
+  await Promise.all([respondOfferOnce(seller.c, conversation, first.id, true), respondOfferOnce(secondSeller, conversation, first.id, true)])
+  await assert.rejects(respondOfferOnce(buyer.c, conversation, first.id, true))
+  await assert.rejects(respondOfferOnce(seller.c, conversation, first.id, false))
+  const listingState = ok(await seller.c.from('listings').select('status,price_inr').eq('id', item.id).single())
+  assert.deepEqual(listingState, { status: 'reserved', price_inr: 300 })
+  assert.equal(ok(await buyer.c.from('offers').select('status').eq('id', lost.id).single()).status, 'declined')
+  assert.equal(ok(await buyer.c.from('messages').select('id').eq('conversation_id', conversation)).length, 3)
+  composer.dispose()
+})
+
+await step('concurrent opposite offer decisions produce one outcome and one response message', async () => {
+  const item = ok(await seller.c.from('listings').insert({ seller_id: seller.id, title: 'Offer decision race fixture', listing_type: 'sale', category: 'hostel', condition: 'good', price_inr: 500 }).select('id').single())
+  const conversation = ok(await buyer.c.rpc('start_conversation', { p_listing: item.id }))
+  const offer = { id: randomUUID(), amount: 350 }
+  await makeOfferOnce(buyer.c, conversation, buyer.id, offer)
+  const secondSeller = createClient(URL_, ANON, { auth: { persistSession: false } })
+  clients.push(secondSeller)
+  ok(await secondSeller.auth.signInWithPassword({ email: seller.email, password: 'localtest-pass' }))
+  const results = await Promise.allSettled([respondOfferOnce(seller.c, conversation, offer.id, true), respondOfferOnce(secondSeller, conversation, offer.id, false)])
+  assert.equal(results.filter(r => r.status === 'fulfilled').length, 1)
+  const status = ok(await seller.c.from('offers').select('status').eq('id', offer.id).single()).status
+  const record = ok(await seller.c.from('listings').select('status,price_inr').eq('id', item.id).single())
+  assert.deepEqual(record, status === 'accepted' ? { status: 'reserved', price_inr: 350 } : { status: 'active', price_inr: 500 })
+  assert.equal(ok(await buyer.c.from('messages').select('id').eq('conversation_id', conversation)).length, 2)
 })
 
 await step('remove only photos, bootstrap rows, roster entries, student codes and accounts created by this run', async () => {
