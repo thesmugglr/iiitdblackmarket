@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { supabase } from './supabase'
 import type { Profile } from './types'
 import { observeAuth, type AuthSnapshot } from './authState'
-import { forgetPhotoLinks } from './useSignedUrls'
+import { forgetPhotoLinks, setPhotoLinkAccount } from './photoLinks'
 
 interface AuthState extends AuthSnapshot {
   refresh: () => Promise<void>
@@ -32,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error) throw error
         return data as Profile | null
       },
+      accessChanged: setPhotoLinkAccount,
       publish: setSnapshot,
     })
     observer.current = current
