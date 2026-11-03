@@ -13,7 +13,7 @@ import { makeOfferOnce, observeOfferComposer, respondOfferOnce } from '../src/li
 import { observeAttachment, sendChatImage, uploadChatAttachment } from '../src/lib/chatAttachments.ts'
 import { loadInbox } from '../src/lib/inboxState.ts'
 import { observeListingSave, writeListingDraft } from '../src/lib/listingSave.ts'
-import { emptyBrowseFilters, loadBrowseListings, loadBrowseOverview } from '../src/lib/browseState.ts'
+import { emptyBrowseFilters, loadBrowseListings, loadBrowseOverview, loadBrowsePage } from '../src/lib/browseState.ts'
 
 const env = readLocalStack()
 const URL_ = env.API_URL, ANON = env.ANON_KEY
@@ -742,6 +742,54 @@ await step('quoted discovery search handles reserved punctuation, literal LIKE c
     assert.deepEqual(found.map(l => l.id), [rows[0].id])
   }
   assert.deepEqual(await loadBrowseListings(member.c, { ...emptyBrowseFilters(), q: 'x"),description.ilike.*' }), [])
+})
+
+await step('keyset discovery reaches later pages across inserts/deletions, tied sorts and microsecond timestamps', async () => {
+  const marker = `discovery-${run}`, cutoff = new Date().toISOString()
+  const filters = { ...emptyBrowseFilters(), q: marker, category: 'books' }
+  const baseline = ok(await buyer.c.from('listings').select('id').like('title', `${marker} %`).eq('category', 'books')
+    .in('status', ['active', 'reserved']).gt('expires_at', cutoff).order('created_at', { ascending: false }).order('id', { ascending: false }).limit(1000))
+  assert.equal(baseline.length, 205)
+  const first = await loadBrowsePage(buyer.c, filters, null, cutoff)
+  assert.equal(first.items.length, 60); assert.ok(first.next)
+  const incoming = ok(await buyer.c.from('listings').insert({ seller_id: buyer.id, title: `${marker} concurrent newest`, listing_type: 'sale', category: 'books', condition: 'good', price_inr: 999,
+    created_at: new Date(Date.now() + 10800000).toISOString(), expires_at: new Date(Date.now() + 86400000).toISOString(),
+  }).select('id').single())
+  // Deleting the boundary itself must not make continuation depend on a row
+  // lookup. Deleting an unseen row must not shift an OFFSET and skip another.
+  const unseen = baseline[100].id
+  ok(await admin.from('listings').delete().in('id', [first.next.id, unseen]))
+  const loaded = [...first.items]
+  let after = first.next, pages = 1
+  while (after) {
+    assert.ok(pages++ < 10, 'pagination must terminate')
+    const page = await loadBrowsePage(buyer.c, filters, after, cutoff)
+    assert.ok(page.items.length <= 60); loaded.push(...page.items); after = page.next
+  }
+  assert.deepEqual(loaded.map(l => l.id), baseline.map(l => l.id).filter(id => id !== unseen))
+  assert.equal(new Set(loaded.map(l => l.id)).size, loaded.length)
+  assert.equal((await loadBrowsePage(buyer.c, filters, null, cutoff)).items[0].id, incoming.id, 'refresh can show the newly inserted row')
+
+  const member = await user('paging-ties'), tieMarker = `paging-${run}`
+  const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, '.123456Z')
+  const rows = Array.from({ length: 130 }, (_, i) => ({ seller_id: member.id, title: `${tieMarker} ${i}`, listing_type: 'sale', category: 'electronics', condition: 'good',
+    price_inr: i < 65 ? 50 : 51, created_at: timestamp,
+  }))
+  ok(await member.c.from('listings').insert(rows))
+  for (const sort of ['new', 'low', 'high']) {
+    let expectedQuery = member.c.from('listings').select('id').eq('seller_id', member.id).like('title', `${tieMarker} %`)
+    if (sort !== 'new') expectedQuery = expectedQuery.order('price_inr', { ascending: sort === 'low' })
+    const expected = ok(await expectedQuery.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(1000))
+    const actual = []; let cursor = null, count = 0
+    do {
+      assert.ok(count++ < 10, 'tied pagination must terminate')
+      const page = await loadBrowsePage(member.c, { ...emptyBrowseFilters(), q: tieMarker, category: 'electronics', sort }, cursor)
+      actual.push(...page.items); cursor = page.next
+      if (cursor) assert.match(cursor.created_at, /\.123456/)
+    } while (cursor)
+    assert.equal(count, 3); assert.equal(actual.length, 130)
+    assert.deepEqual(actual.map(l => l.id), expected.map(l => l.id)); assert.equal(new Set(actual.map(l => l.id)).size, 130)
+  }
 })
 
 await step('remove only photos, bootstrap rows, roster entries, student codes and accounts created by this run', async () => {
