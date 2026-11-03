@@ -804,6 +804,41 @@ await step('keyset discovery reaches later pages across inserts/deletions, tied 
   assert.equal(capped.length, 65); assert.equal(capped.every(item => item.price_inr === 50), true)
 })
 
+await step('large roster writes retain atomic confirmation and preserve a concurrently suspended member', async () => {
+  const rosterAdmin = await user('bulk-admin', { role: 'admin' })
+  const a = await user(`bulk-${run}-a`, { approve: false }), b = await user(`bulk-${run}-b`, { approve: false }), c = await user(`bulk-${run}-c`, { approve: false })
+  const emails = [a.email, ...Array.from({ length: 1002 }, (_, i) => `bulk-${run}-${i}@iiitd.ac.in`), b.email, c.email]
+  rosterEmails.push(...emails)
+  // Mutation representations are not truncated by the read cap. Preserve the
+  // existing atomic write; inserting roster rows alone does not approve old accounts.
+  const capped = ok(await rosterAdmin.c.from('student_roster').upsert(emails.map(email => ({ email }))).select('email'))
+  assert.equal(capped.length, 1005)
+  const snapshot = [a, b, c].map(member => ({ id: member.id, email: member.email, status: 'pending' }))
+  ok(await admin.from('profiles').update({ status: 'suspended' }).eq('id', c.id))
+  const input = emails.join('\n')
+  assert.deepEqual(await addStudentRoster(rosterAdmin.c, input, snapshot), { added: 1005, approved: 2, failed: 1 })
+  const statuses = ok(await admin.from('profiles').select('id,status').in('id', [a.id, b.id, c.id]))
+  const byId = new Map(statuses.map(member => [member.id, member.status]))
+  assert.equal(byId.get(a.id), 'approved'); assert.equal(byId.get(b.id), 'approved'); assert.equal(byId.get(c.id), 'suspended')
+  // The same stale snapshot safely confirms already-approved rows; it still
+  // refuses the suspended one. Refreshing the directory skips it thereafter.
+  assert.deepEqual(await addStudentRoster(rosterAdmin.c, input, snapshot), { added: 1005, approved: 2, failed: 1 })
+  const refreshed = snapshot.map(member => ({ ...member, status: byId.get(member.id) }))
+  assert.deepEqual(await addStudentRoster(rosterAdmin.c, input, refreshed), { added: 1005, approved: 0, failed: 0 })
+  const total = await rosterAdmin.c.from('student_roster').select('email', { count: 'exact', head: true }).like('email', `bulk-${run}-%`)
+  ok(total); assert.equal(total.count, 1005)
+  await assert.rejects(addStudentRoster(a.c, emails[0], []), /Could not confirm/)
+  let current = true, writes = 0
+  const stopped = { from(table) {
+    assert.equal(table, 'student_roster', 'no approval may start after cancellation')
+    return { upsert: rows => ({ select: async () => {
+      writes++; const result = await rosterAdmin.c.from(table).upsert(rows).select('email'); current = false; return result
+    } }) }
+  } }
+  await assert.rejects(addStudentRoster(stopped, input, snapshot, () => current), /action stopped/)
+  assert.equal(writes, 1)
+})
+
 await step('administrator loader reaches members/reports beyond the API cap and confirms admin access at completion', async () => {
   const directoryAdmin = await user('directory-admin', { role: 'admin' }), reporter = await user('directory-reporter')
   // Generated, non-login accounts in this disposable stack only. Await every

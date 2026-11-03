@@ -74,7 +74,7 @@ function AdminPage({ account }: { account: string }) {
     return `Report ${status}.`
   })
   const addRoster = () => run(async () => {
-    const result = await addStudentRoster(supabase, roster, users)
+    const result = await addStudentRoster(supabase, roster, users, () => active.current)
     if (active.current && !result.failed) setRoster('')
     return result.failed
       ? `Added ${result.added} roster entries. Approved ${result.approved} existing members; ${result.failed} approval(s) could not be confirmed. Emails retained: refresh and retry.`
