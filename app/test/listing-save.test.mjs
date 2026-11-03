@@ -61,7 +61,7 @@ for (const [name, response] of [
 })
 test('SQL creation rejection is distinguished from a lost or fetch error response', async () => {
   await assert.rejects(writeListingDraft(api({ data: null, error: { code: '23514' } }), 'owner', { id: 'l1', create: true, row: draft }), ListingWriteRejected)
-  for (const response of [new Error('lost reply'), failure, { data: null, error: { code: '', message: 'Failed to fetch' } }]) {
+  for (const response of [new Error('lost reply'), failure, ...['', '08006', '08007', '40003', 'PGRST000'].map(code => ({ data: null, error: { code, message: 'Uncertain reply' } }))]) {
     await assert.rejects(writeListingDraft(api(response), 'owner', { id: 'l1', create: true, row: draft }), e => !(e instanceof ListingWriteRejected))
   }
 })
