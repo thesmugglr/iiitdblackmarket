@@ -33,7 +33,7 @@ function observer(overrides = {}) {
   const states = [], timers = [], searches = []
   const current = observeBrowse({
     loadOverview: () => overrides.overview ? overrides.overview() : Promise.resolve(overview),
-    loadSearch: async f => { searches.push(f); return overrides.search ? overrides.search(f) : [listing] },
+    loadPage: async f => { searches.push(f); return { items: overrides.search ? await overrides.search(f) : [listing], next: null } },
     schedule: (callback, delay) => { const timer = { callback, delay, canceled: false }; timers.push(timer); return () => { timer.canceled = true } },
     publish: s => states.push(s),
   })
@@ -74,7 +74,7 @@ test('search keeps all business filters outside a quoted OR, including reserved 
   const description = JSON.parse(expression.slice(split + ',description.ilike.'.length))
   assert.equal(title, '%(CS\\_101), "50\\%"\\\\C%'); assert.equal(description, title)
   for (const entry of [['eq', 'category', 'books'], ['eq', 'listing_type', 'rent'], ['eq', 'condition', 'good'], ['lte', 'price_inr', 100], ['gt', 'expires_at', now]]) assert.ok(query.some(actual => JSON.stringify(actual) === JSON.stringify(entry)))
-  assert.deepEqual(query.slice(-4), [['order', 'price_inr', { ascending: true }], ['order', 'created_at', { ascending: false }], ['order', 'id', { ascending: false }], ['limit', 60]])
+  assert.deepEqual(query.slice(-4), [['order', 'price_inr', { ascending: true }], ['order', 'created_at', { ascending: false }], ['order', 'id', { ascending: false }], ['limit', 61]])
 })
 for (const [sort, ascending] of [['low', true], ['high', false]]) test(`${sort} price sorting retains deterministic recency/ID ties`, async () => {
   const client = api(); await loadBrowseListings(client, { ...emptyBrowseFilters(), sort }, now)
