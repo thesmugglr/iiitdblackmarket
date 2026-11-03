@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { readLocalStack } from './local-stack.mjs'
 import { thumbPath } from '../src/lib/image.ts'
 import { addStudentRoster, changeMemberStatus, removeReportedListing, updateReportStatus } from '../src/lib/adminActions.ts'
+import { loadProfileDashboard, saveProfile } from '../src/lib/profileData.ts'
 import assert from 'node:assert/strict'
 
 const env = readLocalStack()
@@ -146,6 +147,19 @@ await step('profiles hide other users\' emails', async () => {
   const n = ok(await buyer.c.from('profiles').select('display_name').eq('id', seller.id))
   assert.equal(n.length, 1)
 })
+await step('profile helper confirms own editable fields, rejects another account and preserves protected fields', async () => {
+  const changed = await saveProfile(buyer.c, buyer.id, ' Local buyer ', ' 2027 ')
+  assert.deepEqual(changed, { id: buyer.id, display_name: 'Local buyer', batch: '2027' })
+  await assert.rejects(saveProfile(outsider.c, buyer.id, 'Not the owner', '2028'))
+  const own = ok(await buyer.c.rpc('my_profile').single())
+  assert.equal(own.display_name, 'Local buyer')
+  assert.equal(own.batch, '2027')
+  assert.equal(own.email, buyer.email)
+  assert.equal(own.role, 'student')
+  assert.equal(own.status, 'approved')
+  assert.ok((await buyer.c.from('profiles').select('email').eq('id', buyer.id)).error)
+  assert.equal((await saveProfile(buyer.c, buyer.id, 'Local buyer', ' ')).batch, null)
+})
 await step('buyer starts conversation, exchanges messages with attachment', async () => {
   conv = ok(await buyer.c.rpc('start_conversation', { p_listing: listing.id }))
   ok(await buyer.c.from('messages').insert({ conversation_id: conv, sender_id: buyer.id, body: 'Is it available?' }))
@@ -185,6 +199,30 @@ await step('buyer offers, seller accepts, listing reserved', async () => {
   ok(await seller.c.rpc('respond_offer', { p_offer: o[0].id, p_accept: true }))
   const l = ok(await seller.c.from('listings').select('status,price_inr').eq('id', listing.id).single())
   assert.deepEqual([l.status, l.price_inr], ['reserved', 350])
+})
+await step('personal dashboard includes buyer/seller deals and excludes unrelated offers even for administrators', async () => {
+  const initial = ok(await buyer.c.from('offers').select('id').eq('listing_id', listing.id).eq('status', 'accepted').single())
+  for (const member of [buyer, seller]) {
+    const dashboard = await loadProfileDashboard(member.c, member.id)
+    assert.deepEqual(dashboard.deals.map(d => d.id), [initial.id])
+  }
+  assert.equal((await loadProfileDashboard(outsider.c, outsider.id)).deals.length, 0)
+  assert.ok(ok(await adm.c.from('offers').select('id').eq('status', 'accepted')).some(o => o.id === initial.id), 'admin moderation access remains available')
+  assert.equal((await loadProfileDashboard(adm.c, adm.id)).deals.length, 0, 'other members\' deals are not personal deals')
+  const expected = []
+  // Exercise each side of the embedded OR, including administrator-as-buyer.
+  for (const [owner, purchaser] of [[adm, buyer], [seller, adm]]) {
+    const item = ok(await owner.c.from('listings').insert({ seller_id: owner.id, title: 'Personal deal fixture', listing_type: 'sale', category: 'hostel', condition: 'good', price_inr: 50 }).select('id').single())
+    const conversation = ok(await purchaser.c.rpc('start_conversation', { p_listing: item.id }))
+    ok(await purchaser.c.rpc('make_offer', { p_conversation: conversation, p_amount: 50 }))
+    const offer = ok(await owner.c.from('offers').select('id').eq('conversation_id', conversation).single())
+    ok(await owner.c.rpc('respond_offer', { p_offer: offer.id, p_accept: true }))
+    expected.push(offer.id)
+  }
+  const personal = await loadProfileDashboard(adm.c, adm.id)
+  assert.deepEqual(personal.deals.map(d => d.id).sort(), expected.sort())
+  assert.equal(personal.mine.length, 1)
+  assert.equal(personal.mine[0].seller_id, adm.id)
 })
 await step('block prevents new messages', async () => {
   ok(await seller.c.from('blocks').insert({ blocker_id: seller.id, blocked_id: buyer.id }))
