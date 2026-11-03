@@ -11,6 +11,7 @@ import { randomUUID } from 'node:crypto'
 import { observeTextComposer, sendChatText } from '../src/lib/chatText.ts'
 import { makeOfferOnce, observeOfferComposer, respondOfferOnce } from '../src/lib/chatOffers.ts'
 import { observeAttachment, sendChatImage, uploadChatAttachment } from '../src/lib/chatAttachments.ts'
+import { loadInbox } from '../src/lib/inboxState.ts'
 
 const env = readLocalStack()
 const URL_ = env.API_URL, ANON = env.ANON_KEY
@@ -571,6 +572,36 @@ await step('attachment recovery rejects collisions and unauthorized links; resto
   assert.deepEqual(ok(await seller.c.from('messages').select('id,image_path').eq('conversation_id', conversation)), [{ id, image_path: request.path }])
   assert.equal(ok(await admin.storage.from('chat-attachments').list(conversation)).length, 1)
   composer.dispose()
+})
+
+await step('personal Inbox helper scopes buyer/seller/admin conversations and actual unread counts', async () => {
+  const inboxAdmin = await user('inbox-admin', { role: 'admin' }), emptyMember = await user('inbox-empty')
+  const item = ok(await seller.c.from('listings').insert({ seller_id: seller.id, title: 'Inbox fixture', listing_type: 'sale', category: 'hostel', condition: 'good', price_inr: 50 }).select('id').single())
+  const personal = ok(await inboxAdmin.c.rpc('start_conversation', { p_listing: item.id }))
+  await sendChatText(seller.c, personal, seller.id, { id: randomUUID(), body: 'Personal Inbox fixture message' })
+  const owned = ok(await inboxAdmin.c.from('listings').insert({ seller_id: inboxAdmin.id, title: 'Inbox admin seller fixture', listing_type: 'sale', category: 'hostel', condition: 'good', price_inr: 50 }).select('id').single())
+  const asSeller = ok(await buyer.c.rpc('start_conversation', { p_listing: owned.id }))
+  await sendChatText(buyer.c, asSeller, buyer.id, { id: randomUUID(), body: 'Admin seller Inbox fixture message' })
+  const moderationRows = ok(await inboxAdmin.c.from('conversations').select('id'))
+  assert.ok(moderationRows.some(c => c.id === conv), 'broader admin moderation reads are preserved')
+  const adminInbox = await loadInbox(inboxAdmin.c, inboxAdmin.id)
+  assert.deepEqual(adminInbox.conversations.map(c => c.id).sort(), [personal, asSeller].sort())
+  assert.deepEqual(adminInbox.unread, { [personal]: 1, [asSeller]: 1 })
+  const joined = adminInbox.conversations.find(c => c.id === personal)
+  assert.equal(joined.listing.title, 'Inbox fixture')
+  assert.equal(typeof joined.seller.display_name, 'string')
+  const sellerInbox = await loadInbox(seller.c, seller.id)
+  assert.ok(sellerInbox.conversations.some(c => c.id === personal))
+  assert.ok(sellerInbox.conversations.some(c => c.id === conv))
+  const buyerInbox = await loadInbox(buyer.c, buyer.id)
+  assert.ok(buyerInbox.conversations.some(c => c.id === conv))
+  assert.equal(buyerInbox.conversations.some(c => c.id === personal), false)
+  assert.ok(buyerInbox.conversations.some(c => c.id === asSeller))
+  assert.deepEqual(await loadInbox(emptyMember.c, emptyMember.id), { conversations: [], unread: {} })
+  ok(await inboxAdmin.c.rpc('mark_read', { p_conversation: personal }))
+  assert.deepEqual((await loadInbox(inboxAdmin.c, inboxAdmin.id)).unread, { [asSeller]: 1 })
+  ok(await inboxAdmin.c.rpc('mark_read', { p_conversation: asSeller }))
+  assert.deepEqual((await loadInbox(inboxAdmin.c, inboxAdmin.id)).unread, {})
 })
 
 await step('remove only photos, bootstrap rows, roster entries, student codes and accounts created by this run', async () => {
