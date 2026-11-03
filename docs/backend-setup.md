@@ -25,6 +25,9 @@ Run each migration **once, in filename order** through the Supabase SQL editor o
 5. `supabase/migrations/0005_expiry_access.sql` — privileged expiry checks and suspended-response access protection.
 6. `supabase/migrations/0006_launch.sql` — verified-email bootstrap, approval notices and public health ping.
 7. `supabase/migrations/0007_student_codes.sql` — automatic approval of current students by the five-digit numeric part of their institute address (admin-only `student_codes` table; no names stored). Load codes with `npm run student-codes` (see docs/launch.md).
+8. `supabase/migrations/0008_offer_retries.sql` — new `make_offer_once` and `respond_offer_once` RPCs for idempotent client retries; no new table or weaker policy, and legacy RPCs remain available.
+
+**Rollout requirement:** apply 0008 to the selected backend before publishing the new offer client. A lost response can be retried using the same offer UUID; a repeated matching seller decision adds no new message. Request/conversation/buyer/amount mismatches are refused. Existing clients keep their legacy RPCs during migration. This review has not applied 0008 to the hosted project or deployed a new build. The 2026-11-03 read-only access attempt still redirected to Supabase sign-in; trusted project access is required for the hosted migration.
 
 On an existing database, apply only migrations that have not already run. Do not rerun 0001 over existing tables, and do not reset a project to resolve migration errors. Retain the migration history in the provider/tool used. Schema and access policies must be ready before inviting users.
 
