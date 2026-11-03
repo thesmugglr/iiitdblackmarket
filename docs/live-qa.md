@@ -8,6 +8,10 @@ Garv initially answered “Marketplace opens,” then clarified that the actual 
 
 The signed-in session is not available in this chat's browser. A fresh attempt to open the selected project's SQL Editor returned Supabase sign-in; no admin connector is connected. Hosted owner promotion, approved-user listing/photo/chat, other account isolation and full phone tests remain outstanding.
 
+## Local engineering verification — 2026-11-03
+
+USER-03 is implemented on `fix/USER-03-profile-confirmation`, pending final-head integration/review. Profile saves require the exact returned account/name/batch; dashboard failures are retryable and obsolete attempts cannot publish. Personal deals explicitly filter buyer/seller membership even for admins. All 153 regressions/build/typecheck/lint/diff checks pass with existing warnings; two new service scenarios await disposable GitHub CI because Docker is unavailable locally. A fresh browser inventory still reports local browser use disabled in Work settings; no rendered or hosted verification is claimed, and nothing was deployed.
+
 ## Local engineering verification — 2026-11-02
 
 LIST-05 / PR #23 merged at `15dfaff`, reviewed head `f39066b`. All 137 regression tests, build/typecheck and lint pass with existing warnings. Ten new cases cover listing-detail missing/error/retry and obsolete request isolation; integration run 41354689571 passed all 26 existing service scenarios and fixture cleanup. This does not prove rendered navigation or hosted flows: browser use remains disabled and nothing was deployed.
