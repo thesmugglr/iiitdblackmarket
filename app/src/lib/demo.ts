@@ -41,6 +41,12 @@ const tables: Record<string, unknown[]> = {
     { id: 'b1', seller_id: people[1].id, title: 'Hostel room starter kit', description: 'Leaving campus this month. Everything works, pickup together from the hostel lobby.', price_inr: 300, status: 'active', created_at: new Date(now).toISOString(), seller: people[1], items: [{ listing: listings[2] }, { listing: listings[7] }, { listing: listings[3] }] },
   ],
   reports: [{ id: fixtureId(101), reason: 'Looks like a duplicate of another listing', status: 'open', listing_id: 'l6', message_id: null, reporter_id: people[2].id, reporter: { display_name: 'Kabir Nair' }, created_at: new Date(now - 3600000).toISOString() }],
+  lost_found: [
+    { id: 'lf1', user_id: people[2].id, kind: 'lost', title: 'Blue steel water bottle', description: 'Milton, with a sticker of a cat on it.', place: 'Library, 2nd floor', photo: null, status: 'open', created_at: new Date(now - 5400000).toISOString(), poster: people[2] },
+    { id: 'lf2', user_id: people[1].id, kind: 'found', title: 'Set of keys with a red tag', description: 'Two keys and a small torch.', place: 'Mess', photo: 'p9', status: 'open', created_at: new Date(now - 90000000).toISOString(), poster: people[1] },
+  ],
+  lost_found_replies: [],
+  deals: [],
 }
 const palette = ['#E8E1D5', '#FFD9CE', '#D9E3D0', '#EADFC8', '#D6DCE4', '#F2CFC2']
 const photo = (p: string) => {
@@ -90,11 +96,16 @@ export const demoClient = {
   rpc: (name: string) => {
     if (name === 'my_profile') return { maybeSingle: () => Promise.resolve({ data: me, error: null }) }
     if (name === 'admin_profiles') return builder('profiles')
+    if (name === 'smooth_deals') return Promise.resolve({ data: 3, error: null })
+    if (name === 'push_public_key') return Promise.resolve({ data: null, error: null })
+    if (['mark_sold_to', 'rate_deal', 'reply_lost_found', 'delete_my_account', 'save_push_subscription', 'remove_push_subscription'].includes(name)) {
+      return Promise.resolve({ data: null, error: null })
+    }
     return Promise.resolve({ data: [{ conversation_id: 'c1', unread: 1 }], error: null })
   },
   channel: () => channel,
   removeChannel: () => Promise.resolve(),
-  storage: { from: () => ({ createSignedUrls: (paths: string[]) => Promise.resolve({ data: paths.map((p) => ({ path: p, signedUrl: photo(p) })) }), upload: () => Promise.resolve({ error: null }) }) },
+  storage: { from: () => ({ createSignedUrls: (paths: string[]) => Promise.resolve({ data: paths.map((p) => ({ path: p, signedUrl: photo(p) })) }), upload: () => Promise.resolve({ error: null }), remove: () => Promise.resolve({ data: [], error: null }), list: () => Promise.resolve({ data: [], error: null }) }) },
   auth: {
     getSession: () => Promise.resolve({ data: { session: { user: { id: me.id } } } }),
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),

@@ -60,6 +60,9 @@ export interface Offer {
   status: 'pending' | 'accepted' | 'declined'
 }
 
-export interface Notice { id: string; kind: 'message' | 'wanted' | 'expiry' | 'approval'; title: string; link: string | null; read_at: string | null; created_at: string }
+export interface Notice { id: string; kind: 'message' | 'wanted' | 'expiry' | 'approval' | 'price_drop' | 'saved_sold' | 'lost_found'; title: string; link: string | null; read_at: string | null; created_at: string }
+export interface Deal { id: string; listing_id: string | null; conversation_id: string | null; seller_id: string; buyer_id: string | null; title: string; amount_inr: number | null; smooth: boolean | null; created_at: string }
+export interface LostFoundPost { id: string; user_id: string; kind: 'lost' | 'found'; title: string; description: string; place: string | null; photo: string | null; status: 'open' | 'resolved'; created_at: string; poster?: { display_name: string } | null }
+export interface LostFoundReply { id: string; post_id: string; sender_id: string; recipient_id: string; body: string; created_at: string }
 export interface Wanted { id: string; user_id: string; title: string; description: string; category: string; max_price_inr: number | null; status: 'open' | 'fulfilled' | 'closed'; created_at: string; poster?: { display_name: string } | null }
 export interface Bundle { id: string; seller_id: string; title: string; description: string; price_inr: number; status: 'active' | 'sold' | 'removed'; created_at: string; seller?: { display_name: string } | null; items?: { listing: Listing | null }[] }

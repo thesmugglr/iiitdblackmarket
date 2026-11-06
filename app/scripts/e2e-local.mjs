@@ -19,6 +19,7 @@ import { emptyBrowseFilters, loadBrowseListings, loadBrowseOverview, loadBrowseP
 import { createLinkCache } from '../src/lib/signedUrlCache.ts'
 import { requestSignedLinks } from '../src/lib/storageLinks.ts'
 import { loadAdminData } from '../src/lib/adminData.ts'
+import { deleteMyAccount } from '../src/lib/accountDeletion.ts'
 
 const env = readLocalStack()
 const URL_ = env.API_URL, ANON = env.ANON_KEY
@@ -969,6 +970,76 @@ await step('trusted read-only storage audit preserves references and reports unl
   assert.deepEqual(Buffer.from(await ok(await visitor.c.storage.from('chat-attachments').download(attachment)).arrayBuffer()), png)
 })
 
+await step('0009: savers hear about price drops and sales; the seller marks it sold to the buyer, who alone rates it', async () => {
+  const s = await user('dealseller'), b = await user('dealbuyer'), o = await user('dealsaver')
+  const item = ok(await s.c.from('listings').insert({ seller_id: s.id, title: 'E2E desk lamp', listing_type: 'sale', category: 'hostel', condition: 'good', price_inr: 300 }).select('id').single())
+  ok(await o.c.from('saved_items').insert({ user_id: o.id, listing_id: item.id }))
+  ok(await s.c.from('listings').update({ price_inr: 250 }).eq('id', item.id))
+  assert.ok(ok(await o.c.from('notifications').select('kind,title')).some((n) => n.kind === 'price_drop' && /₹250/.test(n.title)))
+  const chat = ok(await b.c.rpc('start_conversation', { p_listing: item.id }))
+  assert.ok((await b.c.rpc('mark_sold_to', { p_conversation: chat })).error, 'the buyer cannot mark it sold')
+  ok(await s.c.rpc('mark_sold_to', { p_conversation: chat }))
+  assert.equal(ok(await s.c.from('listings').select('status').eq('id', item.id).single()).status, 'sold')
+  assert.ok(ok(await o.c.from('notifications').select('kind')).some((n) => n.kind === 'saved_sold'))
+  assert.ok((await s.c.rpc('rate_deal', { p_conversation: chat, p_smooth: true })).error, 'the seller cannot rate their own deal')
+  ok(await b.c.rpc('rate_deal', { p_conversation: chat, p_smooth: true }))
+  ok(await b.c.rpc('rate_deal', { p_conversation: chat, p_smooth: true }))
+  assert.equal(ok(await o.c.rpc('smooth_deals', { p_seller: s.id })), 1)
+  assert.equal(ok(await o.c.from('deals').select('id')).length, 0, 'other students see the count, not the deal')
+  assert.equal(ok(await b.c.from('deals').select('smooth')).length, 1)
+})
+await step('0009: lost & found replies stay between the poster and the person who writes', async () => {
+  const poster = await user('lfposter'), helper = await user('lfhelper'), stranger = await user('lfstranger')
+  const post = ok(await poster.c.from('lost_found').insert({ user_id: poster.id, kind: 'lost', title: 'E2E black umbrella', place: 'Academic block' }).select('id').single())
+  ok(await helper.c.rpc('reply_lost_found', { p_post: post.id, p_body: 'Saw one at the reception desk' }))
+  ok(await poster.c.rpc('reply_lost_found', { p_post: post.id, p_body: 'Thanks, heading there', p_to: helper.id }))
+  assert.equal(ok(await helper.c.from('lost_found_replies').select('id').eq('post_id', post.id)).length, 2)
+  assert.equal(ok(await stranger.c.from('lost_found_replies').select('id').eq('post_id', post.id)).length, 0)
+  // Someone who is not the poster always writes to the poster, whatever recipient they name.
+  ok(await stranger.c.rpc('reply_lost_found', { p_post: post.id, p_body: 'Is it a long one?', p_to: helper.id }))
+  assert.equal(ok(await helper.c.from('lost_found_replies').select('id').eq('post_id', post.id)).length, 2)
+  assert.equal(ok(await poster.c.from('lost_found_replies').select('id').eq('post_id', post.id)).length, 3)
+  assert.ok((await stranger.c.from('lost_found_replies').insert({ post_id: post.id, sender_id: stranger.id, recipient_id: poster.id, body: 'x' })).error, 'replies only through the function')
+  assert.ok(ok(await poster.c.from('notifications').select('kind')).some((n) => n.kind === 'lost_found'))
+  ok(await poster.c.from('lost_found').update({ status: 'resolved' }).eq('id', post.id))
+  assert.equal(ok(await stranger.c.from('lost_found').select('id').eq('id', post.id)).length, 0)
+})
+await step('0009: push subscriptions belong to one account and delivery data needs the database secret', async () => {
+  const a = await user('pusha'), b = await user('pushb')
+  const endpoint = `https://push.example.test/${run}`, key = 'B' + 'x'.repeat(86), auth = 'y'.repeat(22)
+  ok(await a.c.rpc('save_push_subscription', { p_endpoint: endpoint, p_p256dh: key, p_auth: auth }))
+  assert.equal(ok(await a.c.from('push_subscriptions').select('endpoint')).length, 1)
+  assert.equal(ok(await b.c.from('push_subscriptions').select('endpoint')).length, 0)
+  ok(await b.c.rpc('save_push_subscription', { p_endpoint: endpoint, p_p256dh: key, p_auth: auth }))
+  assert.equal(ok(await a.c.from('push_subscriptions').select('endpoint')).length, 0, 'the browser moved to the account using it')
+  const anon = createClient(URL_, ANON, { auth: { persistSession: false } })
+  clients.push(anon)
+  assert.ok((await anon.from('push_config').select('*')).error, 'the push settings are private')
+  assert.match((await anon.rpc('push_payload', { p_notification: randomUUID(), p_secret: 'guess' })).error?.message ?? '', /Not allowed/)
+  assert.ok((await a.c.rpc('push_payload', { p_notification: randomUUID(), p_secret: 'guess' })).error, 'signed-in users cannot call it either')
+  assert.equal(ok(await b.c.rpc('push_public_key')), null, 'push stays off until the sender is configured')
+  ok(await b.c.rpc('remove_push_subscription', { p_endpoint: endpoint }))
+  assert.equal(ok(await b.c.from('push_subscriptions').select('endpoint')).length, 0)
+})
+await step('0009: deleting an account removes its photos, data and the login itself', async () => {
+  const leaver = await user('leaver'), peer = await user('leaverpeer')
+  const photo = `${leaver.id}/leave-${run}.jpg`
+  ok(await leaver.c.storage.from('listing-photos').upload(photo, jpeg, { contentType: 'image/jpeg' }))
+  ok(await leaver.c.storage.from('listing-photos').upload(thumbPath(photo), jpeg, { contentType: 'image/jpeg' }))
+  uploadedObjects.push(['listing-photos', photo], ['listing-photos', thumbPath(photo)])
+  const item = ok(await leaver.c.from('listings').insert({ seller_id: leaver.id, title: 'E2E leaving sale', listing_type: 'sale', category: 'misc', condition: 'good', price_inr: 10, photos: [photo] }).select('id').single())
+  const chat = ok(await peer.c.rpc('start_conversation', { p_listing: item.id }))
+  const message = ok(await leaver.c.from('messages').insert({ conversation_id: chat, sender_id: leaver.id, body: 'Still available' }).select('id').single())
+  ok(await peer.c.from('reports').insert({ reporter_id: peer.id, message_id: message.id, reason: 'E2E report about a message' }))
+  await deleteMyAccount(leaver.c, leaver.id)
+  createdUsers.splice(createdUsers.indexOf(leaver.id), 1)
+  assert.equal((await admin.auth.admin.getUserById(leaver.id)).error?.status, 404, 'the login is gone')
+  assert.equal(ok(await admin.from('profiles').select('id').eq('id', leaver.id)).length, 0)
+  assert.equal(ok(await admin.from('listings').select('id').eq('id', item.id)).length, 0)
+  assert.equal(ok(await admin.from('conversations').select('id').eq('id', chat)).length, 0)
+  assert.equal(ok(await admin.storage.from('listing-photos').list(leaver.id)).filter((f) => f.id).length, 0, 'photos removed')
+  assert.equal(ok(await admin.from('profiles').select('id').eq('id', peer.id)).length, 1, 'other people are untouched')
+})
 await step('remove only photos, bootstrap rows, roster entries, student codes and accounts created by this run', async () => {
   const errors = []
   for (const email of rosterEmails) {

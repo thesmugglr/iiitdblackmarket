@@ -10,7 +10,11 @@ import { emptyConversation, observeConversation } from '../lib/conversationState
 import { emptyTextComposer, observeTextComposer, sendChatText } from '../lib/chatText'
 import { emptyOfferComposer, makeOfferOnce, observeOfferComposer, respondOfferOnce } from '../lib/chatOffers'
 import { emptyAttachment, observeAttachment, sendChatImage, uploadChatAttachment } from '../lib/chatAttachments'
-import type { Conversation, Message, Offer } from '../lib/types'
+import type { Conversation, Deal, Message, Offer } from '../lib/types'
+
+// One tap fills the message box; the text can still be edited before sending.
+const BUYER_REPLIES = ['Is this still available?', 'Would you take ₹', 'Can we meet today?', 'Could you send a few more photos?']
+const SELLER_REPLIES = ['Yes, it is still available.', 'When can you pick it up?', 'Sorry, the price is fixed.', 'Sorry, it has been sold.']
 
 function Bubble({ m, mine, onReport }: { m: Message; mine: boolean; onReport: () => void }) {
   const [img] = useSignedUrls('chat-attachments', m.image_path ? [m.image_path] : [])
@@ -48,6 +52,9 @@ function ConversationChat({ id }: { id: string }) {
   const [photoState, setPhotoState] = useState(emptyAttachment)
   const attachment = useRef<ReturnType<typeof observeAttachment> | null>(null)
   const bottom = useRef<HTMLDivElement>(null)
+  const input = useRef<HTMLInputElement>(null)
+  const [deal, setDeal] = useState<Deal | null>(null)
+  const [dealBusy, setDealBusy] = useState(false)
 
   useEffect(() => {
     if (!memberId) return
@@ -121,6 +128,14 @@ function ConversationChat({ id }: { id: string }) {
 
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs.length])
 
+  // The sale record for this chat, if the seller has marked it sold (refreshed when new messages arrive).
+  useEffect(() => {
+    let live = true
+    void supabase.from('deals').select('*').eq('conversation_id', id).maybeSingle()
+      .then(({ data }) => { if (live) setDeal((data as Deal | null) ?? null) })
+    return () => { live = false }
+  }, [id, attempt, msgs.length])
+
   if (!profile) return null
   if (loading) return <p className="muted">Loading…</p>
   const retry = <button onClick={() => setAttempt(n => n + 1)}>Try again</button>
@@ -153,6 +168,28 @@ function ConversationChat({ id }: { id: string }) {
     const { error } = await supabase.from('blocks').insert({ blocker_id: profile.id, blocked_id: otherId })
     setErr(error ? error.message : `${otherName} is blocked.`)
   }
+  const markSold = async () => {
+    if (!confirm(`Mark "${conv.listing?.title ?? 'this item'}" as sold to ${otherName}? Nobody else will be able to make offers on it.`)) return
+    setErr('')
+    setDealBusy(true)
+    const { error } = await supabase.rpc('mark_sold_to', { p_conversation: id })
+    setDealBusy(false)
+    if (error) setErr(error.message)
+    else setAttempt(n => n + 1)
+  }
+  const rate = async (smooth: boolean) => {
+    setErr('')
+    setDealBusy(true)
+    const { error } = await supabase.rpc('rate_deal', { p_conversation: id, p_smooth: smooth })
+    setDealBusy(false)
+    if (error) setErr(error.message)
+    else setAttempt(n => n + 1)
+  }
+  const quickReply = (reply: string) => {
+    composer.current?.edit(reply)
+    input.current?.focus()
+  }
+  const canSell = !isBuyer && !deal && (conv.listing?.status === 'active' || conv.listing?.status === 'reserved')
   const reportMsg = async (m: Message) => {
     const reason = prompt('Why are you reporting this message?')
     if (!reason) return
@@ -187,15 +224,42 @@ function ConversationChat({ id }: { id: string }) {
           <button onClick={makeOffer} disabled={offerBusy || !offerAmt.trim()}>{offerBusy ? 'Sending…' : 'Make offer'}</button>
         </div>
       )}
+      {canSell && (
+        <div className="offer-bar deal-bar">
+          <span>Handed it over?</span>
+          <button className="primary" disabled={dealBusy} onClick={markSold}>{dealBusy ? 'Saving…' : `Mark sold to ${otherName}`}</button>
+        </div>
+      )}
+      {deal && isBuyer && deal.smooth === null && (
+        <div className="offer-bar deal-bar">
+          <span>Did buying this go smoothly?</span>
+          <button className="primary" disabled={dealBusy} onClick={() => rate(true)}>👍 Yes, smooth</button>
+          <button disabled={dealBusy} onClick={() => rate(false)}>Not really</button>
+        </div>
+      )}
+      {deal && (isBuyer ? deal.smooth !== null : true) && (
+        <p className="muted small deal-note">
+          {isBuyer
+            ? (deal.smooth ? 'You gave this deal a thumbs-up. Thanks!' : 'Thanks for telling us.')
+            : deal.smooth ? `Sold to ${otherName}, who said it went smoothly.` : `Sold to ${otherName}.`}
+        </p>
+      )}
       {err && <p className="error small">{err}</p>}
       {sendError && <p className="error small" role="alert">{sendError}</p>}
       {offerError && <p className="error small" role="alert">{offerError}</p>}
       {photoState.busy && <p className="muted small" role="status">Sending photo…</p>}
       {photoState.error && <p className="error small" role="alert">{photoState.name}: {photoState.error} <button disabled={photoState.busy} onClick={() => void attachment.current?.retry()}>Retry photo</button></p>}
       {loadError && <p className="error small">{loadError} {retry}</p>}
+      {!text.trim() && (
+        <div className="quick-replies" role="group" aria-label="Quick replies">
+          {(isBuyer ? BUYER_REPLIES : SELLER_REPLIES).map((reply) => (
+            <button key={reply} type="button" onClick={() => quickReply(reply)}>{reply.endsWith('₹') ? `${reply}…?` : reply}</button>
+          ))}
+        </div>
+      )}
       <form className="composer" onSubmit={send} aria-busy={sending || photoState.busy}>
         <label className="attach" title="Attach photo"><Clip /><input type="file" accept="image/*" hidden disabled={photoState.busy || photoState.locked} onChange={(e) => { attach(e.target.files?.[0]); e.target.value = '' }} /></label>
-        <input value={text} onChange={(e) => composer.current?.edit(e.target.value)} maxLength={2000} placeholder="Type a message" />
+        <input ref={input} value={text} onChange={(e) => composer.current?.edit(e.target.value)} maxLength={2000} placeholder="Type a message" />
         <button className="primary" disabled={sending || !text.trim()}>{sending ? 'Sending…' : 'Send'}</button>
       </form>
     </div>

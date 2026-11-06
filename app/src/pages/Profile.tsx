@@ -5,6 +5,10 @@ import ListingCard from '../components/ListingCard'
 import { inr } from '../lib/constants'
 import type { Profile as MemberProfile } from '../lib/types'
 import { emptyDashboard, loadProfileDashboard, observeProfileDashboard, saveProfile } from '../lib/profileData'
+import PushSetting from '../components/PushSetting'
+import { deleteMyAccount } from '../lib/accountDeletion'
+import { forgetPhotoLinks } from '../lib/photoLinks'
+import { forgetThisDevice } from '../lib/push'
 
 export default function Profile() {
   const { profile, refresh } = useAuth()
@@ -26,6 +30,34 @@ function ProfilePage({ profile, refresh }: { profile: MemberProfile; refresh: ()
     return () => { active.current = false }
   }, [])
   useEffect(() => observeProfileDashboard(() => loadProfileDashboard(supabase, profile.id), setDashboard), [profile.id, attempt])
+
+  const [smooth, setSmooth] = useState(0)
+  useEffect(() => {
+    let live = true
+    void supabase.rpc('smooth_deals', { p_seller: profile.id }).then(({ data }) => { if (live) setSmooth(typeof data === 'number' ? data : 0) })
+    return () => { live = false }
+  }, [profile.id])
+
+  const [confirmText, setConfirmText] = useState('')
+  const [deleting, setDeleting] = useState('')
+  const [deleteError, setDeleteError] = useState('')
+  const confirmed = confirmText.trim().toUpperCase() === 'DELETE'
+  const removeAccount = async () => {
+    if (!confirmed || deleting) return
+    setDeleteError('')
+    setDeleting('Starting…')
+    try {
+      await forgetThisDevice(supabase)
+      forgetPhotoLinks()
+      await deleteMyAccount(supabase, profile.id, setDeleting)
+      // Signed out: the app now shows the sign-in page.
+    } catch (e) {
+      if (active.current) {
+        setDeleting('')
+        setDeleteError(e instanceof Error ? e.message : 'Could not delete your account. Please try again.')
+      }
+    }
+  }
 
   const save = async (e: FormEvent) => {
     e.preventDefault()
@@ -67,6 +99,21 @@ function ProfilePage({ profile, refresh }: { profile: MemberProfile; refresh: ()
       <h2>Completed deals</h2>
       {!loading && !error && deals.length === 0 && <p className="muted">Accepted offers will show up here.</p>}
       <ul className="list">{deals.map((d) => <li key={d.id}>{d.listing?.title} — {inr(d.amount_inr)}</li>)}</ul>
+      {smooth > 0 && <p className="trust">👍 Buyers gave {smooth} of your deals a thumbs-up.</p>}
+
+      <h2>Notifications</h2>
+      <PushSetting />
+
+      <h2>Delete my account</h2>
+      <details className="danger-zone">
+        <summary>Delete my account permanently</summary>
+        <p className="small">This deletes your profile, your listings and their photos, your chats and offers, saved items, requests, bundles and lost &amp; found posts. It cannot be undone. Thumbs-up you gave other sellers stay, without your name.</p>
+        <label className="small">Type DELETE to confirm
+          <input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} disabled={Boolean(deleting)} autoComplete="off" />
+        </label>
+        <button className="danger" disabled={!confirmed || Boolean(deleting)} onClick={() => void removeAccount()}>{deleting || 'Delete my account'}</button>
+        {deleteError && <p className="error small" role="alert">{deleteError}</p>}
+      </details>
     </>
   )
 }

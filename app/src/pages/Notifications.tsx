@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Notice } from '../lib/types'
+import PushSetting from '../components/PushSetting'
+import type { PushState } from '../lib/push'
 
 export default function Notifications() {
   const [items, setItems] = useState<Notice[] | null>(null)
@@ -11,6 +13,7 @@ export default function Notifications() {
     setItems((data ?? []) as Notice[])
   }
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('Notification' in window ? Notification.permission : 'unsupported')
+  const [push, setPush] = useState<PushState | null>(null)
   useEffect(() => {
     void load()
     const reload = () => void load()
@@ -31,8 +34,10 @@ export default function Notifications() {
   return (
     <>
       <div className="row between"><h1>Notifications</h1>{items.some((n) => !n.read_at) && <button onClick={markAll}>Mark all read</button>}</div>
-      {permission === 'default' && <p className="panel small">Get a desktop alert when someone messages you while this tab is in the background. <button onClick={enableAlerts}>Turn on alerts</button></p>}
-      {items.length === 0 && <div className="empty"><strong>You're all caught up</strong><span>New messages, replies to your requests and expiry reminders show up here.</span></div>}
+      <PushSetting compact onState={setPush} />
+      {/* Without push, fall back to alerts while the site is open in a background tab. */}
+      {(push === 'unsupported' || push === 'unavailable') && permission === 'default' && <p className="panel small">Get a desktop alert when someone messages you while this tab is in the background. <button onClick={enableAlerts}>Turn on alerts</button></p>}
+      {items.length === 0 && <div className="empty"><strong>You're all caught up</strong><span>New messages, replies, price drops on saved items and expiry reminders show up here.</span></div>}
       <ul className="list">
         {items.map((n) => (
           <li key={n.id} className={n.read_at ? 'read' : 'unread-row'}>

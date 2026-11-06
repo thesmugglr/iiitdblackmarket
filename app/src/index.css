@@ -79,7 +79,7 @@ button:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
 .cat span{font-family:var(--serif);font-size:1.1rem}.cat small{color:var(--muted);font-weight:400}
 .cat.on{background:var(--ink);color:var(--paper)}.cat.on small{color:var(--sand)}
 
-.sections{display:flex;gap:8px;margin-bottom:24px}
+.sections{display:flex;gap:8px;margin-bottom:24px;overflow-x:auto;scrollbar-width:none}.sections::-webkit-scrollbar{display:none}.sections a{white-space:nowrap;flex:0 0 auto}
 .sections a{padding:8px 16px;font-weight:600;color:var(--muted);border-radius:999px}.sections a.active{background:var(--ink);color:var(--paper)}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0;align-items:center}.row.between{justify-content:space-between}
 .row-between{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
@@ -187,3 +187,25 @@ button.big{padding:16px 28px;font-size:1rem}
 .mini{position:absolute;bottom:6px;left:6px;padding:2px 10px;font-size:.72rem;background:var(--chip)}
 .mini.danger{left:auto;right:6px;background:var(--chip)}
 .share-note{font-size:.85rem}
+
+/* Quick replies, deals, lost & found, notifications and account settings (2026-11-06). Theme variables only. */
+.quick-replies{display:flex;gap:8px;overflow-x:auto;padding:4px 0 2px;scrollbar-width:none}
+.quick-replies::-webkit-scrollbar{display:none}
+.quick-replies button{flex:0 0 auto;padding:6px 14px;font-size:.85rem;font-weight:500;background:var(--sand);border-color:transparent}
+.deal-bar{justify-content:space-between;flex-wrap:wrap}
+.deal-note{margin:4px 0 8px}
+.trust{display:inline-block;margin:6px 0 0;padding:2px 12px;border-radius:999px;background:var(--sand);font-weight:600}
+.push-setting{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.danger-zone{border:1px solid var(--line);border-radius:var(--r);padding:16px;max-width:640px}
+.danger-zone summary{cursor:pointer;font-weight:700;color:var(--danger)}
+.danger-zone label{display:flex;flex-direction:column;gap:6px;margin:12px 0;max-width:320px;font-weight:700}
+.form label.btn{flex-direction:row;align-self:flex-start;font-size:.95rem}
+.lf-main{display:flex;gap:16px;align-items:flex-start}
+.lf-main>div:not(.lf-photo){flex:1;min-width:0}
+.lf-photo{flex:0 0 96px;width:96px;height:96px;border-radius:12px;overflow:hidden;background:var(--sand)}
+.lf-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.badge.lost{background:var(--accent);color:var(--on-accent)}
+.badge.found{background:var(--ink);color:var(--paper)}
+.lf-replies{margin-top:8px;display:grid;gap:16px}
+.lf-thread{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--card)}
+.lf-thread .composer{padding:0}

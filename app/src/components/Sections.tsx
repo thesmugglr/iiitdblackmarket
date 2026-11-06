@@ -6,6 +6,7 @@ export default function Sections() {
       <NavLink to="/" end>Items</NavLink>
       <NavLink to="/wanted">Looking for</NavLink>
       <NavLink to="/bundles">Bundles</NavLink>
+      <NavLink to="/lost-found">Lost &amp; found</NavLink>
     </nav>
   )
 }

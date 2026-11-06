@@ -4,6 +4,7 @@ import type { Profile } from './types'
 import { observeAuth, type AuthSnapshot } from './authState'
 import { forgetPhotoLinks, setPhotoLinkAccount } from './photoLinks'
 import { AuthContext } from './authContext'
+import { forgetThisDevice } from './push'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [snapshot, setSnapshot] = useState<AuthSnapshot>({ session: null, profile: null, loading: true })
@@ -43,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refresh,
         signOut: async () => {
           forgetPhotoLinks()
+          await forgetThisDevice(supabase)
           await supabase.auth.signOut()
         },
       }}

@@ -43,6 +43,17 @@ function ListingDetailPage({ id }: { id: string }) {
     return data as unknown as Listing | null
   }, setSnapshot), [id, attempt])
 
+  // How many buyers said this seller's deals went smoothly.
+  const [smooth, setSmooth] = useState(0)
+  const sellerId = l?.seller_id
+  useEffect(() => {
+    if (!sellerId) return
+    let live = true
+    void supabase.rpc('smooth_deals', { p_seller: sellerId })
+      .then(({ data }) => { if (live) setSmooth(typeof data === 'number' ? data : 0) })
+    return () => { live = false }
+  }, [sellerId])
+
   const runOwnerAction = async (action: () => Promise<void>) => {
     if (actionLock.current || !active.current) return
     actionLock.current = true
@@ -132,6 +143,7 @@ function ListingDetailPage({ id }: { id: string }) {
         )}
         <p className="desc">{l.description}</p>
         <p className="muted small">Listed by {l.seller?.display_name}{l.seller?.batch ? ` (${l.seller.batch})` : ''} on {new Date(l.created_at).toLocaleDateString()}</p>
+        {smooth > 0 && <p className="trust small">👍 {smooth} smooth deal{smooth === 1 ? '' : 's'}</p>}
         <div className="row">
           {!mine && l.status !== 'sold' && l.status !== 'removed' && <button className="primary" onClick={chat}>Chat with seller</button>}
           <button onClick={toggleSave} disabled={savedLoading || saving.has(l.id)}><Heart filled={saved} /> {saved ? 'Saved' : 'Save'}</button>
