@@ -130,7 +130,6 @@ function ListingDetailPage({ id }: { id: string }) {
         {l.listing_type === 'rent' && (
           <p>Rental period: {l.rental_period || 'ask seller'}{l.deposit_inr ? ` · Deposit ${inr(l.deposit_inr)}` : ''}</p>
         )}
-        {l.pickup_area && <p>Pickup: {l.pickup_area}</p>}
         <p className="desc">{l.description}</p>
         <p className="muted small">Listed by {l.seller?.display_name}{l.seller?.batch ? ` (${l.seller.batch})` : ''} on {new Date(l.created_at).toLocaleDateString()}</p>
         <div className="row">

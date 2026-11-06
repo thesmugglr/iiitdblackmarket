@@ -15,7 +15,6 @@ export const CONDITIONS: Record<string, string> = {
   fair: 'Fair',
 }
 export const TYPES: Record<string, string> = { sale: 'Sale', rent: 'Rent', giveaway: 'Giveaway' }
-export const PICKUP_AREAS = ['Academic block', 'Library', 'Hostel lobby', 'Mess', 'Sports complex', 'Main gate']
 export const MAX_PHOTOS = 6
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024
 

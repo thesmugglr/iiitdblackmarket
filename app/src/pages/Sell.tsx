@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'rea
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import { CATEGORIES, CONDITIONS, MAX_PHOTOS, PICKUP_AREAS, TYPES } from '../lib/constants'
+import { CATEGORIES, CONDITIONS, MAX_PHOTOS, TYPES } from '../lib/constants'
 import { preparePhoto, thumbPath } from '../lib/image'
 import { usePhotoThumbs } from '../lib/useSignedUrls'
 import { observeEditableListing } from '../lib/editableListing'
@@ -25,7 +25,7 @@ function ListingEditor({ id }: { id?: string }) {
   const [attempt, setAttempt] = useState(0)
   const [f, setF] = useState({
     title: '', description: '', listing_type: 'sale', category: 'misc', condition: 'good',
-    price_inr: '', negotiable: false, pickup_area: PICKUP_AREAS[0], rental_period: '', deposit_inr: '',
+    price_inr: '', negotiable: false, rental_period: '', deposit_inr: '',
   })
   const [photos, setPhotos] = useState<string[]>([])
   const [uploading, setUploading] = useState(0) // photos still to upload in the current batch
@@ -71,7 +71,7 @@ function ListingEditor({ id }: { id?: string }) {
       setF({
         title: l.title, description: l.description, listing_type: l.listing_type, category: l.category,
         condition: l.condition, price_inr: String(l.price_inr), negotiable: l.negotiable,
-        pickup_area: l.pickup_area ?? '', rental_period: l.rental_period ?? '', deposit_inr: l.deposit_inr?.toString() ?? '',
+        rental_period: l.rental_period ?? '', deposit_inr: l.deposit_inr?.toString() ?? '',
       })
       setPhotos(l.photos)
       setReady(true)
@@ -133,7 +133,8 @@ function ListingEditor({ id }: { id?: string }) {
     const row = {
       title: f.title.trim(), description: f.description.trim(), listing_type: f.listing_type,
       category: f.category, condition: f.condition, negotiable: !giveaway && f.negotiable,
-      price_inr: giveaway ? 0 : Number(f.price_inr || 0), pickup_area: f.pickup_area || null,
+      // No pickup location any more (owner's request); saving clears one left on an older listing.
+      price_inr: giveaway ? 0 : Number(f.price_inr || 0), pickup_area: null,
       rental_period: f.listing_type === 'rent' ? f.rental_period || null : null,
       deposit_inr: f.listing_type === 'rent' && f.deposit_inr ? Number(f.deposit_inr) : null,
       photos,
@@ -178,10 +179,7 @@ function ListingEditor({ id }: { id?: string }) {
         <label>Category<select disabled={busy} value={f.category} onChange={(e) => set('category', e.target.value)}>
           {Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
         <label>Condition<select disabled={busy} value={f.condition} onChange={(e) => set('condition', e.target.value)}>
-          {Object.entries(CONDITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-        <label>Pickup area<select disabled={busy} value={f.pickup_area} onChange={(e) => set('pickup_area', e.target.value)}>
-          {PICKUP_AREAS.map((a) => <option key={a}>{a}</option>)}</select></label>
-      </div>
+          {Object.entries(CONDITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>      </div>
       {f.listing_type !== 'giveaway' && (
         <div className="two">
           <label>{f.listing_type === 'rent' ? 'Rent (₹)' : 'Price (₹)'}<input disabled={busy} required type="number" min="0" inputMode="numeric" value={f.price_inr} onChange={(e) => set('price_inr', e.target.value)} /></label>

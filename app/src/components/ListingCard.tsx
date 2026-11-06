@@ -25,7 +25,7 @@ export default function ListingCard({ l, feature, saved, onSave }: Props) {
           <div className="title">{l.title}</div>
           <div className="row-between">
             <span className="price">{priceLabel(l)}</span>
-            <span className="meta">{l.pickup_area ?? CATEGORIES[l.category]}</span>
+            <span className="meta">{CATEGORIES[l.category]}</span>
           </div>
         </div>
       </Link>
