@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url'
 import { loadEnv } from 'vite'
 import { readClientConfig } from '../src/lib/config.ts'
 
-const SUBJECT = 'https://abhikrao.github.io/iiitd-black-market/'
+const SUBJECT = 'https://iiitdblackmarket.github.io/'
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url))
 const launchFolder = join(homedir(), 'iiitd-launch')
 const keysFile = join(launchFolder, 'vapid-keys.json')
