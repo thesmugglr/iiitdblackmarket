@@ -1,6 +1,6 @@
 # Phone and browser notifications (Web Push)
 
-Status on 2026-11-06: **built and tested locally; not yet live.** It needs migration 0009 on the live project, a one-time `npx supabase login` by the owner, then the setup steps below.
+Status on 2026-11-06: **set up on the live project.** Migration 0009 is applied, the `push` function is deployed with its secrets, the public settings are in `push_config`, and a live check (the database calling the function with its own secret) got `{"sent":0,"removed":0}` with status 200. **Not tested:** a notification arriving on a real phone, which needs someone to turn notifications on from a signed-in device.
 
 Everything here is free: Web Push is a browser standard, Supabase Edge Functions include 500,000 invocations a month on the free plan, and pg_net is a built-in Postgres extension.
 
@@ -20,7 +20,7 @@ On iPhone and iPad, Web Push only works for the site added to the Home Screen (i
 
 1. Apply `supabase/migrations/0009_features.sql` in the SQL editor. It also enables pg_net.
 2. The owner signs the Supabase CLI in once: `npx supabase login` (opens the browser).
-3. From `app/`: `npm run push:setup`. It creates the VAPID key pair (kept in `~/iiitd-launch/vapid-keys.json`, mode 600, never committed or printed), stores the function secrets `PUSH_API_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`, deploys the function with JWT checking off, and writes `~/iiitd-launch/push-config.sql`.
+3. From `app/`: `npm run push:setup`, and answer Yes to the Supabase CLI's two confirmation prompts (set the secrets, deploy the function). It creates the VAPID key pair (kept in `~/iiitd-launch/vapid-keys.json`, mode 600, never committed or printed), stores the function secrets `PUSH_API_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`, deploys the function with JWT checking off, and writes `~/iiitd-launch/push-config.sql`.
 4. Run `~/iiitd-launch/push-config.sql` in the SQL editor. It holds only public values: the function URL and the public key. Its last query should show `configured`, `has_key`, `secret_ready` and `pg_net_on` all true.
 5. Redeploy the site. The "Turn on notifications" button appears once `push_public_key()` returns the key.
 

@@ -97,7 +97,7 @@ The full runbooks are [docs/launch.md](docs/launch.md) and [docs/backend-setup.m
 
 Live. Still to test on the live site:
 
-- push notification delivery to a real phone, once the push setup is done;
+- push notification delivery to a real phone (the server side is set up and checked; turn notifications on from Profile on a signed-in device);
 - installing the app on a physical phone;
 - removing graduated students automatically.
 
