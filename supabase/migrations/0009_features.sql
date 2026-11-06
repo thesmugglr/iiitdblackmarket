@@ -117,7 +117,7 @@ create table public.lost_found (
   kind text not null check (kind in ('lost','found')),
   title text not null check (char_length(title) between 3 and 120),
   description text not null default '' check (char_length(description) <= 2000),
-  place text check (char_length(place) <= 120),
+  place text not null check (char_length(trim(place)) between 2 and 120), -- where it was lost or found (required)
   photo text,
   status text not null default 'open' check (status in ('open','resolved')),
   created_at timestamptz not null default now(),

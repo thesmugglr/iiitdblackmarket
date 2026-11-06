@@ -153,7 +153,7 @@ export default function LostFound() {
     setMsg('')
     const { error } = await supabase.from('lost_found').insert({
       user_id: me, kind: form.kind, title: form.title.trim(), description: form.description.trim(),
-      place: form.place.trim() || null, photo,
+      place: form.place.trim(), photo,
     })
     setBusy(false)
     if (error) return setMsg(error.message)
@@ -192,7 +192,7 @@ export default function LostFound() {
           </div>
           <label>What is it<input required minLength={3} maxLength={120} placeholder={form.kind === 'lost' ? 'Blue steel water bottle' : 'Set of keys with a red tag'} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
           <label>Details<textarea rows={3} maxLength={2000} placeholder="Colour, brand, anything that helps the owner recognise it" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
-          <label>Where (optional)<input maxLength={120} placeholder="Library, 2nd floor" value={form.place} onChange={(e) => setForm({ ...form, place: e.target.value })} /></label>
+          <label>Where<input required minLength={2} maxLength={120} placeholder={form.kind === 'lost' ? 'Where you last had it, e.g. Library, 2nd floor' : 'Where you found it, e.g. Mess entrance'} value={form.place} onChange={(e) => setForm({ ...form, place: e.target.value })} /></label>
           <label className="btn">{uploading ? 'Adding photo…' : photo ? 'Change photo' : 'Add a photo (optional)'}
             <input className="visually-hidden" type="file" accept="image/*" disabled={uploading || busy} onChange={(e) => { void choosePhoto(e.target.files?.[0]); e.target.value = '' }} />
           </label>

@@ -116,7 +116,9 @@ test('0009: saved alerts, deals and thumbs-up, lost & found, push and account de
   await t.test('lost & found replies stay between the poster and each person who writes', async () => {
     await as(other)
     post = await scalar(`insert into lost_found(user_id,kind,title,place) values($1,'lost','Blue water bottle','Library') returning id`, [other])
-    await assert.rejects(db.query(`insert into lost_found(user_id,kind,title,photo) values($1,'found','Keys',$2)`, [other, `${buyer}/keys.jpg`]), /check constraint/)
+    await assert.rejects(db.query(`insert into lost_found(user_id,kind,title,place,photo) values($1,'found','Keys','Mess',$2)`, [other, `${buyer}/keys.jpg`]), /check constraint/)
+    await assert.rejects(db.query(`insert into lost_found(user_id,kind,title) values($1,'found','Keys')`, [other]), /null value|not-null/, 'where is required')
+    await assert.rejects(db.query(`insert into lost_found(user_id,kind,title,place) values($1,'found','Keys',' ')`, [other]), /check constraint/, 'a blank place is refused')
     await as(pending)
     assert.equal(await scalar('select count(*)::int from lost_found'), 0)
     await as(buyer)
