@@ -4,7 +4,7 @@
 - Follow the project owner's current instructions. Core marketplace engineering is authorized; optional extras remain separate scope.
 - Check Git status and remote changes before editing or pushing. Preserve other contributors' changes and never discard work or force-push shared history.
 - Use focused branches and pull requests for application changes. Coordinate overlapping tasks and shared schema/configuration changes.
-- Update README.md and TODO.md with each meaningful project change in the same commit/PR. Record behavior, setup changes, task ownership/status, verification results, blockers, and remaining work as applicable.
+- Update TODO.md and add a dated entry to docs/changelog.md with each meaningful project change, in the same commit/PR. Record behavior, setup changes, task ownership/status, verification results, blockers, and remaining work there. Keep README.md a short overview (owner instruction, 2026-11-06): change it only when features, setup or commands change.
 - Keep planned, implemented, tested, and deployed states distinct. Do not invent setup commands, completed checks, deployment URLs, or implemented features.
 - Use Node.js 24. Run `npm test`, `npm run build`, and `npm run lint` inside app/ and `git diff --check` before application PRs. Document actual results and existing warnings. `npm run check:config` is required before hosted builds with real configuration; local tests/preview builds can run without credentials. Read docs/backend-setup.md for setup and docs/live-qa.md for service-level QA.
 - Never commit secrets, private student rosters, or real chat data. Use placeholder configuration examples.

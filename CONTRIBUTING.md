@@ -26,7 +26,8 @@ If the pull cannot fast-forward, inspect the divergence and coordinate before pr
 
 Include documentation with every meaningful contribution:
 
-- **README.md:** Product behavior, implementation status, setup/configuration, verification outcomes, and concise dated progress entries.
+- **README.md:** A short overview: features, how it works, setup, commands and links.
+- **docs/changelog.md:** Dated progress entries, verification outcomes and review records (moved out of the README on 2026-11-06).
 - **TODO.md:** Ownership, status, dependencies, branch/PR links, blockers, and next steps.
 - **CONTRIBUTING.md:** Changes to the shared development workflow and real commands once available.
 - **AGENTS.md:** Shared repository instructions for coding agents when those instructions change.
