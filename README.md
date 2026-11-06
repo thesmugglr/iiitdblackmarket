@@ -2,7 +2,7 @@
 
 A campus marketplace for IIIT-Delhi students: buy, sell, rent and give away things to the people down the corridor. Only verified `@iiitd.ac.in` students can see or post anything.
 
-**Live:** [abhikrao.github.io/iiitd-black-market](https://abhikrao.github.io/iiitd-black-market/)
+**Live:** [iiitdblackmarket.github.io](https://iiitdblackmarket.github.io/) (the old address, abhikrao.github.io/iiitd-black-market, redirects here.)
 
 **On your phone:** open the site, then use *Install app* on Android Chrome or *Share → Add to Home Screen* on iPhone Safari.
 
@@ -30,7 +30,7 @@ Current B.Tech students are approved automatically. The database keeps only the 
 
 | Part | What | Cost |
 | --- | --- | --- |
-| Website | React 19, TypeScript, Vite and Framer Motion; a static site on GitHub Pages; installable as an app (PWA) | Free |
+| Website | React 19, TypeScript, Vite and Framer Motion; a static site on GitHub Pages (the `iiitdblackmarket` organization); installable as an app (PWA) | Free |
 | Backend | Supabase (Mumbai): Postgres with row-level security, Google sign-in, private photo storage, realtime chat | Free plan, no card on file |
 | Push notifications | A Supabase Edge Function that sends Web Push using only standard Web Crypto | Free |
 | Keep-alive | A GitHub Actions job pings the backend twice a week so the free project never pauses | Free |
@@ -76,7 +76,7 @@ Demo mode only runs on the dev server and never ships in a production build.
 ## Deploying
 
 1. **Database:** apply any new file in `supabase/migrations/` in the Supabase SQL editor, in order, and never rerun one that is already applied.
-2. **Website:** `cd app && npm run deploy:pages -- AbhikRao/iiitd-black-market`. It builds with only the public URL and publishable key from `app/.env.production.local`, and pushes the built files to the build-only Pages repository.
+2. **Website:** `cd app && npm run deploy:pages -- iiitdblackmarket/iiitdblackmarket.github.io`. It builds with only the public URL and publishable key from `app/.env.production.local`, and pushes the built files to the build-only Pages repository.
 3. **Push notifications** need a one-time setup: [docs/push-notifications.md](docs/push-notifications.md).
 
 The full runbooks are [docs/launch.md](docs/launch.md) and [docs/backend-setup.md](docs/backend-setup.md).
@@ -110,4 +110,4 @@ Live. Still to test on the live site:
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) before contributing. Dated progress notes and review records live in [docs/changelog.md](docs/changelog.md).
 
-[Privacy policy](https://abhikrao.github.io/iiitd-black-market/privacy.html) · [Terms of use](https://abhikrao.github.io/iiitd-black-market/terms.html)
+[Privacy policy](https://iiitdblackmarket.github.io/privacy.html) · [Terms of use](https://iiitdblackmarket.github.io/terms.html)

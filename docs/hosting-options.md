@@ -1,6 +1,6 @@
 # Hosting the site under the "IIITD Black Market" name
 
-Written 2026-11-06 after the owner asked what the options are. The site is at `abhikrao.github.io/iiitd-black-market` today, which works but carries a personal name. Everything must stay free (see [free-tier.md](free-tier.md)).
+Written 2026-11-06 after the owner asked what the options are. **Decision: option 1, done on 2026-11-06.** The site now lives at `iiitdblackmarket.github.io`; it used to be at `abhikrao.github.io/iiitd-black-market`, which carried a personal name and now redirects. Everything must stay free (see [free-tier.md](free-tier.md)).
 
 ## Options
 

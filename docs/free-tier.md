@@ -8,7 +8,7 @@ Owner constraint: the owner cannot pay for anything, so every part of production
 | Website hosting | GitHub Pages from the public build-only repository | Free for public repositories | 0 |
 | Keep-alive | GitHub Actions in that same public repository | Free for public repositories | 0 |
 | Google sign-in | Google Cloud OAuth client, email and profile only | Needs no billing account (not re-checked in the console) | 0 |
-| Address | `abhikrao.github.io/iiitd-black-market` | No custom domain | 0 |
+| Address | `iiitdblackmarket.github.io` (a free GitHub organization site) | No custom domain | 0 |
 | Phone notifications | Supabase Edge Function `push` plus browser push services | Free plan includes 500,000 function invocations a month; Web Push itself is free | 0 |
 
 ## What happens at the limits

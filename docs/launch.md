@@ -8,12 +8,12 @@ Written overnight on 2026-10-31 by Claude (code, deployment tooling) with Codex 
 
 | Piece | Where | Notes |
 | --- | --- | --- |
-| Site (static React app) | GitHub Pages from a **public build-only repo**, `AbhikRao/iiitd-black-market`, at `https://abhikrao.github.io/iiitd-black-market/` | The private source repo is never published. `npm run deploy:pages -- AbhikRao/iiitd-black-market` builds and pushes only `dist/`. |
+| Site (static React app) | GitHub Pages from a **public build-only repo**, `iiitdblackmarket/iiitdblackmarket.github.io`, at `https://iiitdblackmarket.github.io/` (moved there on 2026-11-06; the old `AbhikRao/iiitd-black-market` repo now only redirects) | The private source repo is never published. `npm run deploy:pages -- iiitdblackmarket/iiitdblackmarket.github.io` builds and pushes only `dist/`. |
 | Backend | Supabase project `iiitd-black-market` (Free plan, Mumbai, ref `mkepigiktixxrowsteje`) | Database, Google sign-in, private photo storage, realtime messages. Created by Codex under `AbhikRao's Org`. |
 | Sign-in | Google, restricted to `@iiitd.ac.in` by a database trigger (not just the browser hint) | New people wait for admin approval unless they are on the roster. |
 | Keep-alive | Workflow `keepalive.yml` in the public repo pings `rpc/ping` twice a week and adds an empty commit when the repo has been quiet for 30 days | Free Supabase projects pause after about a week without activity, and GitHub switches off scheduled workflows in a public repo after 60 days without a commit. Ran once on 2026-10-31 after the redeploy: success. |
 
-Browser settings that must match: Supabase **Site URL** `https://abhikrao.github.io/iiitd-black-market/`, redirect URLs `https://abhikrao.github.io/iiitd-black-market/**` and `http://localhost:5173/**`, and Google's authorized redirect URI `https://mkepigiktixxrowsteje.supabase.co/auth/v1/callback`.
+Browser settings that must match: Supabase **Site URL** `https://iiitdblackmarket.github.io/`, redirect URLs `https://iiitdblackmarket.github.io/**`, `https://abhikrao.github.io/iiitd-black-market/**` (old address, can be removed later) and `http://localhost:5173/**`, and Google's authorized redirect URI `https://mkepigiktixxrowsteje.supabase.co/auth/v1/callback`.
 
 ## Verified so far
 
@@ -21,7 +21,7 @@ Browser settings that must match: Supabase **Site URL** `https://abhikrao.github
 - `npm test` (37 database checks on PGlite) and `npm run e2e:local` (19 checks with separate accounts against a real local Supabase stack: auth, row-level security, private storage, offers, blocks, reports, notifications, expiry, realtime, admin bootstrap).
 - The e2e run caught a real bug in the first version of the sign-up trigger: GoTrue inserts the user and confirms the email in a follow-up update, so a check made only at insert time would have left the owner's first Google sign-in pending instead of admin. `0006_launch.sql` now handles both orders (a provider check at insert, plus a trigger that promotes bootstrap-admin and roster emails when the email becomes confirmed) and defers the admin alert to the end of the sign-up transaction. A hosted project that ran an earlier bundle needs `~/iiitd-launch/fix-signup-trigger-v2.sql` once; it is the idempotent block between the `BEGIN/END SIGNUP TRIGGERS` markers in `0006_launch.sql`.
 - A 4032 x 3024 photo uploaded through the real sell form is resized in the browser to a 1600 x 1200 JPEG of about 280 KB (this also removes EXIF data such as GPS), stored privately and shown with a signed URL. Chat attachments use the same path.
-- The sub-path build (`/iiitd-black-market/`) boots from `404.html` on a deep link and remembers the page you wanted across the Google round trip.
+- The build boots from `404.html` on a deep link (the site is at the root `/` since 2026-11-06; the old sub-path build did the same) and remembers the page you wanted across the Google round trip.
 - Against the hosted project with only the public key: `rpc/ping` works, anonymous users see zero listings, `profiles` and `admin_bootstrap` are permission denied.
 - **Live site (2026-10-31, after the owner approved creating the public build-only repo):** `AbhikRao/iiitd-black-market` is public, default branch `main`, with the `.iiitd-market-build-only` marker; Pages serves it at `https://abhikrao.github.io/iiitd-black-market/`. Deployed with `npm run deploy:pages` from source `a235788`. Checked: `/`, `/privacy.html`, `/terms.html`, `/favicon.svg` and the JS bundle return 200; a deep link such as `/listing/xyz` is served by `404.html` and boots the app (checked from a local copy of the same build in a browser: login page, Google button enabled, privacy and terms links correct); the bundle contains only the hosted project URL and the publishable key (no JWTs, no local values); the Google authorize link with this site as the return address reaches Google's "IIITD Black Market" sign-in page with no client or redirect errors.
 - **Redeploys:** Abhik reports redeploying with the same script from source `f74c10d` and then `8dc2c60`, including PR #16 (sign-in state) and PR #17 (chat loading). PR #18 review independently confirmed latest public build commit `1228bc4` declares source `8dc2c60`, the live JS bytes match that build, chat fallback/error copy is present, and home/privacy/terms/favicon/JS return 200. The reviewed `8dc2c60` source has 60 passing regressions; the earlier AUTH-02 source had 51. Future application changes reach the live site only after an authorized redeploy; this documentation review does not deploy or authorize publication.
@@ -70,10 +70,10 @@ Before the first deploy, the owner must create the chosen **public build-only** 
 cd app
 cp ~/iiitd-launch/public-config.env .env.production.local   # URL + publishable key only
 npm run check:config
-npm run deploy:pages -- AbhikRao/iiitd-black-market
+npm run deploy:pages -- iiitdblackmarket/iiitdblackmarket.github.io
 ```
 
-The script refuses non-HTTPS or secret-looking keys, builds with `VITE_BASE=/iiitd-black-market/`, strips the demo and local-login switches, and pushes `dist/` plus the keep-alive workflow to the repo's `main`.
+The script refuses non-HTTPS or secret-looking keys, builds with `VITE_BASE=/` for a `<owner>.github.io` repository (`/<repo>/` for any other, see `scripts/pages-site.mjs`), strips the demo and local-login switches, and pushes `dist/` plus the keep-alive workflow to the repo's `main`.
 
 ## Troubleshooting
 
