@@ -1,5 +1,8 @@
 # Live backend verification record
 
+**Current status:** see [current-status.md](current-status.md) for the deployed baseline, local fix branch and remaining verification. Older dated results below are historical evidence, not current access/setup blockers.
+
+
 Owner: Garv Rao / Codex. Current status: **Garv selected Abhik's existing project `mkepigiktixxrowsteje`. Public hosted checks pass as recorded below; Garv clarifies institute Google authentication reaches Awaiting approval. Garv's requested admin access and approved-user workflows remain pending. Abhik reports applying his own admin access, has project access and must apply Garv's already-authorized admin update.**
 
 ## User-reported Google login — 2026-10-31

@@ -38,7 +38,7 @@ function Gate() {
   if (!profile || profile.status !== 'approved') return <Pending />
   return (
     <Routes>
-      <Route element={<Layout />}>
+      <Route element={<Layout key={profile.id} />}>
         <Route index element={<Browse />} />
         <Route path="listing/:id" element={<ListingDetail />} />
         <Route path="sell" element={<Sell />} />

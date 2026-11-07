@@ -53,8 +53,8 @@ test('delivers to every subscription, prunes the ones that are gone and keeps go
     statuses: { 'https://b.test/2': 410, 'https://c.test/3': new Error('network') },
   })
   const res = await handle(post({ notification_id: notification }))
-  assert.equal(res.status, 200)
-  assert.deepEqual(await res.json(), { sent: 1, removed: 1 })
+  assert.equal(res.status, 502)
+  assert.deepEqual(await res.json(), { attempted: 3, sent: 1, removed: 1, failed: 1, failures: { transport_or_encryption: 1 }, pruneFailed: false, status: 'delivery_failed' })
   assert.equal(sends.length, 3)
   assert.deepEqual(sends[0].message, { title: 'IIITD Black Market', body: 'New message about Kettle', url: '/inbox/9', tag: 'message' })
   assert.deepEqual(sends[0].vapid, { publicKey: 'BPUBLIC', privateKey: 'PRIVATE', subject: 'https://example.test/' })
@@ -63,9 +63,27 @@ test('delivers to every subscription, prunes the ones that are gone and keeps go
 })
 
 test('a deleted notification is a no-op, and missing function secrets are reported', async () => {
-  assert.deepEqual(await (await harness({ payload: null }).handle(post({ notification_id: notification }))).json(), { sent: 0, removed: 0 })
+  assert.deepEqual(await (await harness({ payload: null }).handle(post({ notification_id: notification }))).json(), { attempted: 0, sent: 0, removed: 0, failed: 0, status: 'no_notification' })
   const { VAPID_PRIVATE_KEY: _, ...partial } = env
   const res = await harness({ settings: partial }).handle(post({ notification_id: notification }))
   assert.equal(res.status, 500)
   assert.match((await res.json()).error, /VAPID_PRIVATE_KEY/)
+})
+
+for (const [status, kind] of [[403,'authorization'],[429,'rate_limited'],[503,'provider_unavailable']]) {
+  test(`provider ${status} is a visible delivery failure, not HTTP 200`, async () => {
+    const endpoint='https://example.test/fake'
+    const { handle, rpcs }=harness({payload:{title:'Test',link:'/',kind:'message',subscriptions:[{endpoint,p256dh:'x',auth:'y'}]},statuses:{[endpoint]:status}})
+    const response=await handle(post({notification_id:notification}))
+    assert.equal(response.status,502)
+    const data=await response.json()
+    assert.equal(data.sent,0); assert.equal(data.failed,1); assert.equal(data.failures[kind],1)
+    assert.ok(!JSON.stringify(data).includes(endpoint))
+    assert.equal(rpcs.length,1,'live subscriptions are not pruned for transient/auth failures')
+  })
+}
+test('no registered recipients is distinguished from provider acceptance',async()=>{
+ const {handle}=harness({payload:{title:'Test',link:'/',kind:'message',subscriptions:[]}})
+ const response=await handle(post({notification_id:notification}))
+ assert.equal((await response.json()).status,'no_subscriptions')
 })

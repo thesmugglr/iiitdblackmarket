@@ -1040,6 +1040,23 @@ await step('0009: deleting an account removes its photos, data and the login its
   assert.equal(ok(await admin.storage.from('listing-photos').list(leaver.id)).filter((f) => f.id).length, 0, 'photos removed')
   assert.equal(ok(await admin.from('profiles').select('id').eq('id', peer.id)).length, 1, 'other people are untouched')
 })
+await step('0010: visible reads, grouped refresh and current-account device registration', async () => {
+  const a = await user('deliveryseller'), b = await user('deliverybuyer'), stranger = await user('deliveryother')
+  const item = ok(await a.c.from('listings').insert({ seller_id: a.id, title: 'E2E delivery item', listing_type: 'sale', category: 'misc', condition: 'good', price_inr: 10 }).select('id').single())
+  const chat = ok(await b.c.rpc('start_conversation', { p_listing: item.id }))
+  const send = async body => ok(await b.c.from('messages').insert({ conversation_id: chat, sender_id: b.id, body }).select('id').single()).id
+  const first = await send('Fictional first'), second = await send('Fictional second')
+  ok(await a.c.rpc('mark_conversation_seen', { p_conversation: chat, p_messages: [first] }))
+  assert.equal(ok(await a.c.from('notifications').select('id').is('read_at', null)).length, 1)
+  ok(await a.c.rpc('mark_conversation_seen', { p_conversation: chat, p_messages: [first, second] }))
+  assert.equal(ok(await a.c.from('notifications').select('id').is('read_at', null)).length, 0)
+  assert.ok((await stranger.c.rpc('mark_conversation_seen', { p_conversation: chat, p_messages: [first] })).error)
+  const args = { p_endpoint: `https://push.example.test/delivery-${run}`, p_p256dh: 'B' + 'x'.repeat(86), p_auth: 'y'.repeat(22) }
+  ok(await a.c.rpc('save_push_subscription', args))
+  assert.equal(ok(await a.c.rpc('push_subscription_registered', args)), true)
+  assert.equal(ok(await b.c.rpc('push_subscription_registered', args)), false)
+  ok(await a.c.rpc('remove_push_subscription', { p_endpoint: args.p_endpoint }))
+})
 await step('remove only photos, bootstrap rows, roster entries, student codes and accounts created by this run', async () => {
   const errors = []
   for (const email of rosterEmails) {

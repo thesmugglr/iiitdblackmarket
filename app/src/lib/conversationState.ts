@@ -12,7 +12,7 @@ interface ConversationSource {
   loadConversation: () => Promise<Conversation | null>
   loadMessages: () => Promise<Message[]>
   loadOffers: () => Promise<Offer[]>
-  markRead: () => Promise<unknown>
+  markRead?: () => Promise<unknown>
   subscribe: (messagesChanged: () => void, offersChanged: () => void) => () => void
   publish: (snapshot: ConversationSnapshot) => void
 }
@@ -44,7 +44,7 @@ export function observeConversation(id: string, source: ConversationSource) {
       if (!active || revision !== messageRevision) return
       publish({ messages })
       // A navigation that disposed this observer cannot mark the old chat read.
-      void source.markRead().catch(() => { /* Read receipts can retry on the next refresh. */ })
+      void source.markRead?.().catch(() => { /* Read receipts can retry on the next refresh. */ })
     } catch {
       if (revision === messageRevision) publish({ error: 'Could not load messages. Please try again.' })
     }

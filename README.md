@@ -39,7 +39,7 @@ Everything stays on free plans. [docs/free-tier.md](docs/free-tier.md) lists the
 
 ```
 app/                   the website: src/pages, src/components, src/lib; tests in app/test; tooling in app/scripts
-supabase/migrations/   database schema, access rules and functions (0001 to 0009, applied in order)
+supabase/migrations/   database schema, access rules and functions (0001 to 0010, applied in order)
 supabase/functions/    push: the function that delivers phone notifications
 docs/                  setup, operations and the project history
 ```
@@ -68,7 +68,7 @@ Demo mode only runs on the dev server and never ships in a production build.
 
 **Checks**, run inside `app/`:
 
-- `npm test`: 510 unit and database tests.
+- `npm test`: local unit and database regressions.
 - `npm run build`
 - `npm run lint`
 - `npm run e2e:local`: 48 end-to-end checks against the local stack, using separate accounts.
@@ -101,7 +101,7 @@ Live. Still to test on the live site:
 - installing the app on a physical phone;
 - removing graduated students automatically.
 
-[TODO.md](TODO.md) is the task board.
+[TODO.md](TODO.md) is the task board. [Current verification status](docs/current-status.md) separates the deployed baseline from locally implemented fixes.
 
 ## Team
 

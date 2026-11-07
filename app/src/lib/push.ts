@@ -10,6 +10,8 @@ export type PushState =
   | 'blocked'       // the person said no in the browser's permission prompt
   | 'off'
   | 'on'
+  | 'repair'
+  | 'error'
 
 type Api = Pick<SupabaseClient, 'rpc'>
 
@@ -31,7 +33,12 @@ async function publicKey(api: Api): Promise<string | null> {
 
 async function registration(): Promise<ServiceWorkerRegistration | null> {
   // The service worker is only registered in the built site (not the dev server).
-  return (await navigator.serviceWorker.getRegistration()) ?? null
+  const existing = await navigator.serviceWorker.getRegistration()
+  if (existing?.active) return existing
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([navigator.serviceWorker.ready, new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), 5000) })])
+  } finally { clearTimeout(timer) }
 }
 
 function sameKey(subscription: PushSubscription, key: string) {
@@ -46,21 +53,33 @@ export async function pushState(api: Api): Promise<PushState> {
   if (!browserSupportsPush()) return isAppleMobile() && !isInstalled() ? 'needs-install' : 'unsupported'
   if (isAppleMobile() && !isInstalled()) return 'needs-install'
   const reg = await registration()
-  if (!reg) return 'unsupported'
-  if (!(await publicKey(api))) return 'unavailable'
+  if (!reg) throw new Error('Notifications are still starting. Please retry.')
+  const key = await publicKey(api)
+  if (!key) return 'unavailable'
   if (Notification.permission === 'denied') return 'blocked'
   const subscription = await reg.pushManager.getSubscription()
-  return subscription && Notification.permission === 'granted' ? 'on' : 'off'
+  if (!subscription || Notification.permission !== 'granted') return 'off'
+  if (!sameKey(subscription, key)) return 'repair'
+  return await registered(api, subscription) ? 'on' : 'repair'
+}
+
+async function registered(api: Api, subscription: PushSubscription): Promise<boolean> {
+  const { endpoint, keys } = subscription.toJSON()
+  if (!endpoint || !keys?.p256dh || !keys?.auth) return false
+  const { data, error } = await api.rpc('push_subscription_registered', { p_endpoint: endpoint, p_p256dh: keys.p256dh, p_auth: keys.auth })
+  if (error) throw new Error('Could not check device registration. Please retry.')
+  return data === true
 }
 
 /** Asks for permission, subscribes this browser and stores the subscription for the signed-in account. */
 export async function enablePush(api: Api): Promise<PushState> {
   if (!browserSupportsPush()) return 'unsupported'
+  // Request permission synchronously from the user's tap, before network awaits.
+  const permission = Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission
   const reg = await registration()
-  if (!reg) return 'unsupported'
+  if (!reg) throw new Error('Notifications are still starting. Please retry.')
   const key = await publicKey(api)
   if (!key) return 'unavailable'
-  const permission = await Notification.requestPermission()
   if (permission !== 'granted') return permission === 'denied' ? 'blocked' : 'off'
   let subscription = await reg.pushManager.getSubscription()
   if (subscription && !sameKey(subscription, key)) { await subscription.unsubscribe(); subscription = null }
@@ -68,7 +87,7 @@ export async function enablePush(api: Api): Promise<PushState> {
   const { endpoint, keys } = subscription.toJSON()
   if (!endpoint || !keys?.p256dh || !keys?.auth) throw new Error('This browser returned an incomplete push subscription.')
   const { error } = await api.rpc('save_push_subscription', { p_endpoint: endpoint, p_p256dh: keys.p256dh, p_auth: keys.auth })
-  if (error) throw error
+  if (error || !(await registered(api, subscription))) throw new Error('Device registration was not confirmed. Please retry to repair notifications.')
   return 'on'
 }
 
