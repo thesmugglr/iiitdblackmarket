@@ -1,5 +1,8 @@
 # Mobile apps (Android first, then iPhone)
 
+**Current status:** see [current-status.md](current-status.md) for the deployed baseline, local fix branch and remaining verification. Older dated results below are historical evidence, not current access/setup blockers.
+
+
 Status on 2026-10-31: **installable web app is live; no native app is built, and native work is paused.** Keep planned, built, tested and published states separate when updating this file.
 
 **Owner constraint (2026-10-31): the owner cannot pay for anything, so the whole app must stay on free services** (see [free-tier.md](free-tier.md)). That rules out both store routes below: Google Play needs a one-time US$25 developer account (and, for new personal accounts, a closed test with 12 testers for 14 days), and the Apple App Store needs the US$99-a-year Developer Program. **The installable web app in section 1 is the free app for Android and iPhone.** Sections 2 and 3 are kept only in case someone else later covers the fees.
@@ -21,7 +24,7 @@ The live site is a Progressive Web App: web manifest, icons (including a maskabl
 
 Known work items (owner decisions marked):
 1. **Google sign-in inside the app.** Google blocks OAuth in embedded WebViews, so sign-in must open the system browser (Chrome Custom Tab) and return through a deep link; add that redirect to the Supabase allow-list. The Google Cloud client does not change.
-2. **Account deletion (Play requirement).** Add a Delete my account action in the app and a public web page describing how to request deletion; add a database function that removes the user's data. Needs a new migration, so it follows the usual live-database approval.
+2. **Account deletion:** the Profile action and database function were implemented in migration 0009. Any future store release still needs its own review and current policy checks.
 3. **Store listing:** short and long description, 512 px icon, 1024x500 feature graphic, phone screenshots, content rating questionnaire, Data safety form (email, name, photos, messages are collected; deletable on request; nothing sold or shared for ads), privacy policy URL (already live), target audience not children, user-generated-content moderation (report and block exist).
 4. **Package name (owner decision, permanent once published).** Proposal: `io.github.abhikrao.iiitdblackmarket`. The app is not affiliated with IIIT-Delhi; the name and icon must not imply it is official, or Google may reject it as impersonation. Ask the institute if an official name is wanted.
 5. **Signing.** Release builds are signed with an upload key generated on the owner's machine; the owner must back it up (loss blocks updates). Play App Signing holds the final key.

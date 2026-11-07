@@ -1,6 +1,15 @@
 # Storage inventory and reference review
 
+**Current status:** see [current-status.md](current-status.md) for the deployed baseline, local fix branch and remaining verification. Older dated results below are historical evidence, not current access/setup blockers.
+
+
 Owner: Garv Rao / Codex. OPS-01 supplies a manual, read-only report at [supabase/ops/storage-audit.sql](../supabase/ops/storage-audit.sql). It is not a migration, public RPC, scheduled monitor or cleanup job. No hosted report or deletion has been performed by this work.
+
+## Coverage limit after migration 0009
+
+The report currently tracks listing photos/thumbnails and chat attachments only. Lost & found photos use the same bucket but are not included in its reference query. A referenced lost & found photo can therefore appear as an unlinked candidate. Do not use candidate output to delete files; extend the audit and regression coverage before relying on it for a complete reference inventory.
+
+Account deletion removes the user's listing-photo folder through Storage before deleting the Auth account. Chat-attachment objects are not cleaned by that helper and can outlive their deleted message rows. A retention/cleanup workflow remains outstanding.
 
 ## Run the report
 

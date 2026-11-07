@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
@@ -10,6 +10,7 @@ import { emptyConversation, observeConversation } from '../lib/conversationState
 import { emptyTextComposer, observeTextComposer, sendChatText } from '../lib/chatText'
 import { emptyOfferComposer, makeOfferOnce, observeOfferComposer, respondOfferOnce } from '../lib/chatOffers'
 import { emptyAttachment, observeAttachment, sendChatImage, uploadChatAttachment } from '../lib/chatAttachments'
+import { shouldFollowChat, nearChatBottom } from '../lib/chatScroll'
 import type { Conversation, Deal, Message, Offer } from '../lib/types'
 
 // One tap fills the message box; the text can still be edited before sending.
@@ -51,7 +52,10 @@ function ConversationChat({ id }: { id: string }) {
   const offerComposer = useRef<ReturnType<typeof observeOfferComposer> | null>(null)
   const [photoState, setPhotoState] = useState(emptyAttachment)
   const attachment = useRef<ReturnType<typeof observeAttachment> | null>(null)
-  const bottom = useRef<HTMLDivElement>(null)
+  const messageList = useRef<HTMLDivElement>(null)
+  const following = useRef(true)
+  const previousLast = useRef<string | null>(null)
+  const [newMessages, setNewMessages] = useState(false)
   const input = useRef<HTMLInputElement>(null)
   const [deal, setDeal] = useState<Deal | null>(null)
   const [dealBusy, setDealBusy] = useState(false)
@@ -111,10 +115,6 @@ function ConversationChat({ id }: { id: string }) {
         if (error) throw error
         return (data ?? []) as Offer[]
       },
-      markRead: async () => {
-        const { error } = await supabase.rpc('mark_read', { p_conversation: id })
-        if (error) throw error
-      },
       subscribe: (messagesChanged, offersChanged) => {
         const ch = supabase.channel(`conv-${id}`)
           .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${id}` }, messagesChanged)
@@ -126,7 +126,47 @@ function ConversationChat({ id }: { id: string }) {
     })
   }, [id, attempt])
 
-  useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs.length])
+  const toLatest = () => {
+    const list = messageList.current
+    if (list) list.scrollTop = list.scrollHeight
+    following.current = true
+    setNewMessages(false)
+  }
+  useLayoutEffect(() => {
+    const last = msgs.at(-1)
+    if (!last || !messageList.current) return
+    if (shouldFollowChat(previousLast.current, last.id, last.sender_id === memberId, following.current)) toLatest()
+    else if (last.id !== previousLast.current) setNewMessages(true)
+    previousLast.current = last.id
+  }, [msgs, memberId])
+  useEffect(() => {
+    const list = messageList.current
+    if (!list) return
+    const resize = new ResizeObserver(() => { if (following.current) list.scrollTop = list.scrollHeight })
+    resize.observe(list)
+    return () => resize.disconnect()
+  }, [loading])
+  useEffect(() => {
+    let live = true, busy = false, acknowledged = false
+    const read = async () => {
+      if (!live || busy || acknowledged || document.hidden || !messageList.current || !nearChatBottom(messageList.current) || !msgs.length) return
+      busy = true
+      try {
+        const { error } = await supabase.rpc('mark_conversation_seen', { p_conversation: id, p_messages: msgs.map(m => m.id) })
+        if (!error && live) {
+          acknowledged = true
+          window.dispatchEvent(new Event('notices-changed'))
+        }
+      } finally { busy = false }
+    }
+    void read().catch(() => {})
+    const trigger = () => { void read().catch(() => {}) }
+    window.addEventListener('focus', trigger)
+    document.addEventListener('visibilitychange', trigger)
+    const list = messageList.current
+    list?.addEventListener('scroll', trigger)
+    return () => { live = false; window.removeEventListener('focus', trigger); document.removeEventListener('visibilitychange', trigger); list?.removeEventListener('scroll', trigger) }
+  }, [msgs, id])
 
   // The sale record for this chat, if the seller has marked it sold (refreshed when new messages arrive).
   useEffect(() => {
@@ -207,10 +247,10 @@ function ConversationChat({ id }: { id: string }) {
         </div>
         <button className="link" onClick={block}>Block</button>
       </div>
-      <div className="messages">
+      <div className="messages" ref={messageList} onScroll={() => { if (messageList.current) following.current = nearChatBottom(messageList.current); if (following.current) setNewMessages(false) }} onLoadCapture={() => { if (following.current) toLatest() }}>
         {msgs.map((m) => <Bubble key={m.id} m={m} mine={m.sender_id === profile.id} onReport={() => reportMsg(m)} />)}
-        <div ref={bottom} />
       </div>
+      {newMessages && <button className="new-messages" onClick={toLatest}>New messages ↓</button>}
       {pending && (
         <div className="offer-bar">
           Offer: <strong>{inr(pending.amount_inr)}</strong>
@@ -250,13 +290,11 @@ function ConversationChat({ id }: { id: string }) {
       {photoState.busy && <p className="muted small" role="status">Sending photo…</p>}
       {photoState.error && <p className="error small" role="alert">{photoState.name}: {photoState.error} <button disabled={photoState.busy} onClick={() => void attachment.current?.retry()}>Retry photo</button></p>}
       {loadError && <p className="error small">{loadError} {retry}</p>}
-      {!text.trim() && (
-        <div className="quick-replies" role="group" aria-label="Quick replies">
+      <div className={text.trim() ? "quick-replies composing" : "quick-replies"} role="group" aria-label="Quick replies">
           {(isBuyer ? BUYER_REPLIES : SELLER_REPLIES).map((reply) => (
             <button key={reply} type="button" onClick={() => quickReply(reply)}>{reply.endsWith('₹') ? `${reply}…?` : reply}</button>
           ))}
-        </div>
-      )}
+      </div>
       <form className="composer" onSubmit={send} aria-busy={sending || photoState.busy}>
         <label className="attach" title="Attach photo"><Clip /><input type="file" accept="image/*" hidden disabled={photoState.busy || photoState.locked} onChange={(e) => { attach(e.target.files?.[0]); e.target.value = '' }} /></label>
         <input ref={input} value={text} onChange={(e) => composer.current?.edit(e.target.value)} maxLength={2000} placeholder="Type a message" />

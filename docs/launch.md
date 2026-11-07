@@ -1,5 +1,8 @@
 # Launch notes
 
+**Current status:** see [current-status.md](current-status.md) for the deployed baseline, local fix branch and remaining verification. Older dated results below are historical evidence, not current access/setup blockers.
+
+
 Written overnight on 2026-10-31 by Claude (code, deployment tooling) with Codex doing the browser-only setup in Abhik's signed-in browser. This file separates what is **verified**, what **depends on an account owner's decision**, and what to do next. Keep it current; do not put secrets in it.
 
 **New rollout prerequisite (2026-11-03):** main after CHAT-05 / PR #27 uses `make_offer_once` and `respond_offer_once`. Verify the selected backend's migration history and apply `supabase/migrations/0008_offer_retries.sql` if missing **before deploying that source**. Legacy RPCs remain compatible with older clients. This review did not apply 0008 or publish a build; the selected project's dashboard still requires sign-in here. See [backend-setup.md](backend-setup.md) for the ordered migrations. The deployment/hosted results below are historical evidence, not confirmation that 0008 is live.
@@ -89,6 +92,6 @@ The script refuses non-HTTPS or secret-looking keys, builds with `VITE_BASE=/` f
 
 ## Limits worth knowing
 
-- No email or push notifications. People see alerts in the bell and, if they allow it, as desktop notifications while the site is open in a tab.
-- Free tier: 500 MB database, 1 GB file storage (a resized photo is roughly 100 to 200 KB plus a 480 px thumbnail), 5 GB of bandwidth a month. Going over restricts the project until the monthly reset instead of charging anything; see [free-tier.md](free-tier.md). The owner cannot pay, so upgrading is not an option: reduce photo sizes or purge old photos if the campus outgrows it.
-- Search is simple substring matching and the home grid shows the newest 60 results.
+- In-app and opt-in Web Push are implemented; email notifications are not. Provider setup does not prove device delivery. See [push-notifications.md](push-notifications.md).
+- Free tier: 500 MB database, 1 GB file storage (a resized photo is roughly 100 to 200 KB plus a 480 px thumbnail), 5 GB of bandwidth a month. Going over restricts the project until the monthly reset instead of charging anything; see [free-tier.md](free-tier.md). The owner cannot pay, so upgrading is not an option: reduce photo sizes and review usage if the campus outgrows it; never purge photos solely because they are old.
+- Search is substring matching, with 60 results per page and Load more.

@@ -209,3 +209,19 @@ button.big{padding:16px 28px;font-size:1rem}
 .lf-replies{margin-top:8px;display:grid;gap:16px}
 .lf-thread{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--card)}
 .lf-thread .composer{padding:0}
+
+/* Conversation routes use the visible viewport, including the mobile keyboard. */
+.conversation-shell{container-type:size;position:fixed;inset-inline:0;top:var(--chat-top,0px);height:var(--chat-height,100dvh);display:flex;flex-direction:column;overflow:hidden}
+.conversation-shell>.top{position:relative;flex-shrink:0}
+.conversation-shell>.page{width:100%;flex:1;min-height:0;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom,0px)}
+.conversation-shell .chat{height:auto;flex:1;min-height:0;width:100%;margin:12px auto 0;overflow:hidden}
+.conversation-shell .messages{min-height:0;overscroll-behavior:contain;overflow-anchor:none}
+.conversation-shell .bubble{flex-shrink:0;overflow-wrap:anywhere}
+.conversation-shell .chat-head,.conversation-shell .composer,.conversation-shell .offer-bar,.conversation-shell .quick-replies,.conversation-shell .deal-note{flex-shrink:0}
+.conversation-shell .composer input{min-width:0}
+.conversation-shell .quick-replies{min-height:40px}
+.conversation-shell .quick-replies.composing{visibility:hidden}
+.conversation-shell .offer-bar{flex-wrap:wrap}
+.conversation-shell .tabbar{display:none}
+.conversation-shell .new-messages{align-self:center;padding:4px 12px;flex-shrink:0}
+@container (max-height:600px){.conversation-shell .quick-replies{display:none}.conversation-shell .chat{margin-top:4px}.conversation-shell .chat-head{padding-bottom:4px}.conversation-shell .offer-bar{font-size:.8rem;padding:4px 8px;margin-bottom:4px}.conversation-shell .deal-note{margin:0}}

@@ -1,5 +1,8 @@
 # Running costs: nothing to pay (checked 2026-10-31)
 
+**Current status:** see [current-status.md](current-status.md) for the deployed baseline, local fix branch and remaining verification. Older dated results below are historical evidence, not current access/setup blockers.
+
+
 Owner constraint: the owner cannot pay for anything, so every part of production must stay on free plans. Do not add a paid service, plan, store fee or card without asking the owner first.
 
 | Part | Plan | Evidence | Cost |

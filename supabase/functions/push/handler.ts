@@ -42,28 +42,43 @@ export function createHandler({ env, fetch: request, send = (s, m, v) => sendWeb
       body: JSON.stringify(args),
     })
 
-    const answer = await rpc('push_payload', { p_notification: id, p_secret: secret })
+    let answer: Response
+    try { answer = await rpc('push_payload', { p_notification: id, p_secret: secret }) }
+    catch { return json({ error: 'Payload service unavailable' }, 502) }
     if (!answer.ok) {
       await answer.body?.cancel()
-      return json({ error: 'Forbidden' }, 403)
+      return json({ error: answer.status >= 500 ? 'Payload service unavailable' : 'Forbidden' }, answer.status >= 500 ? 502 : 403)
     }
-    const payload = await answer.json() as Payload | null
-    if (!payload) return json({ sent: 0, removed: 0 }) // the notification was deleted in the meantime
+    let payload: Payload | null
+    try { payload = await answer.json() as Payload | null }
+    catch { return json({ error: 'Invalid payload response' }, 502) }
+    if (!payload) return json({ attempted: 0, sent: 0, removed: 0, failed: 0, status: 'no_notification' }) // the notification was deleted in the meantime
 
     const message = JSON.stringify({ title: 'IIITD Black Market', body: payload.title, url: payload.link ?? '', tag: payload.kind })
     const gone: string[] = []
-    let sent = 0
+    let sent = 0, failed = 0
+    const failures: Record<string, number> = {}
+    const failure = (kind: string) => { failed++; failures[kind] = (failures[kind] ?? 0) + 1 }
     await Promise.all(payload.subscriptions.map(async (subscription) => {
       try {
         const status = await send(subscription, message, vapid)
         if (status === 404 || status === 410) gone.push(subscription.endpoint)
         else if (status >= 200 && status < 300) sent++
-      } catch { /* one broken subscription must not stop the others */ }
+        else failure(status === 401 || status === 403 ? 'authorization' : status === 429 ? 'rate_limited' : status >= 500 ? 'provider_unavailable' : 'provider_rejected')
+      } catch { failure('transport_or_encryption') }
     }))
+    let removed = 0, pruneFailed = false
     if (gone.length) {
-      const pruned = await rpc('push_prune', { p_secret: secret, p_endpoints: gone })
-      await pruned.body?.cancel()
+      try {
+        const pruned = await rpc('push_prune', { p_secret: secret, p_endpoints: gone })
+        if (!pruned.ok) throw new Error('Prune failed')
+        const count = await pruned.json()
+        if (!Number.isInteger(count) || count < 0) throw new Error('Invalid prune result')
+        removed = count
+      } catch { pruneFailed = true }
     }
-    return json({ sent, removed: gone.length })
+    // Counts/categories only: never expose subscription endpoints, keys or message contents.
+    return json({ attempted: payload.subscriptions.length, sent, removed, failed, failures, pruneFailed,
+      status: !payload.subscriptions.length ? 'no_subscriptions' : failed || pruneFailed ? 'delivery_failed' : sent ? 'provider_accepted' : 'expired_subscriptions' }, failed || pruneFailed ? 502 : 200)
   }
 }

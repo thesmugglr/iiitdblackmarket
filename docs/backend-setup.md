@@ -1,5 +1,8 @@
 # Backend setup and live verification
 
+**Current status:** see [current-status.md](current-status.md) for the deployed baseline, local fix branch and remaining verification. Older dated results below are historical evidence, not current access/setup blockers.
+
+
 Owner: **Garv Rao / Codex**. Website design/UI: **AbhikRao**. Use `app/`; the backend is Supabase PostgreSQL/Auth/Storage/Realtime. A separate Fastify server is not required by the current app.
 
 ## Current evidence
@@ -27,7 +30,10 @@ Run each migration **once, in filename order** through the Supabase SQL editor o
 7. `supabase/migrations/0007_student_codes.sql` — automatic approval of current students by the five-digit numeric part of their institute address (admin-only `student_codes` table; no names stored). Load codes with `npm run student-codes` (see docs/launch.md).
 8. `supabase/migrations/0008_offer_retries.sql` — new `make_offer_once` and `respond_offer_once` RPCs for idempotent client retries; no new table or weaker policy, and legacy RPCs remain available.
 
-**Rollout requirement:** apply 0008 to the selected backend before publishing the new offer client. A lost response can be retried using the same offer UUID; a repeated matching seller decision adds no new message. Request/conversation/buyer/amount mismatches are refused. Existing clients keep their legacy RPCs during migration. This review has not applied 0008 to the hosted project or deployed a new build. The 2026-11-03 read-only access attempt still redirected to Supabase sign-in; trusted project access is required for the hosted migration.
+9. `supabase/migrations/0009_features.sql` — deals, saved alerts, lost & found, account deletion and Web Push.
+10. `supabase/migrations/0010_notification_delivery.sql` — grouped notification refresh, bounded conversation acknowledgement, exact push registration checks and throttled push dispatch. Implemented locally; hosted application is pending.
+
+**Historical 0008 rollout requirement:** apply 0008 to the selected backend before publishing the new offer client. A lost response can be retried using the same offer UUID; a repeated matching seller decision adds no new message. Request/conversation/buyer/amount mismatches are refused. Existing clients keep their legacy RPCs during migration. This review has not applied 0008 to the hosted project or deployed a new build. The 2026-11-03 read-only access attempt still redirected to Supabase sign-in; trusted project access is required for the hosted migration.
 
 On an existing database, apply only migrations that have not already run. Do not rerun 0001 over existing tables, and do not reset a project to resolve migration errors. Retain the migration history in the provider/tool used. Schema and access policies must be ready before inviting users.
 
@@ -43,7 +49,7 @@ Create or select the Google Cloud project and a **Web application** OAuth client
 - In Supabase Auth URL configuration, set the app Site URL and allow `http://localhost:5173` for local callbacks. Add the final HTTPS app origin when chosen.
 - Enable Google sign-in; disable unused email/password, phone, anonymous, or social providers. Keep email verification enabled where applicable.
 
-These are two different redirects: Google returns to Supabase, then Supabase returns to the app. The app currently uses `window.location.origin`; use `localhost` consistently, or explicitly allow a `127.0.0.1` origin as well if you use it. [Supabase Google sign-in setup](https://supabase.com/docs/guides/auth/social-sign-in/auth-google)
+These are two different redirects: Google returns to Supabase, then Supabase returns to the app. The app uses `appUrl()` (the origin plus Vite base path); use `localhost` consistently, or explicitly allow a `127.0.0.1` origin as well if you use it. [Supabase Google sign-in setup](https://supabase.com/docs/guides/auth/social-sign-in/auth-google)
 
 The server-side sign-up trigger restricts institute email addresses. The frontend `hd` value is an account-picker hint, not proof of student status. Marketplace access additionally requires roster/admin approval. Faculty/staff can also have institute email, so the admin must verify enrollment before approval. Test this with real accounts before launch.
 

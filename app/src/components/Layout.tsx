@@ -9,35 +9,58 @@ import { Footer } from './Landing'
 export default function Layout() {
   const { profile, signOut } = useAuth()
   const loc = useLocation()
+  const conversationRoute = /^\/inbox\/[^/]+\/?$/.test(loc.pathname)
   const [unread, setUnread] = useState(0)
   useEffect(() => {
-    const load = () => supabase.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null).then(({ count }) => setUnread(count ?? 0))
+    let live = true, revision = 0
+    const load = () => {
+      const request = ++revision
+      return supabase.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null)
+        .then(({ count, error }) => { if (live && request === revision && !error && count !== null) setUnread(count) })
+    }
+    const visible = () => { if (!document.hidden) window.dispatchEvent(new Event('notices-changed')) }
+    window.addEventListener('focus', visible)
+    document.addEventListener('visibilitychange', visible)
     void load()
     window.addEventListener('notices-changed', load)
     const t = setInterval(load, 60000)
     // New notifications arrive live; the interval above is only a safety net.
     const channel = profile ? supabase.channel(`notices-${profile.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${profile.id}` }, (payload) => {
-        void load()
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${profile.id}` }, () => {
         window.dispatchEvent(new Event('notices-changed'))
-        const n = payload.new as { title?: string; link?: string }
-        if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-          const note = new Notification('IIITD Black Market', { body: n.title ?? 'You have a new notification', tag: n.link ?? 'notice' })
-          note.onclick = () => { window.focus(); window.location.assign(new URL((n.link ?? '/').replace(/^\//, ''), new URL(import.meta.env.BASE_URL, window.location.origin)).href) }
-        }
       })
-      .subscribe() : undefined
+      .subscribe(status => { if (status === 'SUBSCRIBED') visible() }) : undefined
     return () => {
+      live = false; ++revision
+      window.removeEventListener('focus', visible)
+      document.removeEventListener('visibilitychange', visible)
       window.removeEventListener('notices-changed', load)
       clearInterval(t)
       if (channel) void supabase.removeChannel(channel)
     }
-  }, [loc.pathname, profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!conversationRoute) return
+    const viewport = window.visualViewport
+    const update = () => {
+      document.documentElement.style.setProperty('--chat-height', `${viewport?.height ?? window.innerHeight}px`)
+      document.documentElement.style.setProperty('--chat-top', `${viewport?.offsetTop ?? 0}px`)
+    }
+    update()
+    viewport?.addEventListener('resize', update)
+    viewport?.addEventListener('scroll', update)
+    window.addEventListener('resize', update)
+    return () => {
+      viewport?.removeEventListener('resize', update); viewport?.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+      document.documentElement.style.removeProperty('--chat-height'); document.documentElement.style.removeProperty('--chat-top')
+    }
+  }, [conversationRoute])
   useEffect(() => {
     document.title = unread ? `(${unread}) IIITD Black Market` : 'IIITD Black Market'
   }, [unread])
   return (
-    <>
+    <div className={conversationRoute ? 'app-shell conversation-shell' : 'app-shell'}>
       {demoMode && <aside role="status" style={{ padding: '8px 20px', background: '#fff2b8', color: '#292318', textAlign: 'center' }}>Demo preview · Fictional students and items · Actions are not saved</aside>}
       <header className="top">
         <NavLink to="/" className="brand">
@@ -59,7 +82,7 @@ export default function Layout() {
       <main className="page">
         <Outlet />
       </main>
-      <Footer />
+      {!conversationRoute && <Footer />}
       <nav className="tabbar" aria-label="Primary">
         <NavLink to="/" end><Grid />Browse</NavLink>
         <NavLink to="/saved"><Heart />Saved</NavLink>
@@ -67,6 +90,6 @@ export default function Layout() {
         <NavLink to="/inbox"><Chat />Inbox</NavLink>
         <NavLink to="/profile"><User />Profile</NavLink>
       </nav>
-    </>
+    </div>
   )
 }

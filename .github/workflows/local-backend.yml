@@ -27,6 +27,11 @@ jobs:
         run: supabase start > /dev/null 2>&1
       - run: npm run e2e:local
         working-directory: app
+      - name: Check chat layout at phone and desktop sizes
+        working-directory: app
+        run: |
+          npx playwright install --with-deps chromium
+          node scripts/check-chat-layout.mjs
       - name: Stop this runner's disposable services
         if: always()
         run: supabase stop > /dev/null 2>&1
