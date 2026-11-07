@@ -344,3 +344,33 @@ input,select,textarea{border-radius:12px;padding:.7rem .9rem;font-size:1rem}
   .block{padding-top:40px}
 }
 .receipt{align-self:flex-end;font-size:.75rem;color:var(--muted);margin:-2px 4px 0;flex-shrink:0}
+/* Instagram-style chat rows: full-width rows so swiping left can slide every bubble and show times at the edge */
+.messages{overflow-x:hidden;overscroll-behavior-x:none}
+.bubble-row{position:relative;width:100%;max-width:none;align-self:stretch;user-select:text;transition:transform .2s ease}
+.bubble-row.dragging{transition:none;user-select:none}
+.bubble-row .bubble{max-width:78%;touch-action:pan-y}
+.messages .bubble-row{transform:translateX(calc(var(--reveal,0px) * -1))}
+.messages.revealing .bubble-row{transition:none}
+.messages .bubble-row.dragging{transform:none}
+.side-time{position:absolute;right:-64px;top:50%;transform:translateY(-50%);width:58px;font-size:.6875rem;color:var(--muted);white-space:nowrap;pointer-events:none}
+.time-sep{align-self:center;font-size:.75rem;font-weight:500;color:var(--muted);margin:14px 0 4px;flex-shrink:0}
+.reply-hint{position:absolute;left:-30px;top:50%;transform:translateY(-50%);font-size:1.1rem;color:var(--muted);pointer-events:none}
+.bubble-row.mine .reply-hint{left:-30px}
+.react-btn{position:absolute;top:50%;transform:translateY(-50%);width:28px;height:28px;padding:0;justify-content:center;border-radius:50%;border:0;background:transparent;color:var(--muted);font-size:1rem;opacity:0;transition:opacity .15s}
+.bubble-row:not(.mine) .react-btn{left:calc(78% + 6px)}
+.bubble-row.mine .react-btn{right:calc(78% + 6px)}
+@media (hover:hover){.bubble-row:hover .react-btn,.react-btn:focus-visible{opacity:1}}
+@media (hover:none){.react-btn{display:none}.bubble{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}}
+.receipt{margin-top:0}
+.bubble-line{display:flex;align-items:center;gap:4px;max-width:100%}
+.bubble-row.mine .bubble-line{flex-direction:row-reverse}
+.bubble-line .bubble{max-width:78%}
+.react-btn{position:static;transform:none;flex:0 0 auto}
+.bubble-row:not(.mine) .react-btn,.bubble-row.mine .react-btn{left:auto;right:auto}
+.bubble-line{width:100%}
+.side-time{right:-58px;width:54px}
+/* Received messages stay put; only your own slide left. Their times fade in at the right edge. */
+.messages .bubble-row:not(.mine){transform:none}
+.bubble-row:not(.mine) .side-time{right:2px;opacity:var(--reveal-o,0);transition:opacity .2s}
+.messages.revealing .bubble-row:not(.mine) .side-time{transition:none}
+.messages .bubble-row:not(.mine).dragging{transform:none}
