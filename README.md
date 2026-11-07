@@ -71,7 +71,7 @@ Demo mode only runs on the dev server and never ships in a production build.
 - `npm test`: local unit and database regressions.
 - `npm run build`
 - `npm run lint`
-- `npm run e2e:local`: 48 end-to-end checks against the local stack, using separate accounts.
+- `npm run e2e:local`: 49 end-to-end checks against the local stack, using separate accounts.
 
 ## Deploying
 
@@ -101,7 +101,7 @@ Live. Still to test on the live site:
 - installing the app on a physical phone;
 - removing graduated students automatically.
 
-[TODO.md](TODO.md) is the task board. [Current verification status](docs/current-status.md) separates the deployed baseline from locally implemented fixes.
+[TODO.md](TODO.md) is the task board. [Current verification status](docs/current-status.md) records deployment evidence and remaining device checks.
 
 ## Team
 

@@ -31,7 +31,7 @@ Run each migration **once, in filename order** through the Supabase SQL editor o
 8. `supabase/migrations/0008_offer_retries.sql` — new `make_offer_once` and `respond_offer_once` RPCs for idempotent client retries; no new table or weaker policy, and legacy RPCs remain available.
 
 9. `supabase/migrations/0009_features.sql` — deals, saved alerts, lost & found, account deletion and Web Push.
-10. `supabase/migrations/0010_notification_delivery.sql` — grouped notification refresh, bounded conversation acknowledgement, exact push registration checks and throttled push dispatch. Implemented locally; hosted application is pending.
+10. `supabase/migrations/0010_notification_delivery.sql` — grouped notification refresh, bounded conversation acknowledgement, exact push registration checks and throttled push dispatch. Applied to the hosted project on 7 November 2026, with function existence and execute grants verified.
 
 **Historical 0008 rollout requirement:** apply 0008 to the selected backend before publishing the new offer client. A lost response can be retried using the same offer UUID; a repeated matching seller decision adds no new message. Request/conversation/buyer/amount mismatches are refused. Existing clients keep their legacy RPCs during migration. This review has not applied 0008 to the hosted project or deployed a new build. The 2026-11-03 read-only access attempt still redirected to Supabase sign-in; trusted project access is required for the hosted migration.
 
