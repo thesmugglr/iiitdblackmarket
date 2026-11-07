@@ -2,7 +2,7 @@
 -- A listing sent to someone you have never talked to opens a direct chat as a message request:
 -- they see it under Requests and choose Accept or Decline before either side can keep talking.
 
--- ───────── Direct chats and message requests ─────────
+-- --------- Direct chats and message requests ---------
 -- kind 'listing': the existing buyer/seller chat about one listing.
 -- kind 'direct': a person-to-person chat; buyer_id is the person who started it, seller_id the recipient.
 alter table public.conversations alter column listing_id drop not null;
@@ -117,14 +117,15 @@ begin
   return new;
 end $$;
 
--- ───────── Reactions ─────────
+-- --------- Reactions ---------
 -- One reaction per person per message. Removing a reaction sets emoji to null instead of deleting the row,
 -- so every change is an insert or update that realtime can filter by conversation (deletes cannot be filtered).
 create table public.message_reactions (
   message_id uuid not null references public.messages(id) on delete cascade,
   user_id uuid not null references public.profiles(id) on delete cascade,
   conversation_id uuid not null references public.conversations(id) on delete cascade,
-  emoji text check (emoji in ('❤️','😂','😮','😢','😡','👍','🔥')),
+  -- Written as Unicode escapes (ASCII-only file): red heart, tears of joy, open mouth, crying, angry, thumbs up, fire.
+  emoji text check (emoji in (U&'\2764\FE0F', U&'\+01F602', U&'\+01F62E', U&'\+01F622', U&'\+01F621', U&'\+01F44D', U&'\+01F525')),
   updated_at timestamptz not null default now(),
   primary key (message_id, user_id)
 );
