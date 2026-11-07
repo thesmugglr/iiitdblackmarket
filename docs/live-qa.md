@@ -1,5 +1,7 @@
 # Live backend verification record
 
+Latest 7 November verification is recorded in [current-status.md](current-status.md). PR #40 passed 49 actual Supabase scenarios and phone/desktop Chromium chat checks before rollout. Hosted migration 0010 and function deployment completed, and public files exactly match Pages build `06494ef`. The owner confirmed the closed-app Android alert appeared for a fresh chat message after rollout. The owner also confirmed that sending a message with the physical Android keyboard visible kept the chat stable.
+
 **Current status:** see [current-status.md](current-status.md) for the deployed baseline, local fix branch and remaining verification. Older dated results below are historical evidence, not current access/setup blockers.
 
 
