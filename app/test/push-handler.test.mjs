@@ -56,7 +56,7 @@ test('delivers to every subscription, prunes the ones that are gone and keeps go
   assert.equal(res.status, 502)
   assert.deepEqual(await res.json(), { attempted: 3, sent: 1, removed: 1, failed: 1, failures: { transport_or_encryption: 1 }, pruneFailed: false, status: 'delivery_failed' })
   assert.equal(sends.length, 3)
-  assert.deepEqual(sends[0].message, { title: 'IIITD Black Market', body: 'New message about Kettle', url: '/inbox/9', tag: 'message' })
+  assert.deepEqual(sends[0].message, { title: 'The Smugglr', body: 'New message about Kettle', url: '/inbox/9', tag: 'message' })
   assert.deepEqual(sends[0].vapid, { publicKey: 'BPUBLIC', privateKey: 'PRIVATE', subject: 'https://example.test/' })
   const prune = rpcs.find((r) => r.url.endsWith('/push_prune'))
   assert.deepEqual(prune.args, { p_secret: 'db-secret', p_endpoints: ['https://b.test/2'] })

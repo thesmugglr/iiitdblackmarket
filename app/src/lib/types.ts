@@ -32,10 +32,13 @@ export interface Listing {
 
 export interface Conversation {
   id: string
-  listing_id: string
+  listing_id: string | null
   buyer_id: string
   seller_id: string
   created_at: string
+  /** 'direct' chats start when someone sends a listing to a friend; buyer_id started it, seller_id received it. */
+  kind?: 'listing' | 'direct'
+  request_status?: 'pending' | 'accepted' | 'declined'
   listing?: { title: string; photos: string[]; status: Status } | null
   buyer?: { display_name: string } | null
   seller?: { display_name: string } | null
@@ -47,9 +50,15 @@ export interface Message {
   sender_id: string
   body: string
   image_path: string | null
+  shared_listing_id?: string | null
+  reply_to_id?: string | null
   created_at: string
   read_at: string | null
 }
+
+export const REACTIONS = ['❤️', '😂', '😮', '😢', '😡', '👍', '🔥'] as const
+export type ReactionEmoji = typeof REACTIONS[number]
+export interface Reaction { message_id: string; user_id: string; conversation_id: string; emoji: ReactionEmoji | null }
 
 export interface Offer {
   id: string

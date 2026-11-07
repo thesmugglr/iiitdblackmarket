@@ -23,10 +23,14 @@ const conv = { id: 'c1', listing_id: 'l1', buyer_id: me.id, seller_id: people[1]
 const messages = [
   { id: 'm1', conversation_id: 'c1', sender_id: me.id, body: 'Hi! Is the cycle still available?', image_path: null, created_at: new Date(now - 7200000).toISOString(), read_at: new Date(now - 7000000).toISOString() },
   { id: 'm2', conversation_id: 'c1', sender_id: people[1].id, body: 'Yes it is. I can meet at the library after 5.', image_path: null, created_at: new Date(now - 6800000).toISOString(), read_at: null },
+  { id: 'm3', conversation_id: 'c1', sender_id: me.id, body: 'Perfect, see you there.', image_path: null, reply_to_id: 'm2', created_at: new Date(now - 6600000).toISOString(), read_at: null },
+  { id: 'm4', conversation_id: 'c2', sender_id: people[2].id, body: 'Saw this and thought of you!', image_path: null, shared_listing_id: 'l6', created_at: new Date(now - 1800000).toISOString(), read_at: null },
 ]
+const request = { id: 'c2', kind: 'direct', request_status: 'pending', listing_id: null, buyer_id: people[2].id, seller_id: me.id, created_at: new Date(now - 1800000).toISOString(), listing: null, buyer: people[2], seller: me }
 const tables: Record<string, unknown[]> = {
   profiles: [me, ...people.slice(1).map((p, i) => ({ ...p, email: `student${i + 2}@iiitd.ac.in`, role: 'student', status: 'approved', created_at: new Date(now - (i + 1) * 86400000).toISOString() }))],
-  listings, conversations: [conv], messages, saved_items: [{ listing: listings[1] }],
+  listings, conversations: [conv, request], messages,
+  message_reactions: [{ message_id: 'm2', user_id: me.id, conversation_id: 'c1', emoji: '👍' }, { message_id: 'm3', user_id: people[1].id, conversation_id: 'c1', emoji: '❤️' }], saved_items: [{ listing: listings[1] }],
   offers: [{ id: 'o1', amount_inr: 3800, listing: { title: listings[0].title }, status: 'accepted' }],
   notifications: [
     { id: 'n1', kind: 'message', title: 'New message about Hero Sprint 21-speed cycle', link: '/inbox/c1', read_at: null, created_at: new Date(now - 600000).toISOString() },
@@ -69,6 +73,8 @@ function builder(table: string) {
     b.order = (key: string, options: { ascending?: boolean } = {}) => { orders.push({ key, ascending: options.ascending !== false }); return b }
     b.limit = (value: number) => { limit = value; return b }
     b.or = (expression: string) => {
+      const term = /^display_name\.ilike\.%(.*?)%,/.exec(expression)
+      if (term) { rows = rows.filter(row => String(row.display_name).toLowerCase().includes(term[1].toLowerCase())); return b }
       const match = /^created_at\.(lt|gt)\."([^"]+)",and\(created_at\.eq\."\2",id\.\1\.([0-9a-f-]+)\)$/.exec(expression)
       if (!match) throw new Error('This administrator preview query is unsupported.')
       const [, op, time, id] = match
@@ -98,7 +104,8 @@ export const demoClient = {
     if (name === 'admin_profiles') return builder('profiles')
     if (name === 'smooth_deals') return Promise.resolve({ data: 3, error: null })
     if (name === 'push_public_key') return Promise.resolve({ data: null, error: null })
-    if (['mark_sold_to', 'rate_deal', 'reply_lost_found', 'delete_my_account', 'save_push_subscription', 'remove_push_subscription'].includes(name)) {
+    if (name === 'share_listing') return Promise.resolve({ data: 'c1', error: null })
+    if (['respond_request', 'mark_sold_to', 'rate_deal', 'reply_lost_found', 'delete_my_account', 'save_push_subscription', 'remove_push_subscription'].includes(name)) {
       return Promise.resolve({ data: null, error: null })
     }
     return Promise.resolve({ data: [{ conversation_id: 'c1', unread: 1 }], error: null })

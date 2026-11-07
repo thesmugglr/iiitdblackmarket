@@ -232,3 +232,27 @@ button.big{padding:16px 28px;font-size:1rem}
 .foot>*{min-width:0}
 .app-shell{overflow-x:clip}
 .bento>div>.card{min-width:0}.card .title{overflow-wrap:anywhere}
+/* Reactions, replies, shared listings, message requests, share sheet */
+.bubble-row{display:flex;flex-direction:column;align-items:flex-start;max-width:78%;align-self:flex-start;flex-shrink:0;transition:transform .15s;touch-action:pan-y}
+.bubble-row.mine{align-self:flex-end;align-items:flex-end}
+.bubble-row .bubble{max-width:100%;align-self:auto}
+.bubble .link{margin-left:8px}
+.quote{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;background:rgba(127,127,127,.14);border:0;border-left:3px solid currentColor;border-radius:8px;padding:6px 10px;margin:4px 0 6px;color:inherit;font:inherit;cursor:pointer;min-width:0}
+.quote span{opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.reactions{display:flex;gap:4px;margin-top:-6px;padding:0 8px;flex-wrap:wrap}
+.reactions button,.react-picker button{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:2px 8px;font-size:.9rem;min-height:0;line-height:1.4}
+.reactions button.on,.react-picker button.on{border-color:var(--ink);background:var(--sand)}
+.react-picker{display:flex;gap:4px;margin-top:4px;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:4px;box-shadow:var(--shadow-lg,0 4px 16px rgba(0,0,0,.15));flex-wrap:wrap}
+.react-picker button{border:0;font-size:1.25rem;padding:2px 6px;background:transparent}
+.shared-listing{display:flex;gap:10px;align-items:center;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:6px;margin:4px 0 6px;text-decoration:none;min-width:0}
+.shared-listing img,.shared-thumb{width:56px;height:56px;object-fit:cover;border-radius:8px;flex-shrink:0;margin:0!important;background:var(--sand)}
+.shared-listing>span{display:flex;flex-direction:column;min-width:0}.shared-listing strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reply-preview{display:flex;align-items:center;gap:8px;border-left:3px solid var(--ink);background:var(--sand);border-radius:8px;padding:6px 10px;flex-shrink:0}
+.reply-preview>div{flex:1;min-width:0;display:flex;flex-direction:column}.reply-preview span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.request-bar{flex-wrap:wrap}.request-bar>span{flex:1 1 100%}
+.requests{margin-bottom:24px}.requests h2{font-size:1.1rem;display:flex;gap:8px;align-items:center}
+.share-apps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:8px}.share-apps>*{text-align:center;justify-content:center}
+.drawer h3{margin:24px 0 8px}.drawer input[type=search],.share-to textarea{width:100%;box-sizing:border-box}
+.people{list-style:none;padding:0;margin:8px 0;display:flex;flex-direction:column;gap:4px}.people button{width:100%;text-align:left}
+.share-to{display:flex;flex-direction:column;gap:8px}
+.share-to button.primary{justify-content:center}

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { writeChatMessage } from './chatMessages.ts'
 
-export interface TextRequest { id: string; body: string }
+export interface TextRequest { id: string; body: string; replyTo?: string }
 export interface TextComposer { text: string; sending: boolean; error: string }
 export const emptyTextComposer = (): TextComposer => ({ text: '', sending: false, error: '' })
 
@@ -12,13 +12,17 @@ export async function sendChatText(
   request: TextRequest,
 ) {
   if (!request.body.trim() || request.body.length > 2000) throw new Error('Invalid message text')
-  const row = { id: request.id, conversation_id: conversation, sender_id: sender, body: request.body }
+  const row = { id: request.id, conversation_id: conversation, sender_id: sender, body: request.body, ...(request.replyTo ? { reply_to_id: request.replyTo } : {}) }
   return writeChatMessage(api, row)
 }
 
 interface TextSource {
   newId: () => string
   write: (request: TextRequest) => Promise<void>
+  /** The message being replied to when Send is pressed; kept with the draft so a retry replies to the same one. */
+  replyTo?: () => string | undefined
+  /** Called after a confirmed send, e.g. to close the reply preview. */
+  sent?: () => void
   publish: (snapshot: TextComposer) => void
 }
 
@@ -46,10 +50,12 @@ export function observeTextComposer(source: TextSource) {
     const submittedRevision = revision
     publish({ sending: true, error: '' })
     try {
-      if (!pending || pending.body !== body) pending = { id: source.newId(), body }
+      const replyTo = source.replyTo?.()
+      if (!pending || pending.body !== body || pending.replyTo !== replyTo) pending = { id: source.newId(), body, ...(replyTo ? { replyTo } : {}) }
       await source.write(pending)
       if (!active) return
       pending = null
+      source.sent?.()
       if (submittedRevision === revision) publish({ text: '' })
     } catch {
       publish({ error: 'Could not confirm sending. Your draft is retained. Press Send to retry.' })

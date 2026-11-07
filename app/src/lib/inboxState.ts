@@ -10,7 +10,7 @@ export async function loadInbox(api: Pick<SupabaseClient, 'from' | 'rpc'>, membe
   const [conversations, counts] = await Promise.all([
     // Admins have broader moderation reads. Inbox is still a personal view.
     api.from('conversations')
-      .select('id,listing_id,buyer_id,seller_id,created_at, listing:listings(title,photos,status), buyer:profiles!conversations_buyer_id_fkey(display_name), seller:profiles!conversations_seller_id_fkey(display_name)')
+      .select('id,listing_id,buyer_id,seller_id,created_at,kind,request_status, listing:listings(title,photos,status), buyer:profiles!conversations_buyer_id_fkey(display_name), seller:profiles!conversations_seller_id_fkey(display_name)')
       .or(`buyer_id.eq.${member},seller_id.eq.${member}`).order('created_at', { ascending: false }),
     api.rpc('unread_counts'),
   ])

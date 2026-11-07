@@ -54,7 +54,7 @@ export function createHandler({ env, fetch: request, send = (s, m, v) => sendWeb
     catch { return json({ error: 'Invalid payload response' }, 502) }
     if (!payload) return json({ attempted: 0, sent: 0, removed: 0, failed: 0, status: 'no_notification' }) // the notification was deleted in the meantime
 
-    const message = JSON.stringify({ title: 'IIITD Black Market', body: payload.title, url: payload.link ?? '', tag: payload.kind })
+    const message = JSON.stringify({ title: 'The Smugglr', body: payload.title, url: payload.link ?? '', tag: payload.kind })
     const gone: string[] = []
     let sent = 0, failed = 0
     const failures: Record<string, number> = {}

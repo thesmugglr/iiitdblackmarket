@@ -88,7 +88,7 @@ test('image message uses insert-only stable ID and confirms its exact linkage', 
   await sendChatImage(client, 'c1', 'u1', request)
   assert.deepEqual(client.calls, [
     { table: 'messages', query: [['upsert', row, { onConflict: 'id', ignoreDuplicates: true }]] },
-    { table: 'messages', query: [['select', 'id,conversation_id,sender_id,body,image_path'], ['eq', 'id', request.id]] },
+    { table: 'messages', query: [['select', 'id,conversation_id,sender_id,body,image_path,reply_to_id'], ['eq', 'id', request.id]] },
   ])
 })
 for (const [name, response] of [['denied', failure], ['lost response', new Error('offline')]]) {

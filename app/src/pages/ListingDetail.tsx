@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import AdminRemove from '../components/AdminRemove'
+import ShareSheet from '../components/ShareSheet'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
@@ -28,6 +29,7 @@ function ListingDetailPage({ id }: { id: string }) {
   const saved = savedIds.has(id ?? '')
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
+  const [sharing, setSharing] = useState(false)
   const [deletedPhotos, setDeletedPhotos] = useState<string[] | null>(null)
   const actionLock = useRef(false)
   const active = useRef(false)
@@ -83,13 +85,6 @@ function ListingDetailPage({ id }: { id: string }) {
   if (!l) return <p>This listing is not available.</p>
   const mine = l.seller_id === profile.id
 
-  const share = async () => {
-    const url = window.location.href
-    try {
-      if (navigator.share) await navigator.share({ title: l!.title, url })
-      else { await navigator.clipboard.writeText(url); setMsg('Link copied. Anyone approved on the site can open it.') }
-    } catch { /* sharing cancelled */ }
-  }
   const toggleSave = async () => {
     await toggleSaved(l.id)
   }
@@ -148,7 +143,7 @@ function ListingDetailPage({ id }: { id: string }) {
         <div className="row">
           {!mine && l.status !== 'sold' && l.status !== 'removed' && <button className="primary" onClick={chat}>Chat with seller</button>}
           <button onClick={toggleSave} disabled={savedLoading || saving.has(l.id)}><Heart filled={saved} /> {saved ? 'Saved' : 'Save'}</button>
-          <button onClick={share}>Share</button>
+          <button onClick={() => setSharing(true)}>Share</button>
           {!mine && <button className="link" onClick={report}>Report</button>}
           {l.status !== 'removed' && <AdminRemove kind="listing" id={l.id} ownerId={l.seller_id} onRemoved={() => nav('/')} />}
         </div>
@@ -167,6 +162,7 @@ function ListingDetailPage({ id }: { id: string }) {
         {msg && <p className="muted">{msg}</p>}
         {saveError && <p className="error" role="alert">{saveError} <button onClick={retrySaved} disabled={savedLoading || saving.size > 0}>Reload saved items</button></p>}
       </div>
+      <ShareSheet open={sharing} onClose={() => setSharing(false)} listing={{ id: l.id, title: l.title }} me={profile.id} />
     </div>
   )
 }

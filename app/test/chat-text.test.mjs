@@ -44,7 +44,7 @@ test('text write uses a stable insert-only ID and confirms its exact message row
   assert.deepEqual(client.calls[0], { table: 'messages', query: [['upsert', {
     id: 'm1', conversation_id: 'c1', sender_id: 'u1', body: 'Hello',
   }, { onConflict: 'id', ignoreDuplicates: true }]] })
-  assert.deepEqual(client.calls[1].query, [['select', 'id,conversation_id,sender_id,body,image_path'], ['eq', 'id', 'm1']])
+  assert.deepEqual(client.calls[1].query, [['select', 'id,conversation_id,sender_id,body,image_path,reply_to_id'], ['eq', 'id', 'm1']])
 })
 
 for (const [name, response] of [['rejected', failure], ['uncertain network', new Error('response lost')]]) {
