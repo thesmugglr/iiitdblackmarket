@@ -23,12 +23,12 @@ Confirmed local defects addressed:
 - Reading visible chat messages clears only their read receipts and clears the grouped bell entry only when no unseen incoming messages remain. Background loading does not mark them read.
 - Browser subscription alone no longer means notifications are on. Exact backend registration for the current account and VAPID key is confirmed; errors offer repair.
 - Push delivery reports attempted, accepted, expired and failed counts/categories. Failed deliveries do not masquerade as an HTTP 200 zero-send handshake. Transient failures are retained, not pruned; there is no durable delivery/retry queue in this patch.
-- Conversation routes get a bounded viewport and message-list-only scrolling, with a visible composer and retained reading position. Automated Chromium send/scroll/viewport checks passed. A physical keyboard-open check remains pending.
+- Conversation routes get a bounded viewport and message-list-only scrolling, with a visible composer and retained reading position. Automated Chromium send/scroll/viewport checks passed. The owner also confirmed on Android that sending with the keyboard open kept the transcript height stable and the composer visible.
 
 ## Remaining acceptance
 
 - Additional device coverage includes iOS Home Screen delivery and Android account-switch behavior.
-- Phone keyboard, orientation, short-height chat, long messages, image loading, incoming messages while reading history, and offer controls.
+- Other physical-device cases include orientation changes, late image loads and expanded offer controls.
 - Separate-account hosted access isolation and the newly deployed features, where no dated live result exists.
 - Enrollment ownership and graduated/withdrawn account handling; code refresh adds entries, it does not revoke old access.
 - Storage/egress monitoring and an explicit retention policy. The read-only storage audit currently omits lost & found references; its candidates must never be used as deletion instructions.

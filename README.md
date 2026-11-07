@@ -97,7 +97,7 @@ The full runbooks are [docs/launch.md](docs/launch.md) and [docs/backend-setup.m
 
 Live. On 7 November, the owner confirmed that a fresh chat message displayed a notification on the installed Android app. Remaining checks and operational work include
 
-- iPhone installation and chat layout with a physical phone keyboard open;
+- iPhone installation;
 - removing graduated students automatically.
 
 [TODO.md](TODO.md) is the task board. [Current verification status](docs/current-status.md) records deployment evidence and remaining device checks.
