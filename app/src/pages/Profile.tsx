@@ -81,8 +81,8 @@ function ProfilePage({ profile, refresh }: { profile: MemberProfile; refresh: ()
   }
   return (
     <>
-      <h1>Profile</h1>
-      <p className="muted small">{profile.email} · {profile.status === 'approved' ? 'Verified student' : profile.status}. Your email is not shown to other users.</p>
+      <h1 className="page-title">Profile</h1>
+      <p className="muted small">{profile.email} · {profile.status === 'approved' ? 'Verified' : profile.status} · hidden from others</p>
       <form onSubmit={save} className="form">
         <div className="two">
           <label>Display name<input required disabled={saving} value={name} onChange={(e) => setName(e.target.value)} /></label>

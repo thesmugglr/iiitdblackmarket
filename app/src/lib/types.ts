@@ -42,6 +42,8 @@ export interface Conversation {
   listing?: { title: string; photos: string[]; status: Status } | null
   buyer?: { display_name: string } | null
   seller?: { display_name: string } | null
+  /** Newest message only (Inbox preview). */
+  last?: { body: string; image_path: string | null; sender_id: string; created_at: string }[] | null
 }
 
 export interface Message {

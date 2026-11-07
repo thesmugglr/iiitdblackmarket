@@ -19,14 +19,14 @@ const listings = [
   mk(7, { title: 'Denim jacket, size M', listing_type: 'sale', category: 'clothing', price_inr: 600 }),
   mk(8, { title: 'Bedside lamp with USB port', listing_type: 'sale', category: 'hostel', price_inr: 250, condition: 'like_new' }),
 ].map((l) => ({ ...l, seller: people[1] }))
-const conv = { id: 'c1', listing_id: 'l1', buyer_id: me.id, seller_id: people[1].id, created_at: new Date(now).toISOString(), listing: { title: listings[0].title, photos: ['p1'], status: 'active' }, buyer: me, seller: people[1] }
+const conv = { id: 'c1', listing_id: 'l1', buyer_id: me.id, seller_id: people[1].id, created_at: new Date(now).toISOString(), listing: { title: listings[0].title, photos: ['p1'], status: 'active' }, buyer: me, seller: people[1], last: [{ body: 'Perfect, see you there.', image_path: null, sender_id: me.id, created_at: new Date(now - 6600000).toISOString() }] }
 const messages = [
   { id: 'm1', conversation_id: 'c1', sender_id: me.id, body: 'Hi! Is the cycle still available?', image_path: null, created_at: new Date(now - 7200000).toISOString(), read_at: new Date(now - 7000000).toISOString() },
   { id: 'm2', conversation_id: 'c1', sender_id: people[1].id, body: 'Yes it is. I can meet at the library after 5.', image_path: null, created_at: new Date(now - 6800000).toISOString(), read_at: null },
   { id: 'm3', conversation_id: 'c1', sender_id: me.id, body: 'Perfect, see you there.', image_path: null, reply_to_id: 'm2', created_at: new Date(now - 6600000).toISOString(), read_at: null },
   { id: 'm4', conversation_id: 'c2', sender_id: people[2].id, body: 'Saw this and thought of you!', image_path: null, shared_listing_id: 'l6', created_at: new Date(now - 1800000).toISOString(), read_at: null },
 ]
-const request = { id: 'c2', kind: 'direct', request_status: 'pending', listing_id: null, buyer_id: people[2].id, seller_id: me.id, created_at: new Date(now - 1800000).toISOString(), listing: null, buyer: people[2], seller: me }
+const request = { id: 'c2', kind: 'direct', request_status: 'pending', listing_id: null, buyer_id: people[2].id, seller_id: me.id, created_at: new Date(now - 1800000).toISOString(), listing: null, buyer: people[2], seller: me, last: [{ body: 'Saw this and thought of you!', image_path: null, sender_id: people[2].id, created_at: new Date(now - 1800000).toISOString() }] }
 const tables: Record<string, unknown[]> = {
   profiles: [me, ...people.slice(1).map((p, i) => ({ ...p, email: `student${i + 2}@iiitd.ac.in`, role: 'student', status: 'approved', created_at: new Date(now - (i + 1) * 86400000).toISOString() }))],
   listings, conversations: [conv, request], messages,

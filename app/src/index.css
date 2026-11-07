@@ -256,3 +256,90 @@ button.big{padding:16px 28px;font-size:1rem}
 .people{list-style:none;padding:0;margin:8px 0;display:flex;flex-direction:column;gap:4px}.people button{width:100%;text-align:left}
 .share-to{display:flex;flex-direction:column;gap:8px}
 .share-to button.primary{justify-content:center}
+
+/* ───────── Apple-style refresh: system type, calmer spacing, fewer words on screen ───────── */
+:root{
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',system-ui,'Segoe UI',Roboto,sans-serif;
+  --serif:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',system-ui,'Segoe UI',Roboto,sans-serif;
+  --brand:'Fraunces',Georgia,serif;
+}
+body{font:17px/1.47 var(--sans);letter-spacing:-.011em;font-feature-settings:'cv11','ss01'}
+h1,h2,h3{font-weight:700;letter-spacing:-.022em;line-height:1.15}
+h1{font-size:clamp(1.9rem,4vw,2.4rem)}h2{font-size:1.35rem;margin:1.75rem 0 .75rem}h3{font-size:1.1rem;font-weight:600}
+.display{font-weight:700;letter-spacing:-.035em}.display em{font-weight:700}
+.wordmark{font-family:var(--brand)}
+.price.big{font-size:1.9rem;font-weight:700;letter-spacing:-.02em}
+.small{font-size:.8125rem}.eyebrow{letter-spacing:.06em;font-size:.75rem;font-weight:600}
+.lede{font-size:1.0625rem;line-height:1.5}
+
+/* Buttons and fields: flat, firm, no lift on hover */
+button,.btn{font-weight:600;font-size:.9375rem;letter-spacing:-.01em;padding:.55rem 1.1rem;transition:opacity .15s,transform .1s,background .15s}
+button:hover,.btn:hover{box-shadow:none;transform:none;opacity:.88}
+button:active,.btn:active{transform:scale(.97);opacity:.7}
+button.link{text-decoration:none;color:var(--muted);font-weight:500}
+input,select,textarea{border-radius:12px;padding:.7rem .9rem;font-size:1rem}
+
+/* Large title like iOS */
+.page-title{font-size:2.125rem;font-weight:700;letter-spacing:-.025em;margin:20px 0 8px}
+.section-label{font:600 .8125rem/1.2 var(--sans);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:24px 0 2px}
+.empty-note{margin:48px 0;text-align:center}
+.list li{padding:14px 0}.list strong{font-weight:600}
+
+/* Inbox rows, Messages-style: picture, name and time, then one muted preview line; inset separators */
+.threads{list-style:none;margin:0;padding:0}
+.thread{display:flex;gap:12px;align-items:center;padding:8px 0 0;position:relative}
+.avatar{flex:0 0 52px;width:52px;height:52px;border-radius:50%;background:var(--sand);display:grid;place-items:center;overflow:hidden;font-weight:600;font-size:1.05rem;color:var(--muted);letter-spacing:0;margin-bottom:8px}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.thread-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;padding:2px 0 12px;border-bottom:1px solid var(--line)}
+.threads li:last-child .thread-body{border-bottom:0}
+.thread-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.thread-top strong{font-weight:600;font-size:1.0625rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.thread-top time{font-size:.875rem;flex-shrink:0}
+.thread-sub{font-size:.9375rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.thread-preview{font-size:.9375rem;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
+.thread.unread .thread-top strong,.thread.unread .thread-preview{font-weight:700;color:var(--ink)}
+.thread .dot{position:absolute;left:-14px;top:50%;margin:0;width:9px;height:9px}
+@media(max-width:700px){.thread .dot{left:auto;right:0;top:auto;bottom:16px}.thread.unread .thread-preview{padding-right:16px}}
+
+/* Chat: iMessage-like bubbles; actions live behind a tap */
+.messages{gap:6px}
+.bubble{border-radius:20px;padding:8px 14px;border:0;background:var(--sand);line-height:1.38;cursor:default;-webkit-tap-highlight-color:transparent;transition:transform .12s}
+.bubble.mine{border-radius:20px;background:var(--ink);color:var(--paper)}
+.bubble.picked{transform:scale(1.02)}
+.bubble .msg-time{font-size:.6875rem;opacity:.55;margin-top:2px;text-align:right;letter-spacing:0}
+.bubble img{border-radius:14px}
+.msg-menu{display:flex;flex-direction:column;gap:6px;margin-top:6px;align-items:inherit}
+.react-picker{box-shadow:var(--shadow-lg)}
+.msg-actions{display:flex;gap:6px}
+.msg-actions button{padding:6px 14px;font-size:.875rem;background:var(--card);box-shadow:var(--shadow)}
+.quote{border-left-width:3px;border-radius:10px}
+.reactions{margin-top:-8px}
+.reactions button{font-size:.85rem;padding:1px 7px;box-shadow:var(--shadow)}
+.chat-head{gap:12px}.chat-head strong{font-size:1.0625rem;font-weight:600}
+.composer{gap:8px}
+.composer input{border-radius:999px;padding:.6rem 1rem}
+.composer .attach{width:40px;height:40px;border:0;background:var(--sand)}
+.composer button.send{width:40px;height:40px;padding:0;border-radius:50%;justify-content:center;flex:0 0 auto}
+.composer button.send svg{width:20px;height:20px}
+.quick-replies button{font-weight:500;font-size:.875rem}
+.offer-bar{border-radius:14px}
+
+/* Footer: one quiet line on phones (the tab bar already has the main links) */
+.foot p{font-size:.875rem}
+@media(max-width:700px){
+  .foot{padding:28px 16px 112px;gap:8px;flex-direction:column;align-items:center;text-align:center;font-size:.8125rem}
+  .foot .wordmark{font-size:1rem}.foot p{margin:2px 0 0;max-width:none}
+  .foot nav{justify-content:center;gap:4px 18px;font-weight:500;color:var(--muted)}
+  .foot .wide-only{display:none}
+  .page-title{font-size:2rem;margin-top:12px}
+}
+.requests{margin-bottom:8px}.requests h2.section-label{font-size:.8125rem;display:block}
+.reactions+.msg-menu{margin-top:4px}
+/* Phones: search first, no decorative collage pushing content below the fold */
+@media(max-width:700px){
+  .collage{display:none}
+  .hero{padding:16px 0 0;gap:0}
+  .hero h1.display{font-size:2.75rem;margin:8px 0 12px}
+  .hero .lede{margin-bottom:20px}
+  .block{padding-top:40px}
+}

@@ -11,7 +11,7 @@ function api(conversations = success([conversation]), counts = success([{ conver
   const calls = []
   return { calls, from(table) {
     const call = { table, query: [] }, b = {}; calls.push(call)
-    for (const method of ['select', 'or', 'order']) b[method] = (...args) => { call.query.push([method, ...args]); return b }
+    for (const method of ['select', 'or', 'order', 'limit']) b[method] = (...args) => { call.query.push([method, ...args]); return b }
     b.then = (yes, no) => (conversations instanceof Error ? Promise.reject(conversations) : Promise.resolve(conversations)).then(yes, no)
     return b
   }, rpc(name) { calls.push({ rpc: name }); return counts instanceof Error ? Promise.reject(counts) : Promise.resolve(counts) } }
@@ -32,7 +32,7 @@ test('personal Inbox applies participant filtering for every account, preserving
   const client = api()
   assert.deepEqual(await loadInbox(client, 'u1'), data)
   assert.equal(client.calls[0].table, 'conversations')
-  assert.deepEqual(client.calls[0].query.slice(1), [['or', 'buyer_id.eq.u1,seller_id.eq.u1'], ['order', 'created_at', { ascending: false }]])
+  assert.deepEqual(client.calls[0].query.slice(1), [['or', 'buyer_id.eq.u1,seller_id.eq.u1'], ['order', 'created_at', { ascending: false }], ['order', 'created_at', { referencedTable: 'last', ascending: false }], ['limit', 1, { referencedTable: 'last' }]])
   assert.match(client.calls[0].query[0][1], /listing:listings\(title,photos,status\)/)
   assert.match(client.calls[0].query[0][1], /buyer:profiles!conversations_buyer_id_fkey\(display_name\)/)
   assert.deepEqual(client.calls[1], { rpc: 'unread_counts' })

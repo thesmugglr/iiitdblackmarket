@@ -32,7 +32,7 @@ export default function Bundles() {
   return (
     <>
       <Sections />
-      <div className="row between"><h1>Moving-out bundles</h1><Link to="/bundles/new" className="btn primary">Make a bundle</Link></div>
+      <div className="row between"><h1 className="page-title">Moving-out bundles</h1><Link to="/bundles/new" className="btn primary">Make a bundle</Link></div>
       <p className="muted">Whole hostel setups at one price, from people leaving campus.</p>
       {!items && <p className="muted">Loading…</p>}
       {items?.length === 0 && <div className="empty"><strong>No bundles yet</strong><span>Group two or more of your listings into a single deal.</span></div>}

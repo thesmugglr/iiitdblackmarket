@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 're
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import { Arrow, Camera, Clip } from '../components/Icons'
+import { Arrow, ArrowUp, Camera, Clip } from '../components/Icons'
 import { canTakePhoto } from '../lib/device'
 import { inr } from '../lib/constants'
 import { preparePhoto } from '../lib/image'
@@ -48,7 +48,10 @@ function Bubble({ m, mine, me, quoted, quotedName, listing, reactions, onReport,
       onTouchMove={(e) => { const t = touch.current; if (!t) return; const x = e.touches[0].clientX - t.x; if (Math.abs(e.touches[0].clientY - t.y) > 30) { touch.current = null; setDx(0); return } setDx(Math.max(0, Math.min(x, 80))) }}
       onTouchEnd={() => { if (dx > 56) onReply(); touch.current = null; setDx(0) }}
       style={dx ? { transform: `translateX(${dx}px)` } : undefined}>
-      <div className={`bubble ${mine ? 'mine' : ''}`} onDoubleClick={() => { if (canAct) onReact('❤️') }}>
+      <div className={`bubble ${mine ? 'mine' : ''}${picking ? ' picked' : ''}`} role="button" tabIndex={0} aria-label="Message options" aria-expanded={picking}
+        onClick={(e) => { if (!(e.target as HTMLElement).closest('a,button')) setPicking((v) => !v) }}
+        onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) setPicking((v) => !v) }}
+        onDoubleClick={() => { if (canAct) { setPicking(false); onReact('❤️') } }}>
         {m.reply_to_id && (
           <button type="button" className="quote" onClick={jump}>
             <strong className="small">{quoted ? (quoted.sender_id === me ? 'You' : quotedName) : ''}</strong>
@@ -58,24 +61,29 @@ function Bubble({ m, mine, me, quoted, quotedName, listing, reactions, onReport,
         {m.shared_listing_id !== undefined && m.shared_listing_id !== null && <ListingCardMini l={listing} />}
         {img && <img src={img} alt="attachment" />}
         {m.body && <div>{m.body}</div>}
-        <div className="small muted">
-          {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          {mine && m.read_at ? ' · read' : ''}
-          {canAct && <button className="link" onClick={onReply}>reply</button>}
-          {canAct && <button className="link" aria-label="React" aria-expanded={picking} onClick={() => setPicking((v) => !v)}>react</button>}
-          {!mine && <button className="link" onClick={onReport}>report</button>}
+        <div className="msg-time">
+          {new Date(m.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+          {mine && m.read_at ? ' · Read' : ''}
         </div>
       </div>
-      {picking && (
-        <div className="react-picker" role="group" aria-label="Pick a reaction">
-          {REACTIONS.map((e) => <button key={e} className={reactions?.mine === e ? 'on' : ''} onClick={() => { setPicking(false); onReact(e) }}>{e}</button>)}
-        </div>
-      )}
       {!!reactions?.counts.length && (
         <div className="reactions">
           {reactions.counts.map(([e, n]) => (
             <button key={e} className={reactions.mine === e ? 'on' : ''} disabled={!canAct} onClick={() => onReact(e)} aria-label={`${e} ${n}${reactions.mine === e ? ', yours: tap to remove' : ''}`}>{e}{n > 1 ? ` ${n}` : ''}</button>
           ))}
+        </div>
+      )}
+      {picking && (
+        <div className="msg-menu">
+          {canAct && (
+            <div className="react-picker" role="group" aria-label="Pick a reaction">
+              {REACTIONS.map((e) => <button key={e} className={reactions?.mine === e ? 'on' : ''} onClick={() => { setPicking(false); onReact(e) }}>{e}</button>)}
+            </div>
+          )}
+          <div className="msg-actions">
+            {canAct && <button onClick={() => { setPicking(false); onReply() }}>Reply</button>}
+            {!mine && <button onClick={() => { setPicking(false); onReport() }}>Report</button>}
+          </div>
         </div>
       )}
     </div>
@@ -426,8 +434,8 @@ function ConversationChat({ id }: { id: string }) {
       {canSend && <form className="composer" onSubmit={send} aria-busy={sending || photoState.busy}>
         <label className="attach" title="Attach photo"><Clip /><input type="file" accept="image/*" hidden disabled={photoState.busy || photoState.locked} onChange={(e) => { attach(e.target.files?.[0]); e.target.value = '' }} /></label>
         {canTakePhoto() && <label className="attach" title="Take photo"><Camera /><input type="file" accept="image/*" capture="environment" hidden disabled={photoState.busy || photoState.locked} onChange={(e) => { attach(e.target.files?.[0]); e.target.value = '' }} /></label>}
-        <input ref={input} value={text} onChange={(e) => composer.current?.edit(e.target.value)} maxLength={2000} placeholder="Type a message" />
-        <button className="primary" disabled={sending || !text.trim()}>{sending ? 'Sending…' : 'Send'}</button>
+        <input ref={input} value={text} onChange={(e) => composer.current?.edit(e.target.value)} maxLength={2000} placeholder="Message" />
+        <button className="primary send" aria-label={sending ? 'Sending' : 'Send'} disabled={sending || !text.trim()}><ArrowUp /></button>
       </form>}
     </div>
   )

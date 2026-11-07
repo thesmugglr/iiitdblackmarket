@@ -150,7 +150,7 @@ function ListingEditor({ id }: { id?: string }) {
 
   return (
     <form onSubmit={submit} className="form">
-      <h1>{id ? 'Edit listing' : 'List an item'}</h1>
+      <h1 className="page-title">{id ? 'Edit listing' : 'List an item'}</h1>
       <p className="muted">Add clear photos, say what it is and what shape it's in. Buyers will message you here.</p>
 
       <div className={`dropzone ${over ? 'over' : ''}`} onDragOver={(e) => { e.preventDefault(); setOver(true) }} onDragLeave={() => setOver(false)} onDrop={onDrop}>

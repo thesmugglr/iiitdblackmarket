@@ -183,7 +183,7 @@ export default function LostFound() {
   return (
     <>
       <Sections />
-      <div className="row between"><h1>Lost &amp; found</h1><button className="primary" onClick={() => setOpen(!open)}>{open ? 'Close' : 'Post'}</button></div>
+      <div className="row between"><h1 className="page-title">Lost &amp; found</h1><button className="primary" onClick={() => setOpen(!open)}>{open ? 'Close' : 'Post'}</button></div>
       <p className="muted">Lost something on campus, or found something that isn't yours? Post it here. Replies are private between you and the person who writes.</p>
       {open && (
         <form onSubmit={create} className="form panel">

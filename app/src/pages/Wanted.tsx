@@ -48,7 +48,7 @@ export default function Wanted() {
   return (
     <>
       <Sections />
-      <div className="row between"><h1>Looking for</h1><button className="primary" onClick={() => setOpen(!open)}>{open ? 'Close' : 'Post a request'}</button></div>
+      <div className="row between"><h1 className="page-title">Looking for</h1><button className="primary" onClick={() => setOpen(!open)}>{open ? 'Close' : 'Post a request'}</button></div>
       <p className="muted">Can't find it? Ask. Students who have it can point you to their listing.</p>
       {open && (
         <form onSubmit={create} className="form panel">

@@ -32,7 +32,7 @@ export default function Notifications() {
   if (!items) return error ? <p role="alert">{error} <button onClick={() => void load()}>Retry</button></p> : <p className="muted">Loading…</p>
   return (
     <>
-      <div className="row between"><h1>Notifications</h1>{items.some((n) => !n.read_at) && <button onClick={markAll}>Mark all read</button>}</div>
+      <div className="row between"><h1 className="page-title">Notifications</h1>{items.some((n) => !n.read_at) && <button onClick={markAll}>Mark all read</button>}</div>
       {error && <p role="alert">{error} <button onClick={() => void load()}>Retry</button></p>}
       <PushSetting />
       {items.length === 0 && <div className="empty"><strong>You're all caught up</strong><span>New messages, replies, price drops on saved items and expiry reminders show up here.</span></div>}

@@ -22,11 +22,11 @@ export default function Saved() {
     })()
     return () => { live = false }
   }, [attempt])
-  if (error) return <div><h1>Saved items</h1><p className="error" role="alert">{error}</p><button onClick={() => { setError(''); setAttempt(n => n + 1) }}>Try again</button></div>
+  if (error) return <div><h1 className="page-title">Saved items</h1><p className="error" role="alert">{error}</p><button onClick={() => { setError(''); setAttempt(n => n + 1) }}>Try again</button></div>
   if (!items) return <p className="muted">Loading…</p>
   return (
     <>
-      <h1>Saved items</h1>
+      <h1 className="page-title">Saved items</h1>
       {items.length === 0 && <p className="muted">Nothing saved yet. Tap Save on a listing to keep it here.</p>}
       <div className="grid">{items.map((l) => <ListingCard key={l.id} l={l} />)}</div>
     </>

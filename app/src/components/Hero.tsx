@@ -34,7 +34,7 @@ export default function Hero({ q, setQ, category, setCategory, featured, onSubmi
       <div className="hero-copy">
         <p className="eyebrow">Student marketplace</p>
         <h1 id="hero-h" className="display">Pass it on.<br /><em>Pay less.</em></h1>
-        <p className="lede">Cycles, textbooks, cookers and the odd study lamp. Buy, rent or take things for free from the students down the corridor.</p>
+        <p className="lede">Buy, rent or grab free stuff from students nearby.</p>
         <form className="searchbar glass" role="search" onSubmit={(e) => { e.preventDefault(); onSubmit() }}>
           <Search />
           <input type="search" placeholder="Try “induction cooktop”" aria-label="Search listings" value={q} onChange={(e) => setQ(e.target.value)} />

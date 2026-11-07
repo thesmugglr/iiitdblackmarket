@@ -84,7 +84,7 @@ function AdminPage({ account }: { account: string }) {
 
   return (
     <>
-      <h1>Admin</h1>
+      <h1 className="page-title">Admin</h1>
       {msg && <p className="muted" role="status">{msg}</p>}
       {loading && <p className="muted" role="status">Loading administrator data…</p>}
       {loadError && <p role="alert">{loadError} <button disabled={busy || loading} onClick={() => void load()}>Retry</button></p>}

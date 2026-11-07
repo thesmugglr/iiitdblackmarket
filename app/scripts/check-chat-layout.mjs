@@ -63,7 +63,7 @@ try {
       await page.getByLabel('Password', { exact: true }).fill(password)
       await page.getByRole('button', { name: 'Sign in', exact: true }).click()
       await page.getByText('Fictional history 39', { exact: true }).waitFor()
-      const input = page.getByPlaceholder('Type a message')
+      const input = page.getByPlaceholder('Message')
       const body = 'Fictional send ' + viewport.width
       await input.fill(body)
       const before = await geometry(page)

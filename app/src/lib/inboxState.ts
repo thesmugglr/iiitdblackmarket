@@ -10,8 +10,10 @@ export async function loadInbox(api: Pick<SupabaseClient, 'from' | 'rpc'>, membe
   const [conversations, counts] = await Promise.all([
     // Admins have broader moderation reads. Inbox is still a personal view.
     api.from('conversations')
-      .select('id,listing_id,buyer_id,seller_id,created_at,kind,request_status, listing:listings(title,photos,status), buyer:profiles!conversations_buyer_id_fkey(display_name), seller:profiles!conversations_seller_id_fkey(display_name)')
-      .or(`buyer_id.eq.${member},seller_id.eq.${member}`).order('created_at', { ascending: false }),
+      .select('id,listing_id,buyer_id,seller_id,created_at,kind,request_status, listing:listings(title,photos,status), buyer:profiles!conversations_buyer_id_fkey(display_name), seller:profiles!conversations_seller_id_fkey(display_name), last:messages(body,image_path,sender_id,created_at)')
+      .or(`buyer_id.eq.${member},seller_id.eq.${member}`).order('created_at', { ascending: false })
+      // Only the newest message per chat, for the preview line.
+      .order('created_at', { referencedTable: 'last', ascending: false }).limit(1, { referencedTable: 'last' }),
     api.rpc('unread_counts'),
   ])
   if (conversations.error || counts.error || !Array.isArray(conversations.data) || !Array.isArray(counts.data)) throw new Error('Inbox query failed')
@@ -24,7 +26,9 @@ export async function loadInbox(api: Pick<SupabaseClient, 'from' | 'rpc'>, membe
     if (!['number', 'string'].includes(typeof row.unread) || (typeof row.unread === 'string' && !/^\d+$/.test(row.unread)) || !Number.isSafeInteger(count) || count < 0) throw new Error('Invalid unread count')
     unread[row.conversation_id] = count
   }
-  return { conversations: rows, unread }
+  // Most recent activity first, like Messages.
+  const active = (c: Conversation) => c.last?.[0]?.created_at ?? c.created_at
+  return { conversations: [...rows].sort((a, b) => active(b).localeCompare(active(a))), unread }
 }
 
 interface InboxSource {
