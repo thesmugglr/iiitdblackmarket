@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import AdminRemove from '../components/AdminRemove'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
@@ -149,6 +150,7 @@ function ListingDetailPage({ id }: { id: string }) {
           <button onClick={toggleSave} disabled={savedLoading || saving.has(l.id)}><Heart filled={saved} /> {saved ? 'Saved' : 'Save'}</button>
           <button onClick={share}>Share</button>
           {!mine && <button className="link" onClick={report}>Report</button>}
+          {l.status !== 'removed' && <AdminRemove kind="listing" id={l.id} ownerId={l.seller_id} onRemoved={() => nav('/')} />}
         </div>
         {mine && (
           <div className="row">

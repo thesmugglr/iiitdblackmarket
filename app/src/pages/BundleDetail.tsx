@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import AdminRemove from '../components/AdminRemove'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
@@ -51,6 +52,7 @@ export default function BundleDetail() {
         {!mine && b.status === 'active' && <button className="primary" onClick={chat}>Chat about this bundle</button>}
         {mine && b.status === 'active' && <button onClick={sold}>Mark bundle sold</button>}
         {mine && <button className="danger" onClick={remove}>Delete bundle</button>}
+        {b.status !== 'removed' && <AdminRemove kind="bundle" id={b.id} ownerId={b.seller_id} onRemoved={() => nav('/bundles')} />}
       </div>
       {msg && <p className="muted">{msg}</p>}
       <h2>What's included</h2>

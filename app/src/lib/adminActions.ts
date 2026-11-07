@@ -81,3 +81,22 @@ export async function addStudentRoster(api: AdminApi, input: string, users: Pend
   }
   return { added: emails.length, approved, failed }
 }
+
+export type PostKind = 'listing' | 'bundle' | 'wanted' | 'lostfound'
+
+/**
+ * Administrator removal of someone else's post. Listings and bundles become `removed` (hidden from everyone but the
+ * owner, who sees it was removed); a "Looking for" request is closed; a lost & found post is deleted (it has no
+ * removed state). The changed row must come back, so an RLS no-op is never reported as success.
+ */
+export async function adminRemovePost(api: AdminApi, kind: PostKind, id: string) {
+  const fail = () => { throw new Error('Could not remove this post. Refresh and try again.') }
+  if (kind === 'lostfound') {
+    const r = await api.from('lost_found').delete().eq('id', id).select('id')
+    if (r.error || !r.data?.some((row: { id: string }) => row.id === id)) fail()
+    return
+  }
+  const [table, status] = kind === 'listing' ? ['listings', 'removed'] : kind === 'bundle' ? ['bundles', 'removed'] : ['wanted_posts', 'closed']
+  const r = await api.from(table).update({ status }).eq('id', id).select('id,status').maybeSingle()
+  if (r.error || r.data?.id !== id || r.data?.status !== status) fail()
+}

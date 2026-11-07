@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import AdminRemove from '../components/AdminRemove'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { canTakePhoto } from '../lib/device'
@@ -233,6 +234,7 @@ export default function LostFound() {
               ) : p.status === 'open' && (
                 <button onClick={() => setExpanded(expanded === p.id ? null : p.id)}>{expanded === p.id ? 'Close' : p.kind === 'lost' ? 'I have seen it' : 'This is mine'}</button>
               )}
+              <AdminRemove kind="lostfound" id={p.id} ownerId={p.user_id} onRemoved={() => void load()} />
             </div>
             {expanded === p.id && <Replies post={p} me={me} />}
           </li>

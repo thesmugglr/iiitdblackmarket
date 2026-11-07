@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import AdminRemove from '../components/AdminRemove'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { CATEGORIES, inr } from '../lib/constants'
@@ -82,6 +83,7 @@ export default function Wanted() {
                   <button className="link" onClick={() => setReply(null)}>Cancel</button>
                 </>
               ) : <button onClick={() => setReply(p.id)}>I have this</button>)}
+              {p.status === 'open' && <AdminRemove kind="wanted" id={p.id} ownerId={p.user_id} onRemoved={() => void load()} />}
             </div>
             {reply === p.id && mine.length === 0 && <p className="muted small">You need an active listing first. List the item, then respond.</p>}
           </li>
