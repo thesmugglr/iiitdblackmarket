@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { canTakePhoto } from '../lib/device'
 import { useAuth } from '../lib/auth'
 import { preparePhoto, thumbPath } from '../lib/image'
 import { usePhotoThumbs } from '../lib/useSignedUrls'
@@ -196,6 +197,11 @@ export default function LostFound() {
           <label className="btn">{uploading ? 'Adding photo…' : photo ? 'Change photo' : 'Add a photo (optional)'}
             <input className="visually-hidden" type="file" accept="image/*" disabled={uploading || busy} onChange={(e) => { void choosePhoto(e.target.files?.[0]); e.target.value = '' }} />
           </label>
+          {canTakePhoto() && (
+            <label className="btn">Take photo
+              <input className="visually-hidden" type="file" accept="image/*" capture="environment" disabled={uploading || busy} onChange={(e) => { void choosePhoto(e.target.files?.[0]); e.target.value = '' }} />
+            </label>
+          )}
           {photo && <PostPhoto path={photo} />}
           <button className="primary" disabled={busy || uploading}>{busy ? 'Posting…' : 'Post'}</button>
         </form>

@@ -225,3 +225,10 @@ button.big{padding:16px 28px;font-size:1rem}
 .conversation-shell .tabbar{display:none}
 .conversation-shell .new-messages{align-self:center;padding:4px 12px;flex-shrink:0}
 @container (max-height:600px){.conversation-shell .quick-replies{display:none}.conversation-shell .chat{margin-top:4px}.conversation-shell .chat-head{padding-bottom:4px}.conversation-shell .offer-bar{font-size:.8rem;padding:4px 8px;margin-bottom:4px}.conversation-shell .deal-note{margin:0}}
+/* Phones: nothing may be wider than the screen (a wider page makes mobile browsers zoom out). */
+.bento>*{min-width:0}
+@media(max-width:600px){.bento{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.foot nav{flex-wrap:wrap;gap:12px 24px}
+.foot>*{min-width:0}
+.app-shell{overflow-x:clip}
+.bento>div>.card{min-width:0}.card .title{overflow-wrap:anywhere}

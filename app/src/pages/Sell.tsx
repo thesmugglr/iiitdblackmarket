@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { canTakePhoto } from '../lib/device'
 import { useAuth } from '../lib/auth'
 import { CATEGORIES, CONDITIONS, MAX_PHOTOS, TYPES } from '../lib/constants'
 import { preparePhoto, thumbPath } from '../lib/image'
@@ -156,6 +157,11 @@ function ListingEditor({ id }: { id?: string }) {
         <label className="btn" htmlFor="photo-input">{photos.length ? 'Add more photos' : 'Choose photos'}</label>
         <input id="photo-input" className="visually-hidden" type="file" accept="image/*" multiple disabled={photos.length >= MAX_PHOTOS || uploading > 0 || busy}
           onChange={(e) => { void upload(Array.from(e.target.files ?? [])); e.target.value = '' }} />
+        {canTakePhoto() && (<>
+          <label className="btn" htmlFor="camera-input">Take photo</label>
+          <input id="camera-input" className="visually-hidden" type="file" accept="image/*" capture="environment" disabled={photos.length >= MAX_PHOTOS || uploading > 0 || busy}
+            onChange={(e) => { void upload(Array.from(e.target.files ?? [])); e.target.value = '' }} />
+        </>)}
         <span className="muted small">or drop them here. Up to {MAX_PHOTOS}; large photos are resized for you.</span>
         {uploading > 0 && <span role="status" className="small">Uploading {uploading} photo{uploading === 1 ? '' : 's'}…</span>}
       </div>

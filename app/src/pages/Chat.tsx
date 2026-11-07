@@ -2,7 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 're
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import { Arrow, Clip } from '../components/Icons'
+import { Arrow, Camera, Clip } from '../components/Icons'
+import { canTakePhoto } from '../lib/device'
 import { inr } from '../lib/constants'
 import { preparePhoto } from '../lib/image'
 import { useSignedUrls } from '../lib/useSignedUrls'
@@ -297,6 +298,7 @@ function ConversationChat({ id }: { id: string }) {
       </div>
       <form className="composer" onSubmit={send} aria-busy={sending || photoState.busy}>
         <label className="attach" title="Attach photo"><Clip /><input type="file" accept="image/*" hidden disabled={photoState.busy || photoState.locked} onChange={(e) => { attach(e.target.files?.[0]); e.target.value = '' }} /></label>
+        {canTakePhoto() && <label className="attach" title="Take photo"><Camera /><input type="file" accept="image/*" capture="environment" hidden disabled={photoState.busy || photoState.locked} onChange={(e) => { attach(e.target.files?.[0]); e.target.value = '' }} /></label>}
         <input ref={input} value={text} onChange={(e) => composer.current?.edit(e.target.value)} maxLength={2000} placeholder="Type a message" />
         <button className="primary" disabled={sending || !text.trim()}>{sending ? 'Sending…' : 'Send'}</button>
       </form>
