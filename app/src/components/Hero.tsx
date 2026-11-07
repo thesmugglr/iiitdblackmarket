@@ -32,7 +32,7 @@ export default function Hero({ q, setQ, category, setCategory, featured, onSubmi
   return (
     <section className="hero" aria-labelledby="hero-h">
       <div className="hero-copy">
-        <p className="eyebrow">IIIT-Delhi student marketplace</p>
+        <p className="eyebrow">Student marketplace</p>
         <h1 id="hero-h" className="display">Pass it on.<br /><em>Pay less.</em></h1>
         <p className="lede">Cycles, textbooks, cookers and the odd study lamp. Buy, rent or take things for free from the students down the corridor.</p>
         <form className="searchbar glass" role="search" onSubmit={(e) => { e.preventDefault(); onSubmit() }}>

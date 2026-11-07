@@ -47,7 +47,7 @@ self.addEventListener('activate', (event) => {
 
 /** Every file of the redirect-only site, by path. */
 export function redirectSite(newUrl, oldBase) {
-  if (!/^https:\/\/[^/\s]+\/$/.test(newUrl)) throw new Error('The new address must be an https URL ending in /, for example https://iiitdblackmarket.github.io/')
+  if (!/^https:\/\/[^/\s]+\/$/.test(newUrl)) throw new Error('The new address must be an https URL ending in /, for example https://thesmugglr.github.io/')
   if (!/^\/([\w.-]+\/)?$/.test(oldBase)) throw new Error('The old base path must look like / or /name/')
   const page = redirectPage(newUrl, oldBase)
   return { 'index.html': page, '404.html': page, 'privacy.html': page, 'terms.html': page, 'sw.js': retiringServiceWorker, '.nojekyll': '' }

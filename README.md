@@ -1,12 +1,12 @@
-# IIITD Black Market
+# The Smugglr
 
-A campus marketplace for IIIT-Delhi students: buy, sell, rent and give away things to the people down the corridor. Only verified `@iiitd.ac.in` students can see or post anything.
+A campus marketplace for students: buy, sell, rent and give away things to the people down the corridor. Only verified `@iiitd.ac.in` students can see or post anything.
 
-**Live:** [iiitdblackmarket.github.io](https://iiitdblackmarket.github.io/) (the old address, abhikrao.github.io/iiitd-black-market, redirects here.)
+**Live:** [thesmugglr.github.io](https://thesmugglr.github.io/) (formerly IIITD Black Market; the old addresses redirect here.)
 
 **On your phone:** open the site, then use *Install app* on Android Chrome or *Share → Add to Home Screen* on iPhone Safari.
 
-Student-run and not affiliated with IIIT-Delhi.
+Student-run and not affiliated with any college or institute.
 
 ## Features
 
@@ -24,7 +24,7 @@ Student-run and not affiliated with IIIT-Delhi.
 
 Sign-in is Google only. The database, not just the browser, rejects any address outside `@iiitd.ac.in`.
 
-Current B.Tech students are approved automatically. The database keeps only the five-digit roll codes from IIIT-Delhi's public student list (no names) and matches them against the number in the address, so `name25025@iiitd.ac.in` matches roll number 2025025. Everyone else, such as faculty, M.Tech and PhD students and new admits, waits for an admin. See [docs/student-approval-review.md](docs/student-approval-review.md).
+Current B.Tech students are approved automatically. The database keeps only the five-digit roll codes from the college's public student list (no names) and matches them against the number in the address, so `name25025@iiitd.ac.in` matches roll number 2025025. Everyone else, such as faculty, M.Tech and PhD students and new admits, waits for an admin. See [docs/student-approval-review.md](docs/student-approval-review.md).
 
 ## How it's built
 
@@ -76,7 +76,7 @@ Demo mode only runs on the dev server and never ships in a production build.
 ## Deploying
 
 1. **Database:** apply any new file in `supabase/migrations/` in the Supabase SQL editor, in order, and never rerun one that is already applied.
-2. **Website:** `cd app && npm run deploy:pages -- iiitdblackmarket/iiitdblackmarket.github.io`. It builds with only the public URL and publishable key from `app/.env.production.local`, and pushes the built files to the build-only Pages repository.
+2. **Website:** `cd app && npm run deploy:pages -- thesmugglr/thesmugglr.github.io`. It builds with only the public URL and publishable key from `app/.env.production.local`, and pushes the built files to the build-only Pages repository.
 3. **Push notifications** need a one-time setup: [docs/push-notifications.md](docs/push-notifications.md).
 
 The full runbooks are [docs/launch.md](docs/launch.md) and [docs/backend-setup.md](docs/backend-setup.md).
@@ -109,4 +109,4 @@ Live. On 7 November, the owner confirmed that a fresh chat message displayed a n
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) before contributing. Dated progress notes and review records live in [docs/changelog.md](docs/changelog.md).
 
-[Privacy policy](https://iiitdblackmarket.github.io/privacy.html) · [Terms of use](https://iiitdblackmarket.github.io/terms.html)
+[Privacy policy](https://thesmugglr.github.io/privacy.html) · [Terms of use](https://thesmugglr.github.io/terms.html)

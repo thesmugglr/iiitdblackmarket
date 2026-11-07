@@ -1,8 +1,8 @@
 // Builds the site and publishes ONLY the static output to a GitHub Pages repository (source code stays private).
 //
-//   npm run deploy:pages -- <owner/repo>        e.g. npm run deploy:pages -- iiitdblackmarket/iiitdblackmarket.github.io
+//   npm run deploy:pages -- <owner/repo>        e.g. npm run deploy:pages -- thesmugglr/thesmugglr.github.io
 //   npm run deploy:pages -- <owner/repo> --dry-run   (build only, to inspect dist/)
-//   npm run deploy:pages -- <old owner/repo> --redirect-to https://iiitdblackmarket.github.io/
+//   npm run deploy:pages -- <old owner/repo> --redirect-to https://thesmugglr.github.io/
 //        (no build: turns an OLD address into a redirect to the new one, see scripts/redirect-site.mjs)
 //
 // A repository named <owner>.github.io is served at the root of https://<owner>.github.io/; any other repository is

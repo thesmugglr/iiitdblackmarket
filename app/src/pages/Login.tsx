@@ -41,11 +41,11 @@ export default function Login() {
   return (
     <div className="login">
       <div className="login-main">
-        <span className="wordmark">IIITD Black Market<i>.</i></span>
+        <span className="wordmark">The Smugglr<i>.</i></span>
         <h1>Pass it on, <br />don’t throw it out.</h1>
-        <p className="lede">A noticeboard for IIIT-Delhi students to sell, rent and give away cycles, books, cookers and everything else a hostel room collects.</p>
+        <p className="lede">A noticeboard for students to sell, rent and give away cycles, books, cookers and everything else a hostel room collects.</p>
         {!isConfigured && <p className="error">Supabase is not configured. Copy <code>.env.example</code> to <code>.env.local</code> and add your project keys.</p>}
-        <button className="primary big" onClick={go} disabled={!isConfigured || busy}>{busy ? 'Opening Google…' : 'Continue with IIITD Google'}</button>
+        <button className="primary big" onClick={go} disabled={!isConfigured || busy}>{busy ? 'Opening Google…' : 'Continue with college Google'}</button>
         {err && <p className="error" role="alert">{err}</p>}
         {devLogin && (
           <form className="form panel" onSubmit={(e) => dev(e, false)}>

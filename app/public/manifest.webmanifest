@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "IIITD Black Market",
-  "short_name": "Black Market",
-  "description": "Buy, sell, rent and give away things on campus. A student-run marketplace for IIIT-Delhi.",
+  "name": "The Smugglr",
+  "short_name": "Smugglr",
+  "description": "Buy, sell, rent and give away things on campus. A student-run marketplace for your campus.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

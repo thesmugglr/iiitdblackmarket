@@ -57,14 +57,14 @@ export default function Layout() {
     }
   }, [conversationRoute])
   useEffect(() => {
-    document.title = unread ? `(${unread}) IIITD Black Market` : 'IIITD Black Market'
+    document.title = unread ? `(${unread}) The Smugglr` : 'The Smugglr'
   }, [unread])
   return (
     <div className={conversationRoute ? 'app-shell conversation-shell' : 'app-shell'}>
       {demoMode && <aside role="status" style={{ padding: '8px 20px', background: '#fff2b8', color: '#292318', textAlign: 'center' }}>Demo preview · Fictional students and items · Actions are not saved</aside>}
       <header className="top">
         <NavLink to="/" className="brand">
-          <span className="wordmark">IIITD Black Market<i>.</i></span>
+          <span className="wordmark">The Smugglr<i>.</i></span>
         </NavLink>
         <NavLink to="/notifications" className="bell" aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`}>
           <Bell />{unread > 0 && <span className="badge unread">{unread}</span>}

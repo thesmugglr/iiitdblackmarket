@@ -50,7 +50,7 @@ self.addEventListener('push', (event) => {
   let data = {}
   try { data = event.data ? event.data.json() : {} } catch { data = { body: event.data ? event.data.text() : '' } }
   const path = typeof data.url === 'string' ? data.url : ''
-  event.waitUntil(self.registration.showNotification(data.title || 'IIITD Black Market', {
+  event.waitUntil(self.registration.showNotification(data.title || 'The Smugglr', {
     body: data.body || 'You have a new notification',
     icon: BASE + 'pwa/icon-192.png',
     badge: BASE + 'pwa/icon-192.png',
