@@ -1,12 +1,12 @@
 # Phone and browser notifications (Web Push)
 
-Status on 2026-11-06: **set up on the live project.** Migration 0009 is applied, the `push` function is deployed with its secrets, the public settings are in `push_config`, and a live check (the database calling the function with its own secret) got `{"sent":0,"removed":0}` with status 200. **Not tested:** a notification arriving on a real phone, which needs someone to turn notifications on from a signed-in device.
+Status on 2026-11-06: **set up on the live project.** Migration 0009 is applied, the `push` function is deployed with its secrets, the public settings are in `push_config`, and a live check (the database calling the function with its own secret) got `{"sent":0,"removed":0}` with status 200. The owner subsequently confirmed Android delivery on 7 November as recorded below.
 
 Everything here is free: Web Push is a browser standard, Supabase Edge Functions include 500,000 invocations a month on the free plan, and pg_net is a built-in Postgres extension.
 
 ## Current fix and Android incident (7 November 2026)
 
-The user allowed notifications in an installed Android app and saw the website bell update, but received no phone alert. This proves the in-app path worked for that event; the exact production delivery failure is still unconfirmed. Read-only aggregate checks found a registered Firebase endpoint and a provider-accepted send close in time to a chat notification. Physical device display still needs verification.
+The user allowed notifications in an installed Android app and saw the website bell update, but received no phone alert. This proves the in-app path worked for that event; the exact production delivery failure is still unconfirmed. Read-only aggregate checks found a registered Firebase endpoint and a provider-accepted send close in time to a chat notification. On 7 November, the owner confirmed that a fresh chat message displayed an alert on the installed Android app after closing it.
 
 Migration 0010 and the accompanying client/function changes were deployed on **7 November 2026** from merged PR #40 (`0af7b1e`, Pages `06494ef`). The public bundle and worker match the tested build. The client checks the exact subscription for the current approved account and current VAPID key before showing On. Repair notifications reuses or replaces the browser subscription and confirms its server registration. Worker startup is awaited for up to five seconds; permission is requested directly from the user's tap. Installing on a new origin requires enabling notifications there again.
 
@@ -55,4 +55,4 @@ Rotating the key: delete `~/iiitd-launch/vapid-keys.json` and rerun steps 3 to 5
 - `app/test/features-db.test.mjs`: subscription ownership and the secret-gated payload. Notifications still save when pg_net is missing.
 - `npm run e2e:local`: the same database rules against the local Supabase stack.
 
-Not tested: delivery through a real push service to a real phone, which needs the live setup above.
+Android closed-app delivery was confirmed by the owner on 7 November. iOS device delivery remains untested.

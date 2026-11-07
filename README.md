@@ -95,10 +95,9 @@ The full runbooks are [docs/launch.md](docs/launch.md) and [docs/backend-setup.m
 
 ## Status
 
-Live. Still to test on the live site:
+Live. On 7 November, the owner confirmed that a fresh chat message displayed a notification on the installed Android app. Remaining checks and operational work include
 
-- push notification delivery to a real phone (the server side is set up and checked; turn notifications on from Profile on a signed-in device);
-- installing the app on a physical phone;
+- iPhone installation and chat layout with a physical phone keyboard open;
 - removing graduated students automatically.
 
 [TODO.md](TODO.md) is the task board. [Current verification status](docs/current-status.md) records deployment evidence and remaining device checks.
