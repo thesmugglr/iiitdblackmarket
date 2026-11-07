@@ -343,3 +343,4 @@ input,select,textarea{border-radius:12px;padding:.7rem .9rem;font-size:1rem}
   .hero .lede{margin-bottom:20px}
   .block{padding-top:40px}
 }
+.receipt{align-self:flex-end;font-size:.75rem;color:var(--muted);margin:-2px 4px 0;flex-shrink:0}

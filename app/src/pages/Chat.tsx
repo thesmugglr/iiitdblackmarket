@@ -21,6 +21,15 @@ const SELLER_REPLIES = ['Yes, it is still available.', 'When can you pick it up?
 
 interface SharedListing { id: string; title: string; photos: string[]; price_inr: number; listing_type: string; status: string }
 
+// "just now", "5m ago", "2h ago", then a clock time or date, like Instagram's Seen line.
+function seenAgo(iso: string) {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  if (mins < 24 * 60) return `${Math.floor(mins / 60)}h ago`
+  return new Date(iso).toLocaleDateString([], { day: 'numeric', month: 'short' })
+}
+
 function ListingCardMini({ l }: { l: SharedListing | undefined }) {
   const [thumb] = usePhotoThumbs(l?.photos?.length ? [l.photos[0]] : [])
   if (!l) return <div className="shared-listing muted small">Listing no longer available</div>
@@ -63,7 +72,6 @@ function Bubble({ m, mine, me, quoted, quotedName, listing, reactions, onReport,
         {m.body && <div>{m.body}</div>}
         <div className="msg-time">
           {new Date(m.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-          {mine && m.read_at ? ' · Read' : ''}
         </div>
       </div>
       {!!reactions?.counts.length && (
@@ -278,6 +286,9 @@ function ConversationChat({ id }: { id: string }) {
   const waitingOnMe = direct && status !== 'accepted' && conv.seller_id === profile.id
   const canSend = status === 'accepted' || (status === 'pending' && conv.buyer_id === profile.id)
   const byId = new Map(msgs.map((m) => [m.id, m]))
+  // Instagram-style receipt: only under the newest message, and only when it is mine.
+  const lastMsg = msgs.at(-1)
+  const receipt = lastMsg && lastMsg.sender_id === profile.id ? lastMsg : null
   const grouped = groupReactions(reactions, profile.id)
   const nameOf = (sender: string) => sender === profile.id ? 'You' : (otherName ?? '')
 
@@ -367,6 +378,7 @@ function ConversationChat({ id }: { id: string }) {
             listing={m.shared_listing_id ? shared[m.shared_listing_id] : undefined} reactions={grouped.get(m.id)} canAct={canSend}
             onReport={() => reportMsg(m)} onReply={() => startReply(m)} onReact={(e) => void reactTo(m, e)} />
         })}
+        {receipt && <div className="receipt" aria-live="polite">{receipt.read_at ? `Seen ${seenAgo(receipt.read_at)}` : 'Sent'}</div>}
       </div>
       {newMessages && <button className="new-messages" onClick={toLatest}>New messages ↓</button>}
       {!direct && pending && (
@@ -418,7 +430,7 @@ function ConversationChat({ id }: { id: string }) {
       )}
       {direct && status === 'pending' && !waitingOnMe && <p className="muted small deal-note">Request sent. {otherName} can reply once they accept.</p>}
       {direct && status === 'declined' && !waitingOnMe && <p className="muted small deal-note">{otherName} isn’t accepting messages from you.</p>}
-      {canSend && !direct && (
+      {canSend && !direct && !msgs.some((m) => m.sender_id === profile.id) && (
       <div className={text.trim() ? "quick-replies composing" : "quick-replies"} role="group" aria-label="Quick replies">
           {(isBuyer ? BUYER_REPLIES : SELLER_REPLIES).map((reply) => (
             <button key={reply} type="button" onClick={() => quickReply(reply)}>{reply.endsWith('₹') ? `${reply}…?` : reply}</button>
