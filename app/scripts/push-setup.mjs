@@ -3,14 +3,14 @@
 //
 //   npm run push:setup
 //
-// It creates this site's VAPID key pair (kept outside git in ~/iiitd-launch/vapid-keys.json, mode 600, and reused on
+// It creates this site's VAPID key pair (kept outside git in <launch folder>/vapid-keys.json, mode 600, and reused on
 // later runs so existing phone subscriptions keep working), stores the function secrets with the Supabase CLI,
-// deploys supabase/functions/push, and writes ~/iiitd-launch/push-config.sql with the two PUBLIC values the
+// deploys supabase/functions/push, and writes <launch folder>/push-config.sql with the two PUBLIC values the
 // database needs. The private key is never printed. Everything used is on Supabase's free plan.
 import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { homedir, tmpdir } from 'node:os'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadEnv } from 'vite'
@@ -18,7 +18,9 @@ import { readClientConfig } from '../src/lib/config.ts'
 
 const SUBJECT = 'https://thesmugglr.github.io/'
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url))
-const launchFolder = join(homedir(), 'iiitd-launch')
+// The folder that holds the private launch files (vapid-keys.json, push-config.sql): the folder that contains the repo
+// (project/ sits inside it), or SMUGGLR_LAUNCH_DIR when set.
+const launchFolder = process.env.SMUGGLR_LAUNCH_DIR ?? fileURLToPath(new URL('../../../', import.meta.url))
 const keysFile = join(launchFolder, 'vapid-keys.json')
 
 const config = readClientConfig(loadEnv('production', process.cwd(), 'VITE_'), false)

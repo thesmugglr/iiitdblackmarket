@@ -86,7 +86,7 @@ The full runbooks are [docs/launch.md](docs/launch.md) and [docs/backend-setup.m
 - **Each academic year**, refresh the student codes:
 
   ```bash
-  cd app && npm run student-codes -- --out ~/iiitd-launch/student-codes.sql
+  cd app && npm run student-codes -- --out ~/Downloads/larp/TheSmugglr/student-codes.sql
   ```
 
   Then run that file once in the SQL editor. It contains numbers only, so never commit it.

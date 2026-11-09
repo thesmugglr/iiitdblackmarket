@@ -7,7 +7,7 @@
 //
 //   npm run student-codes                      (writes student-codes.local.sql for the current four batches)
 //   npm run student-codes -- --dry-run         (prints counts only)
-//   npm run student-codes -- --batches 2022-2026 --out ~/iiitd-launch/student-codes.sql
+//   npm run student-codes -- --batches 2022-2026 --out ~/Downloads/larp/TheSmugglr/student-codes.sql
 //
 // Run the generated SQL once in the Supabase SQL editor. Keep it out of git (the *.local.sql pattern is ignored).
 // Refresh once per semester: running it again is safe, existing codes are skipped and waiting students are approved.

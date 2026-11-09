@@ -42,11 +42,11 @@ On iPhone and iPad, Web Push only works for the site added to the Home Screen (i
 
 1. Apply missing migrations in order, including `0009_features.sql` and `0010_notification_delivery.sql`. Migration 0009 enables pg_net.
 2. The owner signs the Supabase CLI in once: `npx supabase login` (opens the browser).
-3. From `app/`: `npm run push:setup`, and answer Yes to the Supabase CLI's two confirmation prompts (set the secrets, deploy the function). It creates the VAPID key pair (kept in `~/iiitd-launch/vapid-keys.json`, mode 600, never committed or printed), stores the function secrets `PUSH_API_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`, deploys the function with JWT checking off, and writes `~/iiitd-launch/push-config.sql`.
-4. Run `~/iiitd-launch/push-config.sql` in the SQL editor. It holds only public values: the function URL and the public key. Its last query should show `configured`, `has_key`, `secret_ready` and `pg_net_on` all true.
+3. From `app/`: `npm run push:setup`, and answer Yes to the Supabase CLI's two confirmation prompts (set the secrets, deploy the function). It creates the VAPID key pair (kept in `~/Downloads/larp/TheSmugglr/vapid-keys.json`, mode 600, never committed or printed), stores the function secrets `PUSH_API_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`, deploys the function with JWT checking off, and writes `~/Downloads/larp/TheSmugglr/push-config.sql`.
+4. Run `~/Downloads/larp/TheSmugglr/push-config.sql` in the SQL editor. It holds only public values: the function URL and the public key. Its last query should show `configured`, `has_key`, `secret_ready` and `pg_net_on` all true.
 5. Redeploy the site. The "Turn on notifications" button appears once `push_public_key()` returns the key.
 
-Rotating the key: delete `~/iiitd-launch/vapid-keys.json` and rerun steps 3 to 5. Every device then has to turn notifications on again, because subscriptions are tied to the key.
+Rotating the key: delete `~/Downloads/larp/TheSmugglr/vapid-keys.json` and rerun steps 3 to 5. Every device then has to turn notifications on again, because subscriptions are tied to the key.
 
 ## Tests
 

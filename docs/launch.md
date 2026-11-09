@@ -22,7 +22,7 @@ Browser settings that must match: Supabase **Site URL** `https://iiitdblackmarke
 
 - The six migrations (`0001` to `0006`) apply as one transaction on a fresh database, locally and on the hosted project (`launch-bundle.sql`).
 - `npm test` (37 database checks on PGlite) and `npm run e2e:local` (19 checks with separate accounts against a real local Supabase stack: auth, row-level security, private storage, offers, blocks, reports, notifications, expiry, realtime, admin bootstrap).
-- The e2e run caught a real bug in the first version of the sign-up trigger: GoTrue inserts the user and confirms the email in a follow-up update, so a check made only at insert time would have left the owner's first Google sign-in pending instead of admin. `0006_launch.sql` now handles both orders (a provider check at insert, plus a trigger that promotes bootstrap-admin and roster emails when the email becomes confirmed) and defers the admin alert to the end of the sign-up transaction. A hosted project that ran an earlier bundle needs `~/iiitd-launch/fix-signup-trigger-v2.sql` once; it is the idempotent block between the `BEGIN/END SIGNUP TRIGGERS` markers in `0006_launch.sql`.
+- The e2e run caught a real bug in the first version of the sign-up trigger: GoTrue inserts the user and confirms the email in a follow-up update, so a check made only at insert time would have left the owner's first Google sign-in pending instead of admin. `0006_launch.sql` now handles both orders (a provider check at insert, plus a trigger that promotes bootstrap-admin and roster emails when the email becomes confirmed) and defers the admin alert to the end of the sign-up transaction. A hosted project that ran an earlier bundle needs `~/Downloads/larp/TheSmugglr/fix-signup-trigger-v2.sql` once; it is the idempotent block between the `BEGIN/END SIGNUP TRIGGERS` markers in `0006_launch.sql`.
 - A 4032 x 3024 photo uploaded through the real sell form is resized in the browser to a 1600 x 1200 JPEG of about 280 KB (this also removes EXIF data such as GPS), stored privately and shown with a signed URL. Chat attachments use the same path.
 - The build boots from `404.html` on a deep link (the site is at the root `/` since 2026-11-06; the old sub-path build did the same) and remembers the page you wanted across the Google round trip.
 - Against the hosted project with only the public key: `rpc/ping` works, anonymous users see zero listings, `profiles` and `admin_bootstrap` are permission denied.
@@ -60,7 +60,7 @@ Garv selected **Abhik's existing project** on 2026-10-31. Use project `mkepigikt
 
 IIIT-Delhi publishes current B.Tech roll numbers on its public students page (`https://iiitd.ac.in/people/btech`). A roll number such as 2025025 gives the numeric part of that student's address, `<name>25025@iiitd.ac.in` (last five digits). `0007_student_codes.sql` adds an admin-only `student_codes` table holding **only those five-digit codes** (no names, programs or addresses) and the sign-up rule: a provider-verified `@iiitd.ac.in` address that is letters followed by exactly five digits, where the digits are listed, is approved automatically. Everyone else (faculty, alumni, M.Tech/PhD, newly admitted, unlisted) still waits for an admin. Suspended or rejected accounts are never re-approved by this rule.
 
-- **Load or refresh (once per semester):** `cd app && npm run student-codes -- --out ~/iiitd-launch/student-codes.sql` reads the public page (certificate checking stays on), keeps only codes for the four current batches, refuses to write a suspiciously small list, and writes a SQL file of codes only. Run that file once in the Supabase SQL editor; it ends by approving people who were already waiting. Do not commit it (`*.local.sql` is ignored).
+- **Load or refresh (once per semester):** `cd app && npm run student-codes -- --out ~/Downloads/larp/TheSmugglr/student-codes.sql` reads the public page (certificate checking stays on), keeps only codes for the four current batches, refuses to write a suspiciously small list, and writes a SQL file of codes only. Run that file once in the Supabase SQL editor; it ends by approving people who were already waiting. Do not commit it (`*.local.sql` is ignored).
 - **Trim leavers:** `delete from public.student_codes where substring(code, 1, 2)::int < 23;` removes codes of batches older than 2023 (adjust the number each year).
 - **Limits:** the page lists B.Tech only. The numeric code proves only that the Google account holds a listed address, which is stronger than the domain alone but not a manual check; keep using the Admin page for anyone unusual. The snapshot used on 2026-10-31 had 2,376 codes (batches 2023 to 2026).
 - Privacy pages (`privacy.html`, `terms.html`) describe this accurately.
@@ -71,7 +71,7 @@ Before the first deploy, the owner must create the chosen **public build-only** 
 
 ```sh
 cd app
-cp ~/iiitd-launch/public-config.env .env.production.local   # URL + publishable key only
+cp ~/Downloads/larp/TheSmugglr/public-config.env .env.production.local   # URL + publishable key only
 npm run check:config
 npm run deploy:pages -- iiitdblackmarket/iiitdblackmarket.github.io
 ```
