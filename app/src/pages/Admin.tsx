@@ -5,6 +5,7 @@ import type { Profile } from '../lib/types'
 import { addStudentRoster, changeMemberStatus, removeReportedListing, updateReportStatus } from '../lib/adminActions'
 import { loadAdminData, type AdminReport as Report } from '../lib/adminData'
 import { useAuth } from '../lib/auth'
+import VisitorStats from '../components/VisitorStats'
 
 export default function Admin() {
   const { profile } = useAuth()
@@ -88,6 +89,8 @@ function AdminPage({ account }: { account: string }) {
       {msg && <p className="muted" role="status">{msg}</p>}
       {loading && <p className="muted" role="status">Loading administrator data…</p>}
       {loadError && <p role="alert">{loadError} <button disabled={busy || loading} onClick={() => void load()}>Retry</button></p>}
+      <VisitorStats />
+
       <h2>Student roster</h2>
       <p className="muted small">Paste current-student emails (separated by spaces, commas or new lines). Anyone listed is approved automatically on sign-up.</p>
       <textarea rows={3} disabled={controlsDisabled} value={roster} onChange={(e) => setRoster(e.target.value)} />

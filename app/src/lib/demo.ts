@@ -102,6 +102,7 @@ export const demoClient = {
   rpc: (name: string) => {
     if (name === 'my_profile') return { maybeSingle: () => Promise.resolve({ data: me, error: null }) }
     if (name === 'admin_profiles') return builder('profiles')
+    if (name === 'visit_summary') return Promise.resolve({ data: [{ day: '2026-11-16', visitors: 12, new_devices: 5 }, { day: '2026-11-15', visitors: 9, new_devices: 3 }], error: null })
     if (name === 'smooth_deals') return Promise.resolve({ data: 3, error: null })
     if (name === 'push_public_key') return Promise.resolve({ data: null, error: null })
     if (name === 'share_listing') return Promise.resolve({ data: 'c1', error: null })

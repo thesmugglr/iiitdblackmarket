@@ -22,4 +22,4 @@ Read-only query (needs the Supabase CLI signed in; `<ref>` is the project ref):
 npx supabase db query --remote=<ref> --read-only "select day, visitors, new_devices from public.site_visits order by day desc limit 30"
 ```
 
-Or ask a Claude agent, or run the same select in the Supabase SQL editor.
+Admins also see the numbers on the Admin page (Visitors card). Or ask a Claude agent, or run the same select in the Supabase SQL editor.
