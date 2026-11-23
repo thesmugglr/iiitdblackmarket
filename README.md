@@ -39,7 +39,7 @@ Everything stays on free plans. [docs/free-tier.md](docs/free-tier.md) lists the
 
 ```
 app/                   the website: src/pages, src/components, src/lib; tests in app/test; tooling in app/scripts
-supabase/migrations/   database schema, access rules and functions (0001 to 0010, applied in order)
+supabase/migrations/   database schema, access rules and functions (apply numbered migrations in order)
 supabase/functions/    push: the function that delivers phone notifications
 docs/                  setup, operations and the project history
 ```

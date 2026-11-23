@@ -62,6 +62,18 @@ test('0009: saved alerts, deals and thumbs-up, lost & found, push and account de
   for (const uid of [saver, buyer]) { await as(uid); await db.query('insert into saved_items(user_id,listing_id) values($1,$2)', [uid, kettle]) }
   let conversation
 
+  await t.test('listing shares respect expiry before creating a message request', async () => {
+    await as(seller)
+    const listing = await scalar(`insert into listings(seller_id,title,listing_type,category,condition,expires_at)
+      values($1,'Desk lamp','sale','hostel','good',now()-interval '1 day') returning id`, [seller])
+    await as(buyer)
+    await assert.rejects(db.query('select share_listing($1,$2)', [listing, other]), /Listing unavailable/)
+    await as(seller)
+    await db.query("update listings set expires_at=now()+interval '1 day' where id=$1", [listing])
+    await as(buyer)
+    assert.ok(await scalar('select share_listing($1,$2)', [listing, other]))
+  })
+
   await t.test('a price drop alerts people who saved the item, not the seller, and a rise does not', async () => {
     await as(seller)
     await db.query('update listings set price_inr = 400 where id = $1', [kettle])

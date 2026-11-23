@@ -107,8 +107,17 @@ export async function sendWebPush(
   vapid: VapidKeys,
   send: typeof fetch = fetch,
 ): Promise<number> {
+  // Subscription URLs come from members. Validate the actual destination before signing or sending.
+  const endpoint = new URL(subscription.endpoint)
+  const host = endpoint.hostname
+  const trusted = host === 'fcm.googleapis.com' || host === 'updates.push.services.mozilla.com'
+    || host.endsWith('.push.apple.com') || host.endsWith('.notify.windows.com')
+  if (!trusted || endpoint.protocol !== 'https:' || endpoint.username || endpoint.password || endpoint.port) {
+    throw new Error('Unsupported browser push destination')
+  }
   const body = await encryptPayload(subscription, text.encode(message))
-  const response = await send(subscription.endpoint, {
+  const response = await send(endpoint.href, {
+    redirect: 'error',
     method: 'POST',
     headers: {
       Authorization: await vapidAuthorization(subscription.endpoint, vapid),
