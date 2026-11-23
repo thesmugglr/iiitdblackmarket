@@ -29,6 +29,7 @@ async function geometry(page) {
   return page.locator('.messages').evaluate(list => ({
     pageTop: document.scrollingElement.scrollTop,
     height: list.clientHeight,
+    quickRepliesHeight: document.querySelector('.chat .quick-replies')?.getBoundingClientRect().height ?? 0,
     top: list.scrollTop,
     endGap: list.scrollHeight - list.scrollTop - list.clientHeight,
     composerBottom: document.querySelector('.chat .composer').getBoundingClientRect().bottom,
@@ -72,7 +73,11 @@ try {
       await page.waitForFunction(() => document.querySelector('.chat .composer input:not([type=file])')?.value === '')
       const after = await geometry(page)
       assert.equal(after.pageTop, before.pageTop, 'sending moved the outer page')
-      assert.ok(Math.abs(after.height - before.height) <= 2, 'clearing the draft shrank the transcript')
+      // The first outgoing message removes the quick-reply row and gives its space to the transcript.
+      assert.equal(after.quickRepliesHeight, 0, 'quick replies remain after sending')
+      const expectedHeight = before.height + before.quickRepliesHeight
+      assert.ok(Math.abs(after.height - expectedHeight) <= 2,
+        `transcript height after send: expected ${expectedHeight}px, got ${after.height}px`)
       assert.ok(after.endGap <= 3 && after.height > 120, 'own message should be visible')
       assert.ok(after.composerBottom <= after.viewportHeight + 1, 'composer leaves viewport')
 
