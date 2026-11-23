@@ -56,7 +56,7 @@ button:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
 .bell .badge{position:absolute;top:0;right:-2px;margin:0;font-size:.7rem}
 .page{max-width:1200px;margin:0 auto;padding:0 clamp(16px,4vw,40px) 96px}
 .tabbar{display:none;position:fixed;left:12px;right:12px;bottom:12px;background:var(--bar-strong);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow-lg);justify-content:space-around;padding:8px 0;z-index:20}
-.tabbar a{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.72rem;font-weight:600;color:var(--muted);min-width:56px}
+.tabbar a{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.72rem;font-weight:600;color:var(--muted);min-width:52px}
 .tabbar a.active{color:var(--ink)}.tabbar a.sell svg{background:var(--accent);color:var(--on-accent);padding:4px;width:28px;height:28px;border-radius:50%}
 @media(max-width:700px){.desktop-nav{display:none}.tabbar{display:flex}}
 

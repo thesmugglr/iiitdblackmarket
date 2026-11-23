@@ -10,3 +10,4 @@ export const ArrowUp = () => <svg {...base}><path d="M12 19V5M6 11l6-6 6 6"/></s
 export const Arrow = () => <svg {...base}><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
 export const Search = () => <svg {...base}><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
 export const Bell = () => <svg {...base}><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg>
+export const Shield = () => <svg {...base}><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
