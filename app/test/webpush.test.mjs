@@ -103,8 +103,17 @@ test('sendWebPush posts an encrypted body with the Web Push headers and reports 
   assert.equal(await sendWebPush(subscription, 'hello', keys, fakeFetch), 201)
   assert.equal(seen.url, subscription.endpoint)
   assert.equal(seen.init.method, 'POST')
+  assert.equal(seen.init.redirect, 'error')
   assert.equal(seen.init.headers['Content-Encoding'], 'aes128gcm')
   assert.equal(seen.init.headers.TTL, '86400')
   assert.match(seen.init.headers.Authorization, /^vapid t=[\w-]+\.[\w-]+\.[\w-]+, k=/)
   assert.equal(seen.init.body.length, 86 + 'hello'.length + 1 + 16)
+  for (const endpoint of ['https://fcm.googleapis.com/sub', 'https://web.push.apple.com/sub', 'https://wns2-db5p.notify.windows.com/sub']) {
+    assert.equal(await sendWebPush({ ...subscription, endpoint }, 'hello', keys, fakeFetch), 201)
+  }
+  for (const endpoint of ['https://example.invalid/sub', 'http://fcm.googleapis.com/sub', 'https://web.push.apple.com:8443/sub']) {
+    seen = undefined
+    await assert.rejects(sendWebPush({ ...subscription, endpoint }, 'hello', keys, fakeFetch), /Unsupported browser push destination/)
+    assert.equal(seen, undefined)
+  }
 })
