@@ -8,7 +8,6 @@ import Sections from '../components/Sections'
 import ListingCard from '../components/ListingCard'
 import Drawer from '../components/Drawer'
 import Reveal from '../components/Reveal'
-import { HowItWorks, Trust, Cta } from '../components/Landing'
 import { emptyBrowse, loadBrowsePage, loadBrowseOverview, observeBrowse } from '../lib/browseState'
 import type { Listing } from '../lib/types'
 
@@ -88,10 +87,6 @@ function AccountBrowse({ member }: { member: string }) {
           <button onClick={() => { observer.current?.retrySearch(); void observer.current?.retryOverview(); toResults() }}>Refresh listings</button>
         </div>}
       </section>
-
-      <HowItWorks />
-      <Trust />
-      <Cta />
 
       <Drawer open={drawer} onClose={() => setDrawer(false)} title="Filters and sort">
         <div className="form">

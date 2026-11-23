@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import { Bell, Chat, Grid, Heart, Plus, User } from './Icons'
+import { Bell, Chat, Grid, Heart, Plus, Shield, User } from './Icons'
 import { demoMode } from '../lib/supabase'
 import { Footer } from './Landing'
 
@@ -89,6 +89,7 @@ export default function Layout() {
         <NavLink to="/sell" className="sell"><Plus />Sell</NavLink>
         <NavLink to="/inbox"><Chat />Inbox</NavLink>
         <NavLink to="/profile"><User />Profile</NavLink>
+        {profile?.role === 'admin' && <NavLink to="/admin"><Shield />Admin</NavLink>}
       </nav>
     </div>
   )
