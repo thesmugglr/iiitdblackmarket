@@ -102,6 +102,33 @@ try {
       await page.close()
     }
   }
+  // Seller opens the same saved message from Inbox and from the notification,
+  // with no realtime events and the standalone message-history request unavailable.
+  const sellerPage = await browser.newPage()
+  try {
+    await sellerPage.routeWebSocket('**/realtime/**', () => {})
+    await sellerPage.route('**/rest/v1/messages?**', route => {
+      const request = route.request()
+      return request.method() === 'GET' && new URL(request.url()).searchParams.has('conversation_id')
+        ? route.abort() : route.continue()
+    })
+    const text = 'Fictional message for the seller'
+    ok(await buyer.api.from('messages').insert({ conversation_id: conversation, sender_id: buyer.id, body: text }))
+    await sellerPage.goto(origin + '/inbox')
+    await sellerPage.getByLabel('Email', { exact: true }).fill(seller.email)
+    await sellerPage.getByLabel('Password', { exact: true }).fill(password)
+    await sellerPage.getByRole('button', { name: 'Sign in', exact: true }).click()
+    await sellerPage.locator('a.thread').filter({ hasText: text }).click()
+    await sellerPage.locator('.bubble').getByText(text, { exact: true }).waitFor()
+    await sellerPage.goto(origin + '/notifications')
+    await sellerPage.locator(`a[href="/inbox/${conversation}"]`).first().click()
+    await sellerPage.locator('.bubble').getByText(text, { exact: true }).waitFor()
+    const reply = 'Fictional reply without realtime'
+    await sellerPage.getByPlaceholder('Message').fill(reply)
+    await sellerPage.getByPlaceholder('Message').press('Enter')
+    await sellerPage.locator('.bubble.mine').getByText(reply, { exact: true }).waitFor()
+    console.log('PASS seller reads history via Inbox and Notifications and sees a confirmed reply without realtime')
+  } finally { await sellerPage.close() }
 } finally {
   await browser?.close()
   await server?.close()

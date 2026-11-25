@@ -124,7 +124,7 @@ test('message and offer failures are visible rather than indistinguishable from 
   await f.open()
   f.messages[0].reject(new Error('network'))
   await settle()
-  assert.match(f.current.error, /load messages.*try again/i)
+  assert.equal(f.current.messageStatus, 'error')
   f.offers[0].reject(new Error('network'))
   await settle()
   assert.match(f.current.error, /load offers.*try again/i)
