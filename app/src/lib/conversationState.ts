@@ -4,6 +4,7 @@ export interface ConversationSnapshot {
   conversation: Conversation | null
   messages: Message[]
   offers: Offer[]
+  messageStatus: 'loading' | 'ready' | 'error'
   loading: boolean
   error: string
 }
@@ -18,7 +19,7 @@ interface ConversationSource {
 }
 
 export const emptyConversation = (): ConversationSnapshot => ({
-  conversation: null, messages: [], offers: [], loading: true, error: '',
+  conversation: null, messages: [], offers: [], messageStatus: 'loading', loading: true, error: '',
 })
 
 // A subscription and its loads belong to one route instance. Independent
@@ -42,11 +43,11 @@ export function observeConversation(id: string, source: ConversationSource) {
     try {
       const messages = await source.loadMessages()
       if (!active || revision !== messageRevision) return
-      publish({ messages })
+      publish({ messages, messageStatus: 'ready' })
       // A navigation that disposed this observer cannot mark the old chat read.
       void source.markRead?.().catch(() => { /* Read receipts can retry on the next refresh. */ })
     } catch {
-      if (revision === messageRevision) publish({ error: 'Could not load messages. Please try again.' })
+      if (revision === messageRevision) publish({ messageStatus: 'error' })
     }
   }
   const loadOffers = async () => {
@@ -69,11 +70,9 @@ export function observeConversation(id: string, source: ConversationSource) {
         return
       }
       publish({ conversation, loading: false })
-      // Subscribe before fetching the latest rows so changes during initial
-      // loading are covered too. No reads/receipts for unavailable chats.
-      unsubscribe = source.subscribe(() => { void loadMessages() }, () => { void loadOffers() })
       void loadMessages()
       void loadOffers()
+      unsubscribe = source.subscribe(() => { void loadMessages() }, () => { void loadOffers() })
     } catch {
       publish({ loading: false, error: 'Could not load this conversation. Please try again.' })
     }

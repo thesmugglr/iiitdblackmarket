@@ -13,6 +13,7 @@ import { emptyConversation, observeConversation } from '../lib/conversationState
 import { emptyTextComposer, observeTextComposer, sendChatText } from '../lib/chatText'
 import { emptyOfferComposer, makeOfferOnce, observeOfferComposer, respondOfferOnce } from '../lib/chatOffers'
 import { emptyAttachment, observeAttachment, sendChatImage, uploadChatAttachment } from '../lib/chatAttachments'
+import { loadChatHistory } from '../lib/chatHistory'
 import { shouldFollowChat, nearChatBottom } from '../lib/chatScroll'
 import { REACTIONS, type Conversation, type Deal, type Message, type Offer, type Reaction, type ReactionEmoji } from '../lib/types'
 
@@ -175,6 +176,7 @@ function ConversationChat({ id }: { id: string }) {
   const offerComposer = useRef<ReturnType<typeof observeOfferComposer> | null>(null)
   const [photoState, setPhotoState] = useState(emptyAttachment)
   const attachment = useRef<ReturnType<typeof observeAttachment> | null>(null)
+  const refreshMessages = useRef<(() => void) | null>(null)
   const messageList = useRef<HTMLDivElement>(null)
   const following = useRef(true)
   const previousLast = useRef<string | null>(null)
@@ -202,7 +204,7 @@ function ConversationChat({ id }: { id: string }) {
       newId: () => crypto.randomUUID(),
       write: request => sendChatText(supabase, id, memberId, request),
       replyTo: () => replyRef.current?.id,
-      sent: () => setReplyTo(null),
+      sent: () => { setReplyTo(null); refreshMessages.current?.() },
       publish: setComposer,
     })
     composer.current = current
@@ -243,22 +245,37 @@ function ConversationChat({ id }: { id: string }) {
         if (error) throw error
         return data as unknown as Conversation | null
       },
-      loadMessages: async () => {
-        const { data, error } = await supabase.from('messages').select('*').eq('conversation_id', id).order('created_at')
-        if (error) throw error
-        return (data ?? []) as Message[]
-      },
+      loadMessages: () => loadChatHistory(supabase, id),
       loadOffers: async () => {
         const { data, error } = await supabase.from('offers').select('*').eq('conversation_id', id).order('created_at')
         if (error) throw error
         return (data ?? []) as Offer[]
       },
       subscribe: (messagesChanged, offersChanged) => {
+        refreshMessages.current = messagesChanged
+        let connected = false
+        function refresh() {
+          if (!document.hidden) { messagesChanged(); offersChanged() }
+        }
+        window.addEventListener('online', refresh)
+        document.addEventListener('visibilitychange', refresh)
+        const timer = window.setInterval(() => { if (!connected) refresh() }, 15000)
         const ch = supabase.channel(`conv-${id}`)
           .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${id}` }, messagesChanged)
           .on('postgres_changes', { event: '*', schema: 'public', table: 'offers', filter: `conversation_id=eq.${id}` }, offersChanged)
-          .subscribe()
-        return () => { void supabase.removeChannel(ch) }
+        try {
+          ch.subscribe(status => {
+            connected = status === 'SUBSCRIBED'
+            if (connected) refresh() // Catch rows committed while the socket was joining.
+          })
+        } catch { /* HTTP refresh stays available when the browser blocks WebSockets. */ }
+        return () => {
+          refreshMessages.current = null
+          window.clearInterval(timer)
+          window.removeEventListener('online', refresh)
+          document.removeEventListener('visibilitychange', refresh)
+          void supabase.removeChannel(ch)
+        }
       },
       publish: setSnapshot,
     })
@@ -436,6 +453,9 @@ function ConversationChat({ id }: { id: string }) {
         <button className="link" onClick={block}>Block</button>
       </div>
       <div className={`messages${reveal ? ' revealing' : ''}`} style={{ ['--reveal' as string]: `${reveal}px`, ['--reveal-o' as string]: String(reveal / 64) }} ref={messageList} onScroll={() => { if (messageList.current) following.current = nearChatBottom(messageList.current); if (following.current) setNewMessages(false) }} onLoadCapture={() => { if (following.current) toLatest() }}>
+        {snapshot.messageStatus === 'loading' && <p className="muted small" role="status">Loading messages…</p>}
+        {snapshot.messageStatus === 'error' && <p className="error small" role="alert">Couldn’t load messages. <button onClick={() => refreshMessages.current?.()}>Try again</button></p>}
+        {snapshot.messageStatus === 'ready' && msgs.length === 0 && <p className="muted small">No messages yet.</p>}
         {msgs.map((m, i) => {
           const q = m.reply_to_id ? byId.get(m.reply_to_id) : undefined
           return (

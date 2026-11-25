@@ -8,6 +8,7 @@ Claim a task by adding your GitHub handle to Owner and linking your branch or pu
 
 | ID | Task | Status | Owner | Depends on | Branch / PR / notes |
 | --- | --- | --- | --- | --- | --- |
+| CHAT-TRANSCRIPT | Show saved messages when opening a chat from Inbox or Notifications | Review | Garv / Codex | — | Branch `fix/chat-transcript-visibility`. Verify seller entry and sending with realtime unavailable. |
 | SEC-01 | Restrict push delivery destinations and enforce expiry when sharing listings | Review | Garv Rao / Codex | 0013 | Branch `fix/SEC-01-push-destinations`. Apply migration 0014 and redeploy the push function after review. Check delivery on a registered device. |
 | FIX-20261107 | Android push registration/delivery diagnostics, notification lifecycle, chat viewport/scroll, documentation reconciliation | Done | Codex at Abhik's request | Migration 0010 applied | [PR #40](https://github.com/garvrao80/iiitdblackmarket/pull/40) merged at `0af7b1e`; 531 tests, 49 Supabase scenarios and phone/desktop Chromium chat checks pass. Migration/function/client deployed, live files matched. Owner confirmed closed-app Android delivery and stable chat size after sending with the Android keyboard open. See docs/current-status.md. |
 | DOC-01 | Establish shared README, task board, contribution guide, and agent instructions | Done | Codex | — | Documentation only; 2026-10-31. |
